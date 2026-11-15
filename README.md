@@ -1,17 +1,90 @@
-# golden_maids
+# Golden Maids
 
-A new Flutter project.
+**Professional Care. Trusted Homes.**
 
-## Getting Started
+Golden Maids is a domestic workforce recruitment and home-services app for the UAE, operated by **Golden Legacy Domestic Workers Services**.
 
-This project is a starting point for a Flutter application.
+- **App:** Flutter (Android, iOS, web)
+- **Backend:** Supabase (PostgreSQL, Auth, Storage) in region `ap-south-1` (Mumbai)
+- **App ID:** `com.goldenmaids.app`
 
-A few resources to get you started if this is your first Flutter project:
+---
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## Requirements
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- Flutter stable **3.44 or newer** (Dart **3.12+**). Check with `flutter --version`.
+- Android Studio (Android) and/or Xcode on macOS (iOS).
+
+## First-time setup
+
+```bash
+git clone https://github.com/goldenlegacymaids-star/golden-maids.git
+cd golden-maids
+flutter pub get
+```
+
+Create your local settings file from the template:
+
+```bash
+cp env.example.json env.json      # macOS / Linux
+copy env.example.json env.json    # Windows
+```
+
+`env.json` is git-ignored and must **never** be committed. The Supabase values are filled in from Step 1.3 onwards.
+
+## Run
+
+```bash
+flutter run --dart-define-from-file=env.json
+```
+
+## Check before every commit
+
+```bash
+flutter analyze   # must report "No issues found!"
+flutter test      # all tests must pass
+```
+
+## Security rules
+
+- Only the Supabase **project URL** and **anon/publishable key** may appear in `env.json`. They are safe in the app because every table is protected by Row Level Security.
+- **Never** put the Supabase `service_role` key, payment-gateway secrets or any other secret in the app, in `env.json` or in Git. Secrets belong in Supabase Edge Function secrets.
+
+## Project structure
+
+```
+lib/
+  main.dart            # entry point only
+  app.dart             # root widget: theme + router
+  core/
+    config/            # build-time settings (env.dart)
+    constants/         # app-wide constants
+    theme/             # colours, typography, spacing (Step 1.2)
+    routing/           # GoRouter setup and route names
+    network/           # API clients
+    services/          # shared services
+    utils/             # helpers
+    widgets/           # shared UI components
+  features/            # one folder per feature module
+    onboarding/  authentication/  home/  services/  recruitment/
+    candidates/  candidate_details/  hiring/  bookings/  visa/
+    contracts/  wallet/  payments/  notifications/  profile/  support/
+  models/
+  repositories/
+assets/
+  images/  icons/  banners/  fonts/
+```
+
+Each feature is split into `presentation/`, `domain/` and `data/` folders as it is built.
+
+## Build progress
+
+| Step | Description | Status |
+|---|---|---|
+| 1.1 | Project skeleton, packages, folder structure, app ID | ✅ Done |
+| 1.2 | Design system (colours, fonts, components) + logo | ⏳ Next |
+| 1.3 | Supabase connection + core database (profiles, roles, addresses, RLS) | — |
+| 1.4 | Splash + onboarding | — |
+| 1.5 | Authentication | — |
+| 1.6 | Bottom navigation + app shell | — |
+| 1.7 | Home screen + service categories | — |
