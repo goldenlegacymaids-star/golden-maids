@@ -435,6 +435,183 @@ def main():
         assert one(c, "select public::text from storage.buckets where id='app-media'") == "true"
     check("Only admins upload to the public media bucket (and only to that bucket)", media_upload_admin_only)
 
+    # --- recruitment ---------------------------------------------------------------
+    rita = new_user(c, "rita@example.com", "Rita Recruiter")
+    c.execute("insert into public.user_roles (user_id, role_id) values (%s, 'recruitment_officer')", (rita,))
+    kenya = one(c, "select candidate_id::text from public.candidate_private_details where full_name='Wanjiru Kamau'")
+    myanmar = one(c, "select candidate_id::text from public.candidate_private_details where full_name='Thandar Aung'")
+    monthly = one(c, "select id::text from public.recruitment_packages where slug='live-in-monthly'")
+    yearly = one(c, "select id::text from public.recruitment_packages where slug='live-in-yearly'")
+    gcc = one(c, "select id::text from public.recruitment_packages where slug='two-year-gcc-sponsor'")
+
+    def test_candidates_seeded():
+        assert one(c, "select count(*) from public.candidates where is_test") == 3
+        assert one(c, "select code from public.candidates where id=%s", (kenya,)).startswith("GM-")
+        expected_age = one(c, "select date_part('year', age(current_date, date '1992-04-12'))::int")
+        assert one(c, "select age from public.candidates where id=%s", (kenya,)) == expected_age
+        assert one(c, "select display_name from public.candidates where id=%s", (kenya,)) == "Wanjiru Kamau"
+    check("TEST candidates seeded with codes, computed ages and allowed names", test_candidates_seeded)
+
+    card = "id, code, display_name, photo_path, nationality, age, designation, accommodation, years_experience, expected_salary, availability_status, available_from, is_featured, is_test, created_at"
+
+    def guest_sees_cards_only():
+        as_user(c, None)
+        try:
+            assert one(c, f"select count(*) from (select {card} from public.candidates) x") == 3
+            for column in ["religion", "marital_status", "bio", "consent_obtained_at"]:
+                expect_denied(c, f"select {column} from public.candidates")
+            expect_denied(c, "select * from public.candidate_private_details")
+            expect_denied(c, "select * from public.candidate_experience")
+            expect_denied(c, "select * from public.candidate_documents")
+            assert one(c, "select count(*) from public.candidate_skills where candidate_id=%s", (kenya,)) == 4
+            assert one(c, "select count(*) from public.candidate_languages where candidate_id=%s", (kenya,)) == 3
+            assert one(c, "select count(*) from public.recruitment_packages") == 3
+            expect_denied(c, "insert into public.hiring_requests (package_id, duration_months, customer_name, customer_phone, emirate) values (%s, 3, 'X', '0501234567', 'Dubai')", (monthly,))
+        finally:
+            reset(c)
+    check("Guest sees candidate cards only (no religion, marital status, history, private details or documents)", guest_sees_cards_only)
+
+    def customer_sees_profile_not_private():
+        as_user(c, alice)
+        try:
+            assert one(c, "select religion from public.candidates where id=%s", (kenya,)) == "Christian"
+            assert one(c, "select count(*) from public.candidate_experience where candidate_id=%s", (kenya,)) == 2
+            assert one(c, "select count(*) from public.candidate_private_details") == 0
+            c.execute("update public.candidates set expected_salary=1 where id=%s", (kenya,))
+            expect_denied(c, "insert into public.candidates (nationality) values ('Kenya')")
+        finally:
+            reset(c)
+        assert one(c, "select expected_salary::int from public.candidates where id=%s", (kenya,)) == 1800
+    check("Customer sees the full profile but never private details, and cannot edit candidates", customer_sees_profile_not_private)
+
+    def hidden_candidates_and_rules():
+        c.execute("update public.candidates set archived_at=now() where id=%s", (myanmar,))
+        as_user(c, alice)
+        try:
+            assert one(c, "select count(*) from public.candidates where id=%s", (myanmar,)) == 0
+            assert one(c, "select count(*) from public.candidate_skills where candidate_id=%s", (myanmar,)) == 0
+        finally:
+            reset(c)
+        as_user(c, rita)
+        try:
+            assert one(c, "select count(*) from public.candidates where id=%s", (myanmar,)) == 1
+            assert one(c, "select full_name from public.candidate_private_details where candidate_id=%s", (myanmar,)) == "Thandar Aung"
+            expect_violation(c, "insert into public.candidates (nationality, is_published) values ('Kenya', true)")
+            new_id = one(c, "insert into public.candidates (nationality) values ('Ethiopia') returning id::text")
+            expect_violation(c, "insert into public.candidate_private_details (candidate_id, full_name, date_of_birth) values (%s, 'Too Young', current_date - interval '16 years')", (new_id,))
+        finally:
+            reset(c)
+        c.execute("update public.candidates set archived_at=null where id=%s", (myanmar,))
+    check("Archived candidates hidden from customers; staff see all; consent required to publish; under-18 rejected", hidden_candidates_and_rules)
+
+    def documents_protected():
+        as_user(c, rita)
+        try:
+            expect_violation(c, "insert into public.candidate_documents (candidate_id, document_type, title, storage_path, is_customer_visible) values (%s, 'passport', 'Passport', 'k/passport.pdf', true)", (kenya,))
+            c.execute("insert into public.candidate_documents (candidate_id, document_type, title, storage_path) values (%s, 'passport', 'Passport', 'k/passport.pdf')", (kenya,))
+            c.execute("insert into public.candidate_documents (candidate_id, document_type, title, storage_path, is_customer_visible) values (%s, 'certificate', 'Housekeeping certificate', 'k/cert.pdf', true)", (kenya,))
+            c.execute("insert into storage.objects (bucket_id, name) values ('candidate-documents', 'k/passport.pdf'), ('candidate-documents', 'k/cert.pdf')")
+        finally:
+            reset(c)
+        as_user(c, alice)
+        try:
+            assert one(c, "select count(*) from public.candidate_documents") == 1
+            assert one(c, "select title from public.candidate_documents") == "Housekeeping certificate"
+            assert one(c, "select count(*) from storage.objects where bucket_id='candidate-documents'") == 1
+            assert one(c, "select name from storage.objects where bucket_id='candidate-documents'") == "k/cert.pdf"
+            expect_denied(c, "insert into storage.objects (bucket_id, name) values ('candidate-photos', 'x.jpg')")
+        finally:
+            reset(c)
+        as_user(c, None)
+        try:
+            assert one(c, "select count(*) from storage.objects where bucket_id='candidate-documents'") == 0
+        finally:
+            reset(c)
+    check("Passports can never be customer-visible; customers open only visible documents; guests none", documents_protected)
+
+    def favourites_private():
+        as_user(c, alice)
+        try:
+            c.execute("insert into public.candidate_favourites (candidate_id) values (%s)", (kenya,))
+            assert one(c, "select count(*) from public.candidate_favourites") == 1
+        finally:
+            reset(c)
+        unpublished = one(c, "insert into public.candidates (nationality) values ('Indonesia') returning id::text")
+        as_user(c, bob)
+        try:
+            assert one(c, "select count(*) from public.candidate_favourites") == 0
+            expect_denied(c, "insert into public.candidate_favourites (candidate_id) values (%s)", (unpublished,))
+            expect_denied(c, "insert into public.candidate_favourites (user_id, candidate_id) values (%s, %s)", (alice, myanmar))
+        finally:
+            reset(c)
+    check("Favourites are private to each customer and only for live candidates", favourites_private)
+
+    req = {}
+
+    def hiring_request_rules():
+        base = "insert into public.hiring_requests (package_id, duration_months, sponsor_nationality, candidate_id, customer_name, customer_phone, emirate) values (%s, %s, %s, %s, 'Alice Customer', '+971501234567', 'Dubai')"
+        as_user(c, alice)
+        try:
+            rid, ref, status = c.execute(base + " returning id::text, reference, status", (monthly, 3, None, kenya)).fetchone()
+            req["id"] = rid
+            assert ref.startswith("HR-") and len(ref) == len("HR-2026-000001"), ref
+            assert status == "submitted"
+            expect_violation(c, base, (monthly, 12, None, kenya))
+            expect_violation(c, base, (yearly, 18, None, kenya))
+            expect_violation(c, base, (gcc, 24, None, kenya))
+            c.execute(base, (gcc, 24, 'AE', kenya))
+            c.execute(base, (yearly, 24, None, None))
+            assert one(c, "select count(*) from public.hiring_requests") == 3
+        finally:
+            reset(c)
+        assert one(c, "select count(*) from public.hiring_request_history where request_id=%s", (req["id"],)) == 1
+    check("Hiring requests: reference generated; duration, sponsor nationality and package rules enforced", hiring_request_rules)
+
+    def hiring_request_privacy_and_cancel():
+        c.execute("update public.candidates set availability_status='hired' where id=%s", (myanmar,))
+        as_user(c, bob)
+        try:
+            assert one(c, "select count(*) from public.hiring_requests") == 0
+            c.execute("update public.hiring_requests set status='cancelled' where id=%s", (req["id"],))
+            expect_violation(c, "insert into public.hiring_requests (package_id, duration_months, candidate_id, customer_name, customer_phone, emirate) values (%s, 2, %s, 'Bob', '0501112222', 'Dubai')", (monthly, myanmar))
+        finally:
+            reset(c)
+        assert one(c, "select status from public.hiring_requests where id=%s", (req["id"],)) == "submitted"
+        as_user(c, alice)
+        try:
+            expect_denied(c, "update public.hiring_requests set status='completed' where id=%s", (req["id"],))
+            expect_denied(c, "update public.hiring_requests set assigned_officer_id=%s where id=%s", (alice, req["id"]))
+            expect_denied(c, "update public.hiring_requests set customer_name='Changed' where id=%s", (req["id"],))
+            c.execute("update public.hiring_requests set status='cancelled' where id=%s", (req["id"],))
+            assert one(c, "select count(*) from public.hiring_request_history where request_id=%s", (req["id"],)) == 2
+        finally:
+            reset(c)
+    check("Customers see only their requests, can only cancel unprocessed ones; unavailable workers rejected", hiring_request_privacy_and_cancel)
+
+    def staff_manage_requests():
+        other = one(c, "select id::text from public.hiring_requests where status='submitted' and package_id=%s", (gcc,))
+        as_user(c, rita)
+        try:
+            assert one(c, "select count(*) from public.hiring_requests") == 3
+            c.execute("update public.hiring_requests set status='shortlisted', assigned_officer_id=%s where id=%s", (rita, other))
+            c.execute("insert into public.hiring_request_history (request_id, status, note, is_customer_visible) values (%s, 'shortlisted', 'Internal: check references', false)", (other,))
+        finally:
+            reset(c)
+        as_user(c, alice)
+        try:
+            assert one(c, "select count(*) from public.hiring_request_history where request_id=%s", (other,)) == 2, "internal notes hidden"
+            expect_denied(c, "update public.hiring_requests set status='cancelled' where id=%s", (other,))
+            expect_denied(c, "insert into public.hiring_request_history (request_id, status) values (%s, 'completed')", (other,))
+        finally:
+            reset(c)
+    check("Recruitment staff manage all requests; internal notes hidden; customers cannot cancel after shortlisting", staff_manage_requests)
+
+    def age_refresh_job():
+        c.execute("update public.candidates set age=null where id=%s", (kenya,))
+        c.execute("select private.refresh_candidate_ages()")
+        assert one(c, "select age from public.candidates where id=%s", (kenya,)) is not None
+    check("Daily age refresh restores ages", age_refresh_job)
+
     # --- report ------------------------------------------------------------------
     c.close()
     print()
