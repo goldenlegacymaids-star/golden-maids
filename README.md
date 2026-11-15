@@ -93,6 +93,10 @@ The **Option A "Sparkle Home"** logo is in `assets/images/` (PNG at 1x/2x/3x, co
 - **WhatsApp code** (Twilio Verify) or **email + password** (6-digit email codes), password reset, guest browsing.
 - Dashboard settings and email templates: see [`docs/supabase_auth_setup.md`](docs/supabase_auth_setup.md).
 
+## Navigation
+
+Four tabs in a floating bottom bar (`StatefulShellRoute`): each keeps its own state. Guests can browse; Bookings, Wallet and account pages show a sign-in prompt. Profile items for features not yet built are labelled **"Coming soon"** and are not tappable until their phase is delivered.
+
 ## App icons
 
 All launcher icons and launch images (Android, iOS, web) are generated from the logo:
@@ -100,6 +104,13 @@ All launcher icons and launch images (Android, iOS, web) are generated from the 
 ```bash
 python3 design/tools/generate_app_icons.py   # needs rsvg-convert + ImageMagick
 ```
+
+## 📌 Pending items
+
+| # | Item | Status |
+|---|---|---|
+| **1** | Replace onboarding (and banner) photos with licensed or own photo-shoot images | Before store release |
+| **2** | Supabase Auth setup ([guide](docs/supabase_auth_setup.md) §1–3: email settings + templates, Twilio Verify + test numbers) and a live sign-in test, then verify the profile + Customer role were created | To revisit |
 
 ## ⚠️ Before store release (checklist)
 
@@ -153,5 +164,5 @@ Each feature is split into `presentation/`, `domain/` and `data/` folders as it 
 | 1.3 | Supabase connection + core database (profiles, roles, addresses, RLS) | ✅ Done |
 | 1.4 | App name + icons, launch screens, splash, onboarding | ✅ Done |
 | 1.5 | Authentication (WhatsApp code, email + password, reset, guest) | ✅ Done |
-| 1.6 | Bottom navigation + app shell | ⏳ Next |
-| 1.7 | Home screen + service categories | — |
+| 1.6 | App shell: bottom navigation (Home, Bookings, Wallet, Profile), profile + edit name | ✅ Done |
+| 1.7 | Home screen + service categories | ⏳ Next |

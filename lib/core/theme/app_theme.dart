@@ -176,6 +176,18 @@ abstract final class AppTheme {
         dragHandleColor: AppColors.border,
         shape: RoundedRectangleBorder(borderRadius: AppRadius.sheet),
       ),
+      tabBarTheme: TabBarThemeData(
+        labelColor: AppColors.primary,
+        unselectedLabelColor: AppColors.textSecondary,
+        labelStyle: AppTypography.labelLarge,
+        unselectedLabelStyle: AppTypography.labelLarge.copyWith(
+          fontWeight: FontWeight.w500,
+        ),
+        indicatorColor: AppColors.primary,
+        indicatorSize: TabBarIndicatorSize.label,
+        dividerColor: AppColors.border,
+        tabAlignment: TabAlignment.start,
+      ),
       progressIndicatorTheme: const ProgressIndicatorThemeData(
         color: AppColors.primary,
         linearTrackColor: AppColors.lightBlue,

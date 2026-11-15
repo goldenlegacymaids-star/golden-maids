@@ -1,56 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:golden_maids/app.dart';
 import 'package:golden_maids/core/routing/app_routes.dart';
-import 'package:golden_maids/core/services/shared_preferences_provider.dart';
-import 'package:golden_maids/features/authentication/data/auth_providers.dart';
 import 'package:golden_maids/features/authentication/domain/auth_repository.dart';
-import 'package:golden_maids/features/home/presentation/temporary_home_screen.dart';
-import 'package:golden_maids/features/onboarding/data/onboarding_repository.dart';
-import 'package:golden_maids/features/onboarding/presentation/splash_screen.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:golden_maids/features/home/presentation/home_screen.dart';
 
 import '../../helpers/fake_auth_repository.dart';
+import '../../helpers/test_app.dart';
 
-/// Starts the app as a returning user (onboarding already seen), on a
-/// phone-sized screen, with [auth] as the backend.
-Future<void> _startApp(WidgetTester tester, FakeAuthRepository auth) async {
-  tester.view.physicalSize = const Size(430, 932);
-  tester.view.devicePixelRatio = 1;
-  addTearDown(tester.view.reset);
+Future<void> _startApp(WidgetTester tester, FakeAuthRepository auth) =>
+    pumpTestApp(tester, auth: auth);
 
-  SharedPreferences.setMockInitialValues({OnboardingRepository.seenKey: true});
-  final prefs = await SharedPreferences.getInstance();
+Future<void> _settle(WidgetTester tester) => settle(tester);
 
-  await tester.pumpWidget(
-    ProviderScope(
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
-        authRepositoryProvider.overrideWithValue(auth),
-      ],
-      child: const GoldenMaidsApp(),
-    ),
-  );
-  await tester.pump(SplashScreen.displayTime);
-  await _settle(tester);
-}
-
-/// Pumps long enough for async work and page transitions to finish.
-/// (The code screen has a running countdown, so pumpAndSettle is avoided.)
-Future<void> _settle(WidgetTester tester) async {
-  for (var i = 0; i < 5; i++) {
-    await tester.pump(const Duration(milliseconds: 200));
-  }
-}
-
-Future<void> _tap(WidgetTester tester, Finder finder) async {
-  await tester.ensureVisible(finder);
-  await tester.pump();
-  await tester.tap(finder);
-  await _settle(tester);
-}
+Future<void> _tap(WidgetTester tester, Finder finder) =>
+    tapAndSettle(tester, finder);
 
 Future<void> _enter(WidgetTester tester, String label, String text) async {
   final field = find.widgetWithText(TextFormField, label);
@@ -213,17 +177,19 @@ void main() {
     await _tap(tester, find.text('Save password'));
 
     expect(auth.lastPasswordSet, 'NewSecret1');
-    expect(find.textContaining('signed in'), findsOneWidget);
+    expect(find.text('Hello, there'), findsOneWidget);
   });
 
-  testWidgets('signed-in user stays signed in, can log out', (tester) async {
+  testWidgets('signed-in user stays signed in, can log out from Profile', (tester) async {
     auth = FakeAuthRepository(
       signedInUser: const AppUser(id: 'u1', fullName: 'Sarah Khan'),
     );
     await _startApp(tester, auth);
     expect(find.text('Hello, Sarah'), findsOneWidget);
 
+    await _tap(tester, find.byIcon(Icons.person_outline_rounded));
     await _tap(tester, find.text('Log Out'));
+    await _tap(tester, find.text('Log out'));
     expect(auth.calls, contains('signOut'));
     expect(find.text('Welcome to Golden Maids'), findsOneWidget);
   });
@@ -234,11 +200,11 @@ void main() {
     auth = FakeAuthRepository(signedInUser: const AppUser(id: 'u1'));
     await _startApp(tester, auth);
 
-    final context = tester.element(find.byType(TemporaryHomeScreen));
+    final context = tester.element(find.byType(HomeScreen));
     GoRouter.of(context).go(AppRoutes.signIn);
     await _settle(tester);
 
-    expect(find.byType(TemporaryHomeScreen), findsOneWidget);
+    expect(find.byType(HomeScreen), findsOneWidget);
     expect(find.text('Welcome back'), findsNothing);
   });
 }

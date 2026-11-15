@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -13,11 +13,16 @@ import '../../features/authentication/presentation/sign_up_screen.dart';
 import '../../features/authentication/presentation/verify_code_args.dart';
 import '../../features/authentication/presentation/verify_code_screen.dart';
 import '../../features/authentication/presentation/welcome_screen.dart';
-import '../../features/home/presentation/temporary_home_screen.dart';
+import '../../features/bookings/presentation/bookings_screen.dart';
+import '../../features/home/presentation/home_screen.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../../features/onboarding/presentation/splash_screen.dart';
+import '../../features/profile/presentation/edit_profile_screen.dart';
+import '../../features/profile/presentation/profile_screen.dart';
+import '../../features/wallet/presentation/wallet_screen.dart';
 import '../config/env.dart';
 import 'app_routes.dart';
+import 'app_shell.dart';
 import 'design_preview_screen.dart';
 
 /// Tells GoRouter to re-run its redirect when the session changes.
@@ -25,10 +30,16 @@ class _RouterRefresh extends ChangeNotifier {
   void notify() => notifyListeners();
 }
 
+/// Pages that require a signed-in user.
+const Set<String> _signedInOnly = {AppRoutes.newPassword, AppRoutes.editProfile};
+
 /// Session-aware redirects:
 /// - signed-in users never see the welcome / sign-in / sign-up screens;
-/// - setting a new password requires the session from a verified reset code;
+/// - account pages (e.g. edit profile, new password) require a session;
 /// - the verification screen needs its arguments (lost on a web refresh).
+///
+/// The main tabs stay open to guests (guest browsing); tabs with private
+/// data show a sign-in prompt instead.
 String? _redirect(AuthRepository auth, GoRouterState state) {
   final location = state.matchedLocation;
   final signedIn = auth.currentUser != null;
@@ -36,7 +47,7 @@ String? _redirect(AuthRepository auth, GoRouterState state) {
   if (signedIn && AppRoutes.guestOnly.contains(location)) {
     return AppRoutes.home;
   }
-  if (!signedIn && location == AppRoutes.newPassword) {
+  if (!signedIn && _signedInOnly.contains(location)) {
     return AppRoutes.signIn;
   }
   if (location == AppRoutes.verifyCode && state.extra is! VerifyCodeArgs) {
@@ -49,9 +60,12 @@ String? _redirect(AuthRepository auth, GoRouterState state) {
 final appRouterProvider = Provider<GoRouter>((ref) {
   final auth = ref.watch(authRepositoryProvider);
   final refresh = _RouterRefresh();
+  // Navigator for full-screen pages shown above the bottom navigation.
+  final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
   final subscription = auth.authStateChanges().listen((_) => refresh.notify());
 
   final router = GoRouter(
+    navigatorKey: rootNavigatorKey,
     initialLocation: AppRoutes.splash,
     debugLogDiagnostics: !Env.isProduction,
     refreshListenable: refresh,
@@ -98,10 +112,62 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'new-password',
         builder: (context, state) => const NewPasswordScreen(),
       ),
-      GoRoute(
-        path: AppRoutes.home,
-        name: 'home',
-        builder: (context, state) => const TemporaryHomeScreen(),
+      // Main tabs. Each branch keeps its own navigation stack and state.
+      StatefulShellRoute(
+        builder: (context, state, navigationShell) =>
+            AppShell(navigationShell: navigationShell),
+        navigatorContainerBuilder: (context, navigationShell, children) =>
+            FadingTabContainer(
+              currentIndex: navigationShell.currentIndex,
+              children: children,
+            ),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.home,
+                name: 'home',
+                builder: (context, state) => const HomeScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.bookings,
+                name: 'bookings',
+                builder: (context, state) => const BookingsScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.wallet,
+                name: 'wallet',
+                builder: (context, state) => const WalletScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.profile,
+                name: 'profile',
+                builder: (context, state) => const ProfileScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'edit',
+                    name: 'edit-profile',
+                    // Full screen, above the bottom navigation.
+                    parentNavigatorKey: rootNavigatorKey,
+                    builder: (context, state) => const EditProfileScreen(),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
       ),
       if (!Env.isProduction)
         GoRoute(

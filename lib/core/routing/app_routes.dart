@@ -13,8 +13,14 @@ abstract final class AppRoutes {
   static const String forgotPassword = '/forgot-password';
   static const String newPassword = '/new-password';
 
-  /// TEMPORARY home until the app shell is built in Step 1.6.
+  // Main tabs (bottom navigation)
   static const String home = '/home';
+  static const String bookings = '/bookings';
+  static const String wallet = '/wallet';
+  static const String profile = '/profile';
+
+  // Profile
+  static const String editProfile = '/profile/edit';
 
   /// Development screen showing every design-system component
   /// (not available in production builds).
