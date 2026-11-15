@@ -6,6 +6,12 @@ abstract final class AppAssets {
   static const String logoIcon = 'assets/images/logo_icon.png';
   static const String logoIconWhite = 'assets/images/logo_icon_white.png';
 
+  // Onboarding photos.
+  // TODO(release): replace with licensed or own photo-shoot images.
+  static const String onboarding1 = 'assets/images/onboarding/onboarding_1.jpg';
+  static const String onboarding2 = 'assets/images/onboarding/onboarding_2.jpg';
+  static const String onboarding3 = 'assets/images/onboarding/onboarding_3.jpg';
+
   // Font licences
   static const String poppinsLicence = 'assets/fonts/OFL-Poppins.txt';
   static const String interLicence = 'assets/fonts/OFL-Inter.txt';

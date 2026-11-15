@@ -87,6 +87,20 @@ All UI must use the shared design system. Do not hard-code colours, fonts or siz
 
 The **Option A "Sparkle Home"** logo is in `assets/images/` (PNG at 1x/2x/3x, colour and white versions) with master SVGs in `design/logo/`.
 
+## App icons
+
+All launcher icons and launch images (Android, iOS, web) are generated from the logo:
+
+```bash
+python3 design/tools/generate_app_icons.py   # needs rsvg-convert + ImageMagick
+```
+
+## ⚠️ Before store release (checklist)
+
+- [ ] **Replace the onboarding photos** in `assets/images/onboarding/` with licensed stock or the client's own photo-shoot images (same file names, portrait, at least 1080 × 1440 px). The current images are temporary and their licence is unconfirmed. The banner candidates in `design/photos/` need the same treatment.
+- [ ] Android release signing config (currently debug keys).
+- [ ] Privacy policy and terms URLs.
+
 ## Security rules
 
 - Only the Supabase **project URL** and **publishable key** may appear in `env.json`. They are safe in the app because every table is protected by Row Level Security.
@@ -129,7 +143,7 @@ Each feature is split into `presentation/`, `domain/` and `data/` folders as it 
 | 1.1 | Project skeleton, packages, folder structure, app ID | ✅ Done |
 | 1.2 | Design system (colours, fonts, components) + logo | ✅ Done |
 | 1.3 | Supabase connection + core database (profiles, roles, addresses, RLS) | ✅ Done |
-| 1.4 | Splash + onboarding | ⏳ Next |
-| 1.5 | Authentication | — |
+| 1.4 | App name + icons, launch screens, splash, onboarding | ✅ Done |
+| 1.5 | Authentication | ⏳ Next |
 | 1.6 | Bottom navigation + app shell | — |
 | 1.7 | Home screen + service categories | — |

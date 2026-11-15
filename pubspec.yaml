@@ -17,6 +17,8 @@ dependencies:
   go_router: ^18.1.4
   # Backend (Auth, Database, Storage) – connected in Step 1.3
   supabase_flutter: ^2.18.3
+  # Local settings (e.g. onboarding seen)
+  shared_preferences: ^2.5.6
   # Images & loading states
   cached_network_image: ^4.0.3
   shimmer: ^3.0.0
@@ -35,6 +37,7 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/images/onboarding/
     - assets/icons/
     - assets/banners/
     # Font licences (SIL OFL) – shown on the app's licences page.
