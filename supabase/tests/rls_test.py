@@ -787,6 +787,25 @@ def main():
             reset(c)
     check("save_candidate: all-or-nothing save with private details and lists; consent/age rules; customers and guests refused", save_candidate_rules)
 
+    def photo_records_for_staff():
+        c.execute("insert into storage.objects (bucket_id, name) values ('candidate-photos', 'k/photo-1.jpg')")
+        as_user(c, rita)
+        try:
+            assert one(c, "select count(*) from storage.objects where bucket_id='candidate-photos' and name='k/photo-1.jpg'") == 1
+            c.execute("delete from storage.objects where bucket_id='candidate-photos' and name='k/photo-1.jpg'")
+        finally:
+            reset(c)
+        assert one(c, "select count(*) from storage.objects where name='k/photo-1.jpg'") == 0, "staff could not remove the photo"
+        c.execute("insert into storage.objects (bucket_id, name) values ('candidate-photos', 'k/photo-2.jpg')")
+        as_user(c, alice)
+        try:
+            assert one(c, "select count(*) from storage.objects where bucket_id='candidate-photos'") == 0
+            c.execute("delete from storage.objects where name='k/photo-2.jpg'")
+        finally:
+            reset(c)
+        assert one(c, "select count(*) from storage.objects where name='k/photo-2.jpg'") == 1, "customer removed a photo"
+    check("Staff can see and remove candidate photo files; customers cannot", photo_records_for_staff)
+
     # --- report ------------------------------------------------------------------
     c.close()
     print()
