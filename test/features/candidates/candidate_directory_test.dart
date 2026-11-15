@@ -195,6 +195,8 @@ void main() {
       final guest = FakeAuthRepository();
       addTearDown(guest.dispose);
       await pumpTestApp(tester, auth: guest, candidates: candidates);
+      // Guests start on the welcome screen.
+      await tapAndSettle(tester, find.text('Continue as guest'));
 
       await tapAndSettle(tester, find.text('Wanjiru Kamau'));
       expect(find.text('Sign in to view Wanjiru Kamau'), findsOneWidget);
