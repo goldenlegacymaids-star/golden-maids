@@ -28,8 +28,6 @@ class PageScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final trailingWidget = trailing;
-
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark,
       child: Scaffold(
@@ -69,7 +67,7 @@ class PageScaffold extends StatelessWidget {
                           ),
                         ),
                       ),
-                      if (trailingWidget != null) trailingWidget,
+                      ?trailing,
                     ],
                   ),
                 ),
