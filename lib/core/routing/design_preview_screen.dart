@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../constants/app_constants.dart';
 import '../errors/app_failure.dart';
+import '../services/supabase_providers.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_radius.dart';
 import '../theme/app_spacing.dart';
@@ -22,14 +24,15 @@ import '../widgets/skeleton.dart';
 /// TEMPORARY screen showing every design-system component for review.
 ///
 /// Deleted in Step 1.4, when the splash screen becomes the first route.
-class DesignPreviewScreen extends StatefulWidget {
+class DesignPreviewScreen extends ConsumerStatefulWidget {
   const DesignPreviewScreen({super.key});
 
   @override
-  State<DesignPreviewScreen> createState() => _DesignPreviewScreenState();
+  ConsumerState<DesignPreviewScreen> createState() =>
+      _DesignPreviewScreenState();
 }
 
-class _DesignPreviewScreenState extends State<DesignPreviewScreen> {
+class _DesignPreviewScreenState extends ConsumerState<DesignPreviewScreen> {
   static const _categories = [
     'All',
     'Cleaning',
@@ -76,6 +79,7 @@ class _DesignPreviewScreenState extends State<DesignPreviewScreen> {
             ),
             children: [
               _header(),
+              _section('Backend', _backendStatus()),
               _section('Logo', _logos()),
               _section('Colours', _colours()),
               _section('Typography', _typography()),
@@ -126,6 +130,57 @@ class _DesignPreviewScreenState extends State<DesignPreviewScreen> {
           const SizedBox(height: AppSpacing.sm),
           child,
         ],
+      ),
+    );
+  }
+
+  Widget _backendStatus() {
+    final status = ref.watch(backendStatusProvider);
+
+    Widget row(IconData icon, Color color, String title, String subtitle) {
+      return Row(
+        children: [
+          Icon(icon, color: color, size: 28),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: AppTypography.titleMedium),
+                Text(subtitle, style: AppTypography.bodySmall),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
+    return AppCard(
+      child: status.when(
+        loading: () => row(
+          Icons.sync_rounded,
+          AppColors.primary,
+          'Backend: checking…',
+          'Contacting the Golden Maids server',
+        ),
+        data: (value) => switch (value) {
+          BackendStatus.connected => row(
+            Icons.check_circle_rounded,
+            AppColors.success,
+            'Backend: connected',
+            'Supabase database reachable',
+          ),
+          BackendStatus.notConfigured => row(
+            Icons.info_outline_rounded,
+            AppColors.warning,
+            'Backend: not configured',
+            'Add the Supabase settings to env.json',
+          ),
+        },
+        error: (error, _) => ErrorState(
+          failure: AppFailure.from(error),
+          onRetry: () => ref.invalidate(backendStatusProvider),
+        ),
       ),
     );
   }

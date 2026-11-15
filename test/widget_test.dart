@@ -14,5 +14,7 @@ void main() {
     expect(find.text('Design System'), findsOneWidget);
     expect(find.text(AppConstants.appName), findsOneWidget);
     expect(find.byType(AppLogo), findsWidgets);
+    // Tests run without env.json, so the backend card reports that.
+    expect(find.text('Backend: not configured'), findsOneWidget);
   });
 }
