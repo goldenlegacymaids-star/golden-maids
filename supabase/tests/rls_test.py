@@ -684,6 +684,48 @@ def main():
             reset(c)
     check("Recruitment staff read all enquiries and update status only; other staff see none", staff_handle_enquiries)
 
+    # --- staff status updates with notes (update_hiring_status) ---------------
+    def status_update_with_note():
+        as_user(c, alice)
+        try:
+            rid = one(c, "insert into public.hiring_requests (package_id, duration_months, candidate_id, customer_name, customer_phone, emirate) values (%s, 2, %s, 'Alice Customer', '+971501234567', 'Dubai') returning id::text", (monthly, kenya))
+        finally:
+            reset(c)
+        as_user(c, rita)
+        try:
+            c.execute("select public.update_hiring_status(%s, 'under_review', '  We are reviewing your request.  ', true)", (rid,))
+            rows = c.execute("select status, note, is_customer_visible, created_by::text from public.hiring_request_history where request_id=%s order by id", (rid,)).fetchall()
+            assert [r[0] for r in rows] == ["submitted", "under_review"], rows
+            assert rows[1][1] == "We are reviewing your request." and rows[1][2] is True and rows[1][3] == rita, rows[1]
+            # Internal note without a status change.
+            c.execute("select public.update_hiring_status(%s, 'under_review', 'Customer prefers Kenyan maids.', false)", (rid,))
+            # Status change without a note; empty note-only call does nothing.
+            c.execute("select public.update_hiring_status(%s, 'shortlisted')", (rid,))
+            c.execute("select public.update_hiring_status(%s, 'shortlisted', '   ', true)", (rid,))
+            rows = c.execute("select status, note, is_customer_visible from public.hiring_request_history where request_id=%s order by id", (rid,)).fetchall()
+            assert rows == [("submitted", "", True), ("under_review", "We are reviewing your request.", True),
+                            ("under_review", "Customer prefers Kenyan maids.", False), ("shortlisted", "", True)], rows
+            expect_violation(c, "select public.update_hiring_status(%s, 'done')", (rid,))
+            expect_violation(c, "select public.update_hiring_status(%s, 'rejected', %s)", (rid, "x" * 2001))
+        finally:
+            reset(c)
+        as_user(c, alice)
+        try:
+            notes = [r[0] for r in c.execute("select note from public.hiring_request_history where request_id=%s order by id", (rid,)).fetchall()]
+            assert "Customer prefers Kenyan maids." not in notes, "internal note leaked to customer"
+            assert len(notes) == 3, notes
+            expect_denied(c, "select public.update_hiring_status(%s, 'completed', 'hack', true)", (rid,))
+            # The customer's own cancel still records a plain entry.
+        finally:
+            reset(c)
+        as_user(c, None)
+        try:
+            expect_denied(c, "select public.update_hiring_status(%s, 'completed')", (rid,))
+        finally:
+            reset(c)
+        assert one(c, "select status from public.hiring_requests where id=%s", (rid,)) == "shortlisted"
+    check("Staff status updates: note on the same timeline entry, internal notes hidden, customers and guests refused", status_update_with_note)
+
     # --- report ------------------------------------------------------------------
     c.close()
     print()
