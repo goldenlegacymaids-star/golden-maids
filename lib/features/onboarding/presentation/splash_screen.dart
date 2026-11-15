@@ -11,10 +11,11 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_logo.dart';
+import '../../authentication/data/auth_providers.dart';
 import '../data/onboarding_repository.dart';
 
 /// Branded splash. Shows the logo briefly, then opens onboarding on first
-/// launch, or skips it for returning users.
+/// launch; returning users go home if signed in, otherwise to Welcome.
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
@@ -65,7 +66,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     if (!mounted) return;
 
     final seen = ref.read(onboardingRepositoryProvider).hasSeenOnboarding;
-    context.go(seen ? AppRoutes.afterOnboarding : AppRoutes.onboarding);
+    final signedIn = ref.read(authRepositoryProvider).currentUser != null;
+    context.go(
+      !seen
+          ? AppRoutes.onboarding
+          : signedIn
+          ? AppRoutes.home
+          : AppRoutes.afterOnboarding,
+    );
   }
 
   @override

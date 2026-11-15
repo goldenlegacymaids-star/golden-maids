@@ -61,6 +61,7 @@ Schema changes are made **only** through SQL migrations in `supabase/migrations/
 | `profiles` | One per user, created automatically on sign-up with the Customer role |
 | `addresses` | Saved customer addresses (UAE emirates validated, GCC-ready) |
 | `admin_audit_logs` | Append-only audit trail of administrative actions |
+| `app_settings` | Remote switches (e.g. `auth.sms_fallback_enabled`); admins edit values only, audit-logged |
 
 Role checks used by policies live in the private schema: `private.has_role()`, `private.has_any_role()`, `private.is_admin()`, `private.is_staff()`.
 
@@ -87,6 +88,11 @@ All UI must use the shared design system. Do not hard-code colours, fonts or siz
 
 The **Option A "Sparkle Home"** logo is in `assets/images/` (PNG at 1x/2x/3x, colour and white versions) with master SVGs in `design/logo/`.
 
+## Authentication
+
+- **WhatsApp code** (Twilio Verify) or **email + password** (6-digit email codes), password reset, guest browsing.
+- Dashboard settings and email templates: see [`docs/supabase_auth_setup.md`](docs/supabase_auth_setup.md).
+
 ## App icons
 
 All launcher icons and launch images (Android, iOS, web) are generated from the logo:
@@ -98,6 +104,8 @@ python3 design/tools/generate_app_icons.py   # needs rsvg-convert + ImageMagick
 ## ⚠️ Before store release (checklist)
 
 - [ ] **Replace the onboarding photos** in `assets/images/onboarding/` with licensed stock or the client's own photo-shoot images (same file names, portrait, at least 1080 × 1440 px). The current images are temporary and their licence is unconfirmed. The banner candidates in `design/photos/` need the same treatment.
+- [ ] Custom SMTP with the client's domain, and email templates ([guide](docs/supabase_auth_setup.md)).
+- [ ] Meta Business Verification + WhatsApp sender connected to Twilio Verify.
 - [ ] Android release signing config (currently debug keys).
 - [ ] Privacy policy and terms URLs.
 
@@ -144,6 +152,6 @@ Each feature is split into `presentation/`, `domain/` and `data/` folders as it 
 | 1.2 | Design system (colours, fonts, components) + logo | ✅ Done |
 | 1.3 | Supabase connection + core database (profiles, roles, addresses, RLS) | ✅ Done |
 | 1.4 | App name + icons, launch screens, splash, onboarding | ✅ Done |
-| 1.5 | Authentication | ⏳ Next |
-| 1.6 | Bottom navigation + app shell | — |
+| 1.5 | Authentication (WhatsApp code, email + password, reset, guest) | ✅ Done |
+| 1.6 | Bottom navigation + app shell | ⏳ Next |
 | 1.7 | Home screen + service categories | — |

@@ -35,10 +35,46 @@ sealed class AppFailure implements Exception {
         cause: error,
       );
     }
-    // Supabase Auth messages are written for end users
-    // (e.g. "Invalid login credentials").
+    final message = _authMessages[error.code];
+    if (message != null) {
+      return ValidationFailure(message: message, cause: error);
+    }
+    // Other Supabase Auth messages are written for end users.
     return AuthFailure(message: error.message, cause: error);
   }
+
+  /// Friendly messages for Supabase Auth error codes
+  /// (https://supabase.com/docs/guides/auth/debugging/error-codes).
+  static const Map<String, String> _authMessages = {
+    'invalid_credentials': 'Incorrect email or password.',
+    'email_not_confirmed':
+        'Please verify your email address. Enter the code we sent you.',
+    'otp_expired': 'This code is incorrect or has expired. '
+        'Please check it or request a new one.',
+    'user_already_exists': 'An account already exists. Please sign in.',
+    'email_exists': 'An account with this email already exists. '
+        'Please sign in.',
+    'phone_exists': 'An account with this number already exists. '
+        'Please sign in.',
+    'otp_disabled': 'No account found with this number. '
+        'Please create an account first.',
+    'user_not_found': 'No account found. Please create an account first.',
+    'weak_password': 'Please choose a stronger password: at least 8 '
+        'characters with letters and numbers.',
+    'same_password': 'Your new password must be different from the old one.',
+    'over_email_send_rate_limit':
+        'Too many emails sent. Please wait a few minutes and try again.',
+    'over_sms_send_rate_limit':
+        'Too many codes sent. Please wait a few minutes and try again.',
+    'over_request_rate_limit':
+        'Too many attempts. Please wait a few minutes and try again.',
+    'sms_send_failed': "We couldn't send the code. Please check the number "
+        'and try again.',
+    'phone_provider_disabled': 'Phone sign-in is not available right now. '
+        'Please use email instead.',
+    'email_address_invalid': 'Please enter a valid email address.',
+    'signup_disabled': 'New accounts cannot be created right now.',
+  };
 
   static AppFailure _fromPostgrest(PostgrestException error) {
     return switch (error.code) {

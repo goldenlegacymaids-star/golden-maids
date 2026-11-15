@@ -316,6 +316,47 @@ def main():
         assert one(c, "select area from public.addresses where id=%s", (addr["a1"],)) == "Marina"
     check("Booking manager can view (not edit) customer addresses", booking_manager_reads)
 
+    # --- app settings ------------------------------------------------------------
+    c.execute("insert into public.app_settings (key, value, is_public) values ('internal.secret_flag', 'true', false)")
+
+    def guest_reads_public_settings_only():
+        as_user(c, None)
+        try:
+            assert one(c, "select value::text from public.app_settings where key='auth.sms_fallback_enabled'") == "false"
+            assert one(c, "select count(*) from public.app_settings where key='internal.secret_flag'") == 0
+            expect_denied(c, "update public.app_settings set value='true' where key='auth.sms_fallback_enabled'")
+        finally:
+            reset(c)
+    check("Guest reads public settings only and cannot change them", guest_reads_public_settings_only)
+
+    def customer_cannot_change_settings():
+        as_user(c, alice)
+        try:
+            assert one(c, "select count(*) from public.app_settings where key='internal.secret_flag'") == 0
+            c.execute("update public.app_settings set value='true' where key='auth.sms_fallback_enabled'")
+            expect_denied(c, "insert into public.app_settings (key, value) values ('x.y','1')")
+            expect_denied(c, "delete from public.app_settings")
+        finally:
+            reset(c)
+        assert one(c, "select value::text from public.app_settings where key='auth.sms_fallback_enabled'") == "false"
+    check("Customer cannot change, add or delete settings", customer_cannot_change_settings)
+
+    def admin_changes_value_audited():
+        as_user(c, ada)
+        try:
+            assert one(c, "select count(*) from public.app_settings where key='internal.secret_flag'") == 1
+            c.execute("update public.app_settings set value='true' where key='auth.sms_fallback_enabled'")
+            expect_denied(c, "update public.app_settings set is_public=false where key='auth.sms_fallback_enabled'")
+            expect_denied(c, "update public.app_settings set updated_by=%s where key='auth.sms_fallback_enabled'", (sam,))
+            expect_denied(c, "insert into public.app_settings (key, value) values ('x.y','1')")
+            expect_denied(c, "delete from public.app_settings")
+        finally:
+            reset(c)
+        assert one(c, "select value::text from public.app_settings where key='auth.sms_fallback_enabled'") == "true"
+        assert one(c, "select updated_by::text from public.app_settings where key='auth.sms_fallback_enabled'") == ada
+        assert one(c, "select count(*) from public.admin_audit_logs where action='setting.updated' and entity_id='auth.sms_fallback_enabled' and actor_id=%s", (ada,)) == 1
+    check("Admin changes a value only; change is recorded and audit-logged", admin_changes_value_audited)
+
     # --- report ------------------------------------------------------------------
     c.close()
     print()

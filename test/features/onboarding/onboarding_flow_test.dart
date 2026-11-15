@@ -22,9 +22,7 @@ Future<void> _startApp(WidgetTester tester, SharedPreferences prefs) async {
   );
 }
 
-/// Lets the splash finish and the next screen appear. The design preview has
-/// looping shimmer animations, so fixed pumps are used instead of
-/// pumpAndSettle where it may be on screen.
+/// Lets the splash finish and the next screen appear.
 Future<void> _passSplash(WidgetTester tester) async {
   await tester.pump(SplashScreen.displayTime);
   await tester.pump(const Duration(milliseconds: 500));
@@ -44,15 +42,15 @@ void main() {
     expect(find.text(onboardingPages[0].title), findsOneWidget);
   });
 
-  testWidgets('returning user skips onboarding', (tester) async {
+  testWidgets('returning signed-out user skips onboarding to Welcome', (
+    tester,
+  ) async {
     final prefs = await _preferences({OnboardingRepository.seenKey: true});
     await _startApp(tester, prefs);
     await _passSplash(tester);
 
     expect(find.text(onboardingPages[0].title), findsNothing);
-    expect(find.text('Design System'), findsOneWidget);
-    // Tests run without env.json, so the backend card reports that.
-    expect(find.text('Backend: not configured'), findsOneWidget);
+    expect(find.text('Welcome to Golden Maids'), findsOneWidget);
   });
 
   testWidgets('Next moves through the pages; last page shows Get Started', (
@@ -85,7 +83,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
 
     expect(prefs.getBool(OnboardingRepository.seenKey), isTrue);
-    expect(find.text('Design System'), findsOneWidget);
+    expect(find.text('Welcome to Golden Maids'), findsOneWidget);
   });
 
   testWidgets('Get Started finishes onboarding and remembers it', (
@@ -105,6 +103,6 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
 
     expect(prefs.getBool(OnboardingRepository.seenKey), isTrue);
-    expect(find.text('Design System'), findsOneWidget);
+    expect(find.text('Welcome to Golden Maids'), findsOneWidget);
   });
 }
