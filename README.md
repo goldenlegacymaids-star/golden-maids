@@ -195,4 +195,5 @@ Each feature is split into `presentation/`, `domain/` and `data/` folders as it 
 | 2.1 | Recruitment database: packages, candidates, favourites, hiring requests, private storage, 3 TEST candidates | ✅ Done |
 | 2.2 | Candidate directory (*Find a Maid*: search, nationality, job type, package, skills, availability, sort) + *Featured Maids* on Home | ✅ Done |
 | 2.3 | Candidate profile, favourites (Saved Maids), Contact Agency (call, WhatsApp, email), Request Info | ✅ Done |
-| 2.4 | Hiring workflow + My Hiring Requests | ⏳ Next |
+| 2.4 | Hiring workflow (company visa monthly/yearly, 2-year GCC sponsor with nationality, maid choice or agency recommendation, review, reference) + My Hiring Requests (status timeline, cancel before shortlisting) | ✅ Done |
+| **Phase 3** | Next phase (to be planned with the client) | ⏳ Next |

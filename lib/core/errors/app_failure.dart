@@ -78,6 +78,13 @@ sealed class AppFailure implements Exception {
 
   static AppFailure _fromPostgrest(PostgrestException error) {
     return switch (error.code) {
+      // A database rule refusing an action, with a message written for
+      // customers (e.g. "You can only cancel a request that has not been
+      // processed yet.").
+      '42501'
+          when !error.message.contains('permission denied') &&
+              !error.message.contains('violates') =>
+        PermissionFailure(message: error.message, cause: error),
       // Row Level Security / missing privilege.
       '42501' => PermissionFailure(cause: error),
       // .single() found no row.

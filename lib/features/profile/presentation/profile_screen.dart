@@ -99,9 +99,11 @@ class ProfileScreen extends ConsumerWidget {
                     title: 'Saved Maids',
                     onTap: () => unawaited(context.push(AppRoutes.savedMaids)),
                   ),
-                  const ProfileMenuTile(
+                  ProfileMenuTile(
                     icon: Icons.assignment_ind_rounded,
                     title: 'My Hiring Requests',
+                    onTap: () =>
+                        unawaited(context.push(AppRoutes.hiringRequests)),
                   ),
                   const ProfileMenuTile(
                     icon: Icons.flight_rounded,

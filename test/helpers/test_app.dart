@@ -6,6 +6,7 @@ import 'package:golden_maids/core/services/external_launcher.dart';
 import 'package:golden_maids/core/services/shared_preferences_provider.dart';
 import 'package:golden_maids/features/authentication/data/auth_providers.dart';
 import 'package:golden_maids/features/candidates/data/candidate_repository.dart';
+import 'package:golden_maids/features/hiring/data/hiring_repository.dart';
 import 'package:golden_maids/features/onboarding/data/onboarding_repository.dart';
 import 'package:golden_maids/features/onboarding/presentation/splash_screen.dart';
 import 'package:golden_maids/features/profile/data/profile_repository.dart';
@@ -15,6 +16,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'fake_auth_repository.dart';
 import 'fake_candidate_repository.dart';
 import 'fake_catalog_repository.dart';
+import 'fake_hiring_repository.dart';
 import 'fake_profile_repository.dart';
 
 /// Starts the app as a returning user (onboarding already seen) on a
@@ -26,6 +28,7 @@ Future<void> pumpTestApp(
   FakeCatalogRepository? catalog,
   FakeCandidateRepository? candidates,
   FakeLauncher? launcher,
+  FakeHiringRepository? hiring,
   Map<String, Object> preferences = const {},
 }) async {
   tester.view.physicalSize = const Size(430, 932);
@@ -52,6 +55,9 @@ Future<void> pumpTestApp(
         ),
         candidateRepositoryProvider.overrideWithValue(
           candidates ?? FakeCandidateRepository(),
+        ),
+        hiringRepositoryProvider.overrideWithValue(
+          hiring ?? FakeHiringRepository(),
         ),
         externalLauncherProvider.overrideWithValue(
           (launcher ?? FakeLauncher()).call,

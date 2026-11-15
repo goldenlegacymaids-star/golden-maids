@@ -91,10 +91,10 @@ void main() {
     await pumpTestApp(tester, auth: auth, profiles: profiles);
     await openTab(tester, _profileIcon);
 
-    // 4 activity + 3 account + 3 support items are not built yet.
-    expect(find.text('Coming soon'), findsNWidgets(10));
+    // 3 activity + 3 account + 3 support items are not built yet.
+    expect(find.text('Coming soon'), findsNWidgets(9));
 
-    await tapAndSettle(tester, find.text('My Hiring Requests'));
+    await tapAndSettle(tester, find.text('My Visa Applications'));
     expect(find.text('Sarah Khan'), findsOneWidget); // still on Profile
 
     await tapAndSettle(tester, find.text('My Bookings'));

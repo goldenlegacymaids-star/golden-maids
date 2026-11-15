@@ -17,6 +17,9 @@ import '../../features/bookings/presentation/bookings_screen.dart';
 import '../../features/candidates/presentation/candidate_directory_screen.dart';
 import '../../features/candidates/presentation/candidate_profile_screen.dart';
 import '../../features/candidates/presentation/saved_maids_screen.dart';
+import '../../features/hiring/presentation/hire_screen.dart';
+import '../../features/hiring/presentation/hiring_request_screen.dart';
+import '../../features/hiring/presentation/my_hiring_requests_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/notifications/presentation/notifications_screen.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
@@ -42,12 +45,15 @@ const Set<String> _signedInOnly = {
   AppRoutes.newPassword,
   AppRoutes.editProfile,
   AppRoutes.savedMaids,
+  AppRoutes.hirePath,
+  AppRoutes.hiringRequests,
 };
 
 bool _needsSignIn(String location) =>
     _signedInOnly.contains(location) ||
-    // Full candidate profiles are for signed-in users only.
-    location.startsWith(AppRoutes.candidatePrefix);
+    // Full candidate profiles and request details are for signed-in users.
+    location.startsWith(AppRoutes.candidatePrefix) ||
+    location.startsWith('${AppRoutes.hiringRequests}/');
 
 /// Session-aware redirects:
 /// - signed-in users never see the welcome / sign-in / sign-up screens;
@@ -130,6 +136,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const NewPasswordScreen(),
       ),
       GoRoute(
+        path: AppRoutes.hirePath,
+        name: 'hire',
+        builder: (context, state) =>
+            HireScreen(candidateId: state.uri.queryParameters['maid']),
+      ),
+      GoRoute(
         path: '${AppRoutes.candidatePrefix}:id',
         name: 'candidate',
         builder: (context, state) =>
@@ -210,6 +222,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 name: 'profile',
                 builder: (context, state) => const ProfileScreen(),
                 routes: [
+                  GoRoute(
+                    path: 'hiring-requests',
+                    name: 'hiring-requests',
+                    builder: (context, state) =>
+                        const MyHiringRequestsScreen(),
+                    routes: [
+                      GoRoute(
+                        path: ':id',
+                        name: 'hiring-request',
+                        builder: (context, state) => HiringRequestScreen(
+                          requestId: state.pathParameters['id']!,
+                        ),
+                      ),
+                    ],
+                  ),
                   GoRoute(
                     path: 'saved-maids',
                     name: 'saved-maids',

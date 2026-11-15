@@ -31,6 +31,16 @@ String? salaryLabel(Candidate candidate) {
   return salary == null ? null : '${Formatters.aed(salary)} / month';
 }
 
+/// "AED 2,500 / month", "AED 9,000" or "Price on request" (prices are set
+/// by administrators).
+String packagePriceLabel(RecruitmentPackage package) {
+  final price = package.price;
+  if (price == null) return 'Price on request';
+  return package.priceUnit == 'per_month'
+      ? '${Formatters.aed(price)} / month'
+      : Formatters.aed(price);
+}
+
 /// Candidate photo, or a person icon when none has been uploaded.
 class CandidatePhoto extends StatelessWidget {
   const CandidatePhoto({

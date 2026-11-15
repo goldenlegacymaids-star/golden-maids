@@ -30,9 +30,18 @@ abstract final class AppRoutes {
   static const String candidatePrefix = '/maid/';
   static String candidate(String id) => '$candidatePrefix$id';
 
+  /// Hiring form: full screen. With [candidateId], that maid is
+  /// pre-selected.
+  static const String hirePath = '/hire';
+  static String hire({String? candidateId}) => candidateId == null
+      ? hirePath
+      : '$hirePath?maid=${Uri.encodeQueryComponent(candidateId)}';
+
   // Profile
   static const String editProfile = '/profile/edit';
   static const String savedMaids = '/profile/saved-maids';
+  static const String hiringRequests = '/profile/hiring-requests';
+  static String hiringRequest(String id) => '$hiringRequests/$id';
 
   /// Development screen showing every design-system component
   /// (not available in production builds).

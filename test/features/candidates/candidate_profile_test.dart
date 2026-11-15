@@ -95,7 +95,7 @@ void main() {
 
       await _scrollTo(tester, find.text('Housekeeping certificate'));
       await _scrollTo(tester, find.text('Hire this maid'));
-      expect(find.text('Coming soon'), findsOneWidget);
+      expect(find.text('Hire Wanjiru Kamau'), findsOneWidget);
     });
 
     testWidgets('a shared document opens through a short-lived link', (

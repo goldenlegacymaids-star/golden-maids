@@ -78,6 +78,38 @@ void main() {
       );
     });
 
+    test('database refusals show their message; raw permission errors do '
+        'not', () {
+      expect(
+        AppFailure.from(
+          const PostgrestException(
+            message: 'You can only cancel a request that has not been '
+                'processed yet.',
+            code: '42501',
+          ),
+        ).message,
+        'You can only cancel a request that has not been processed yet.',
+      );
+      expect(
+        AppFailure.from(
+          const PostgrestException(
+            message: 'permission denied for table hiring_requests',
+            code: '42501',
+          ),
+        ).message,
+        const PermissionFailure().message,
+      );
+      expect(
+        AppFailure.from(
+          const PostgrestException(
+            message: 'new row violates row-level security policy',
+            code: '42501',
+          ),
+        ).message,
+        const PermissionFailure().message,
+      );
+    });
+
     test('auth messages are passed through for the user', () {
       final failure = AppFailure.from(
         const AuthException('Invalid login credentials', statusCode: '400'),

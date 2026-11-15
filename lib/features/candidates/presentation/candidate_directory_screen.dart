@@ -2,8 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/errors/app_failure.dart';
+import '../../../core/routing/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -75,6 +77,17 @@ class _CandidateDirectoryScreenState
 
     return PageScaffold(
       title: 'Find a Maid',
+      trailing: TextButton.icon(
+        onPressed: () {
+          if (!isSignedIn(ref)) {
+            showSignInSheet(context, title: 'Sign in to hire a maid');
+            return;
+          }
+          unawaited(context.push(AppRoutes.hire()));
+        },
+        icon: const Icon(Icons.assignment_ind_rounded),
+        label: const Text('Hire a Maid'),
+      ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

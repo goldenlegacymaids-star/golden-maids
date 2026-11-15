@@ -2,10 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/constants/agency_contact.dart';
 import '../../../core/errors/app_failure.dart';
+import '../../../core/routing/app_routes.dart';
 import '../../../core/services/external_launcher.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
@@ -167,7 +169,7 @@ class _ProfileBody extends ConsumerWidget {
                   _DocumentTile(document: document),
               ],
               const SizedBox(height: AppSpacing.lg),
-              const _HireCard(),
+              _HireCard(profile: profile),
             ],
           ),
         ),
@@ -397,15 +399,6 @@ class _PackageTile extends StatelessWidget {
 
   final RecruitmentPackage package;
 
-  String _price() {
-    final price = package.price;
-    if (price == null) return 'Price on request';
-    return switch (package.priceUnit) {
-      'per_month' => '${Formatters.aed(price)} / month',
-      _ => Formatters.aed(price),
-    };
-  }
-
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -432,7 +425,7 @@ class _PackageTile extends StatelessWidget {
                     Text(package.description, style: AppTypography.bodySmall),
                   const SizedBox(height: AppSpacing.xxs),
                   Text(
-                    _price(),
+                    packagePriceLabel(package),
                     style: AppTypography.labelMedium.copyWith(
                       color: AppColors.primary,
                     ),
@@ -498,43 +491,44 @@ class _DocumentTile extends ConsumerWidget {
 }
 
 class _HireCard extends StatelessWidget {
-  const _HireCard();
+  const _HireCard({required this.profile});
+
+  final CandidateProfile profile;
 
   @override
   Widget build(BuildContext context) {
+    final candidate = profile.candidate;
+    final canHire =
+        candidate.availability == CandidateAvailability.available &&
+        profile.packages.isNotEmpty;
+
     return AppCard(
       color: AppColors.lightBlue,
       shadow: false,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              const Expanded(
-                child: Text('Hire this maid', style: AppTypography.titleMedium),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.xs,
-                  vertical: 2,
-                ),
-                decoration: const BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: AppRadius.pillAll,
-                ),
-                child: const Text(
-                  'Coming soon',
-                  style: AppTypography.labelSmall,
-                ),
-              ),
-            ],
-          ),
+          const Text('Hire this maid', style: AppTypography.titleMedium),
           const SizedBox(height: AppSpacing.xxs),
-          const Text(
-            'Online hiring requests are coming soon. To hire today, call us, '
-            'message us on WhatsApp or send a request below.',
+          Text(
+            canHire
+                ? 'Choose a package and send a hiring request. No payment '
+                      'is taken now.'
+                : '${candidate.title} is ${candidate.availability.label.toLowerCase()} '
+                      'at the moment. Send a request below and we will '
+                      'suggest someone similar.',
             style: AppTypography.bodySmall,
           ),
+          if (canHire) ...[
+            const SizedBox(height: AppSpacing.sm),
+            AppButton(
+              label: 'Hire ${candidate.title}',
+              icon: Icons.assignment_ind_rounded,
+              onPressed: () => unawaited(
+                context.push(AppRoutes.hire(candidateId: candidate.id)),
+              ),
+            ),
+          ],
         ],
       ),
     );
