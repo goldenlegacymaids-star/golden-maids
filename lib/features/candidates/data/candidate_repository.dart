@@ -234,7 +234,7 @@ class SupabaseCandidateRepository implements CandidateRepository {
       maritalStatus: row['marital_status'] as String?,
       skills: [
         for (final r in skills)
-          if (CandidateSkill.fromValue(r['skill'] as String?) case final s?) s,
+          ?CandidateSkill.fromValue(r['skill'] as String?),
       ],
       languages: languages.map(CandidateLanguage.fromJson).toList(),
       experience: experience.map(CandidateExperience.fromJson).toList(),
