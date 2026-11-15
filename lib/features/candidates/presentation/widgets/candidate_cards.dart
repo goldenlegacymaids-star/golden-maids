@@ -1,0 +1,348 @@
+import 'package:flutter/material.dart';
+
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_radius.dart';
+import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_typography.dart';
+import '../../../../core/utils/formatters.dart';
+import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/app_network_image.dart';
+import '../../domain/candidate.dart';
+
+/// "Housemaid · 34 yrs"
+String candidateSubtitle(Candidate candidate) {
+  final age = candidate.age;
+  return age == null
+      ? candidate.designation
+      : '${candidate.designation} · $age yrs';
+}
+
+/// "6 yrs experience" / "No previous experience"
+String experienceLabel(int years) => switch (years) {
+  0 => 'No previous experience',
+  1 => '1 yr experience',
+  _ => '$years yrs experience',
+};
+
+/// "AED 1,800 / month", or null when no salary is set.
+String? salaryLabel(Candidate candidate) {
+  final salary = candidate.expectedSalary;
+  return salary == null ? null : '${Formatters.aed(salary)} / month';
+}
+
+/// Candidate photo, or a person icon when none has been uploaded.
+class CandidatePhoto extends StatelessWidget {
+  const CandidatePhoto({
+    super.key,
+    required this.url,
+    required this.label,
+    this.width,
+    this.height,
+    this.borderRadius = BorderRadius.zero,
+    this.iconSize = 48,
+  });
+
+  final String? url;
+
+  /// Accessibility label, e.g. "Photo of Maria Santos".
+  final String label;
+  final double? width;
+  final double? height;
+  final BorderRadius borderRadius;
+  final double iconSize;
+
+  @override
+  Widget build(BuildContext context) {
+    if (url == null) {
+      return ClipRRect(
+        borderRadius: borderRadius,
+        child: Container(
+          width: width,
+          height: height,
+          color: AppColors.lightBlue,
+          alignment: Alignment.center,
+          child: Icon(
+            Icons.person_rounded,
+            size: iconSize,
+            color: AppColors.primary,
+            semanticLabel: label,
+          ),
+        ),
+      );
+    }
+    return AppNetworkImage(
+      url: url,
+      width: width,
+      height: height,
+      borderRadius: borderRadius,
+      semanticLabel: label,
+    );
+  }
+}
+
+/// Small coloured label showing whether a candidate is available.
+class AvailabilityBadge extends StatelessWidget {
+  const AvailabilityBadge({super.key, required this.availability});
+
+  final CandidateAvailability availability;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (availability) {
+      CandidateAvailability.available => AppColors.success,
+      CandidateAvailability.reserved => AppColors.warning,
+      _ => AppColors.textSecondary,
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.xs,
+        vertical: 2,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: AppRadius.pillAll,
+        border: Border.all(color: color),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: AppSpacing.xxs),
+          Text(
+            availability.label,
+            style: AppTypography.labelSmall.copyWith(color: color),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// "TEST" label on test records, so they are never mistaken for real ones.
+class TestTag extends StatelessWidget {
+  const TestTag({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.xs,
+        vertical: 2,
+      ),
+      decoration: const BoxDecoration(
+        color: AppColors.ink,
+        borderRadius: AppRadius.pillAll,
+      ),
+      child: Text(
+        'TEST',
+        style: AppTypography.labelSmall.copyWith(color: AppColors.white),
+      ),
+    );
+  }
+}
+
+class _NationalityLine extends StatelessWidget {
+  const _NationalityLine({required this.nationality});
+
+  final String nationality;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Icon(
+          Icons.public_rounded,
+          size: 14,
+          color: AppColors.textSecondary,
+        ),
+        const SizedBox(width: AppSpacing.xxs),
+        Expanded(
+          child: Text(
+            nationality,
+            style: AppTypography.bodySmall,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Vertical card for the horizontal "Featured Maids" list on Home.
+class CandidateCard extends StatelessWidget {
+  const CandidateCard({
+    super.key,
+    required this.candidate,
+    required this.photoUrl,
+    required this.onTap,
+  });
+
+  static const double width = 170;
+  static const double photoHeight = 140;
+
+  final Candidate candidate;
+  final String? photoUrl;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final salary = salaryLabel(candidate);
+
+    return SizedBox(
+      width: width,
+      child: AppCard(
+        padding: EdgeInsets.zero,
+        onTap: onTap,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Stack(
+              children: [
+                CandidatePhoto(
+                  url: photoUrl,
+                  label: 'Photo of ${candidate.title}',
+                  width: width,
+                  height: photoHeight,
+                ),
+                Positioned(
+                  left: AppSpacing.xs,
+                  top: AppSpacing.xs,
+                  child: AvailabilityBadge(
+                    availability: candidate.availability,
+                  ),
+                ),
+                if (candidate.isTest)
+                  const Positioned(
+                    right: AppSpacing.xs,
+                    top: AppSpacing.xs,
+                    child: TestTag(),
+                  ),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.sm),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    candidate.title,
+                    style: AppTypography.titleSmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    candidateSubtitle(candidate),
+                    style: AppTypography.bodySmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: AppSpacing.xxs),
+                  _NationalityLine(nationality: candidate.nationality),
+                  if (salary != null)
+                    Text(
+                      salary,
+                      style: AppTypography.labelMedium.copyWith(
+                        color: AppColors.primary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Horizontal row for the candidate directory.
+class CandidateListTile extends StatelessWidget {
+  const CandidateListTile({
+    super.key,
+    required this.candidate,
+    required this.photoUrl,
+    required this.onTap,
+  });
+
+  final Candidate candidate;
+  final String? photoUrl;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final salary = salaryLabel(candidate);
+
+    return AppCard(
+      onTap: onTap,
+      padding: const EdgeInsets.all(AppSpacing.sm),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CandidatePhoto(
+            url: photoUrl,
+            label: 'Photo of ${candidate.title}',
+            width: 88,
+            height: 104,
+            iconSize: 36,
+            borderRadius: AppRadius.mdAll,
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: AppSpacing.xs,
+                  runSpacing: AppSpacing.xxs,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    AvailabilityBadge(availability: candidate.availability),
+                    if (candidate.isTest) const TestTag(),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.xxs),
+                Text(
+                  candidate.title,
+                  style: AppTypography.titleSmall,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  candidateSubtitle(candidate),
+                  style: AppTypography.bodySmall,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                _NationalityLine(nationality: candidate.nationality),
+                Text(
+                  experienceLabel(candidate.yearsExperience),
+                  style: AppTypography.bodySmall,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (salary != null)
+                  Text(
+                    salary,
+                    style: AppTypography.labelMedium.copyWith(
+                      color: AppColors.primary,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const Icon(
+            Icons.chevron_right_rounded,
+            color: AppColors.textSecondary,
+          ),
+        ],
+      ),
+    );
+  }
+}

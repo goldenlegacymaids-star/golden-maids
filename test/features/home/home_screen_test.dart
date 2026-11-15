@@ -34,6 +34,10 @@ void main() {
     expect(find.text('General Cleaning'), findsOneWidget);
     expect(find.text('2-Year Maid Visa'), findsOneWidget);
 
+    expect(find.text('Featured Maids'), findsOneWidget);
+    expect(find.text('Wanjiru Kamau'), findsOneWidget);
+
+    await scrollHomeTo(tester, find.text('AED 45 / hour'));
     expect(find.text('Home Cleaning'), findsOneWidget);
     expect(find.text('Price on request'), findsOneWidget);
     expect(find.text('AED 45 / hour'), findsOneWidget);
@@ -68,6 +72,7 @@ void main() {
   ) async {
     await pumpTestApp(tester, auth: auth, catalog: catalog);
 
+    await scrollHomeTo(tester, find.text('AED 45 / hour'));
     await tapAndSettle(tester, find.text('AED 45 / hour'));
     expect(find.text('Hourly Maid'), findsWidgets);
     expect(find.text('AED 45 / hour'), findsOneWidget);

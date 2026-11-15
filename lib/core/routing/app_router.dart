@@ -14,6 +14,7 @@ import '../../features/authentication/presentation/verify_code_args.dart';
 import '../../features/authentication/presentation/verify_code_screen.dart';
 import '../../features/authentication/presentation/welcome_screen.dart';
 import '../../features/bookings/presentation/bookings_screen.dart';
+import '../../features/candidates/presentation/candidate_directory_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/notifications/presentation/notifications_screen.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
@@ -142,6 +143,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     path: 'notifications',
                     name: 'notifications',
                     builder: (context, state) => const NotificationsScreen(),
+                  ),
+                  GoRoute(
+                    path: 'maids',
+                    name: 'maids',
+                    builder: (context, state) =>
+                        const CandidateDirectoryScreen(),
                   ),
                   GoRoute(
                     path: 'category/:slug',

@@ -16,6 +16,9 @@ import '../../../core/widgets/app_search_bar.dart';
 import '../../../core/widgets/section_error.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../../core/widgets/skeleton.dart';
+import '../../candidates/data/candidate_repository.dart';
+import '../../candidates/presentation/open_candidate.dart';
+import '../../candidates/presentation/widgets/candidate_cards.dart';
 import '../../services/data/catalog_repository.dart';
 import '../../services/domain/catalog.dart';
 import '../../services/presentation/catalog_display.dart';
@@ -23,8 +26,8 @@ import '../../services/presentation/widgets/service_tiles.dart';
 import 'widgets/home_header.dart';
 import 'widgets/promo_carousel.dart';
 
-/// Home tab: greeting and location, search, offers, service categories and
-/// popular services. ("Featured Maids" is added with recruitment in Phase 2.)
+/// Home tab: greeting and location, search, offers, service categories,
+/// featured maids and popular services.
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
@@ -32,12 +35,14 @@ class HomeScreen extends ConsumerWidget {
     ref
       ..invalidate(categoriesProvider)
       ..invalidate(popularServicesProvider)
-      ..invalidate(promotionsProvider);
+      ..invalidate(promotionsProvider)
+      ..invalidate(featuredCandidatesProvider);
     try {
       await Future.wait<Object>([
         ref.read(categoriesProvider.future),
         ref.read(popularServicesProvider.future),
         ref.read(promotionsProvider.future),
+        ref.read(featuredCandidatesProvider.future),
       ]);
     } on Object {
       // Each section shows its own error with a retry link.
@@ -94,6 +99,7 @@ class HomeScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   const _CategoryStrip(),
+                  const _FeaturedMaids(),
                   const SizedBox(height: AppSpacing.xl),
                   const Padding(
                     padding: screen,
@@ -255,6 +261,85 @@ class _PopularServices extends ConsumerWidget {
                 },
               ),
             ),
+    );
+  }
+}
+
+/// "Featured Maids": hidden when there are none to show.
+class _FeaturedMaids extends ConsumerWidget {
+  const _FeaturedMaids();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // 140 px photo + padding, then four lines of text (about 72 px).
+    final height = _scaledHeight(context, CandidateCard.photoHeight + 28, 78);
+    final candidates = ref.watch(featuredCandidatesProvider);
+    final repository = ref.watch(candidateRepositoryProvider);
+
+    final Widget content = candidates.when(
+      loading: () => SizedBox(
+        height: height,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.screenPadding,
+          ),
+          itemCount: 3,
+          separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.md),
+          itemBuilder: (_, _) => Skeleton(
+            child: SkeletonBox(
+              width: CandidateCard.width,
+              height: height,
+              borderRadius: AppRadius.lgAll,
+            ),
+          ),
+        ),
+      ),
+      error: (error, _) => SectionError(
+        error: error,
+        onRetry: () => ref.invalidate(featuredCandidatesProvider),
+      ),
+      data: (items) => SizedBox(
+        height: height,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          clipBehavior: Clip.none,
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.screenPadding,
+          ),
+          itemCount: items.length,
+          separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.md),
+          itemBuilder: (context, index) {
+            final candidate = items[index];
+            return CandidateCard(
+              candidate: candidate,
+              photoUrl: repository.photoUrl(candidate.photoPath),
+              onTap: () => openCandidate(context, ref, candidate),
+            );
+          },
+        ),
+      ),
+    );
+
+    if (candidates.value?.isEmpty ?? false) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: AppSpacing.xl),
+        Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.screenPadding,
+          ),
+          child: SectionHeader(
+            title: 'Featured Maids',
+            actionLabel: 'See All',
+            onAction: () => unawaited(context.push(AppRoutes.maids)),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        content,
+      ],
     );
   }
 }

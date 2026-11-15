@@ -112,6 +112,8 @@ The **Option A "Sparkle Home"** logo is in `assets/images/` (PNG at 1x/2x/3x, co
 
 ## Navigation
 
+Guests can browse candidate cards (*Featured Maids*, *Find a Maid*); opening a full profile asks them to sign in.
+
 Four tabs in a floating bottom bar (`StatefulShellRoute`): each keeps its own state. Guests can browse; Bookings, Wallet and account pages show a sign-in prompt. Profile items for features not yet built are labelled **"Coming soon"** and are not tappable until their phase is delivered.
 
 ## App icons
@@ -189,6 +191,6 @@ Each feature is split into `presentation/`, `domain/` and `data/` folders as it 
 | 1.6 | App shell: bottom navigation (Home, Bookings, Wallet, Profile), profile + edit name | ✅ Done |
 | 1.7 | Home screen: location, search, banners, categories, popular services; category, service details, search, notifications | ✅ Done |
 | 2.1 | Recruitment database: packages, candidates, favourites, hiring requests, private storage, 3 TEST candidates | ✅ Done |
-| 2.2 | Candidate directory with filters + *Featured Maids* on Home | ⏳ Next |
-| 2.3 | Candidate profile, favourites, Contact Agency | Planned |
+| 2.2 | Candidate directory (*Find a Maid*: search, nationality, job type, package, skills, availability, sort) + *Featured Maids* on Home | ✅ Done |
+| 2.3 | Candidate profile, favourites, Contact Agency | ⏳ Next |
 | 2.4 | Hiring workflow + My Hiring Requests | Planned |

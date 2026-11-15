@@ -22,6 +22,7 @@ abstract final class AppRoutes {
   // Inside the Home tab
   static const String search = '/home/search';
   static const String notifications = '/home/notifications';
+  static const String maids = '/home/maids';
   static String category(String slug) => '/home/category/$slug';
   static String service(String slug) => '/home/service/$slug';
 

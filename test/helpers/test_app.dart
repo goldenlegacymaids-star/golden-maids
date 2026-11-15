@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_maids/app.dart';
 import 'package:golden_maids/core/services/shared_preferences_provider.dart';
 import 'package:golden_maids/features/authentication/data/auth_providers.dart';
+import 'package:golden_maids/features/candidates/data/candidate_repository.dart';
 import 'package:golden_maids/features/onboarding/data/onboarding_repository.dart';
 import 'package:golden_maids/features/onboarding/presentation/splash_screen.dart';
 import 'package:golden_maids/features/profile/data/profile_repository.dart';
@@ -11,6 +12,7 @@ import 'package:golden_maids/features/services/data/catalog_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'fake_auth_repository.dart';
+import 'fake_candidate_repository.dart';
 import 'fake_catalog_repository.dart';
 import 'fake_profile_repository.dart';
 
@@ -21,6 +23,7 @@ Future<void> pumpTestApp(
   required FakeAuthRepository auth,
   FakeProfileRepository? profiles,
   FakeCatalogRepository? catalog,
+  FakeCandidateRepository? candidates,
   Map<String, Object> preferences = const {},
 }) async {
   tester.view.physicalSize = const Size(430, 932);
@@ -44,6 +47,9 @@ Future<void> pumpTestApp(
         ),
         catalogRepositoryProvider.overrideWithValue(
           catalog ?? FakeCatalogRepository(),
+        ),
+        candidateRepositoryProvider.overrideWithValue(
+          candidates ?? FakeCandidateRepository(),
         ),
       ],
       child: const GoldenMaidsApp(),
@@ -71,3 +77,12 @@ Future<void> tapAndSettle(WidgetTester tester, Finder finder) async {
 /// Taps a bottom-navigation tab by its (inactive) icon.
 Future<void> openTab(WidgetTester tester, IconData icon) =>
     tapAndSettle(tester, find.byIcon(icon));
+
+/// Scrolls the Home screen until [finder] is on screen.
+Future<void> scrollHomeTo(WidgetTester tester, Finder finder) async {
+  final homeList = find
+      .ancestor(of: find.text('Categories'), matching: find.byType(Scrollable))
+      .first;
+  await tester.scrollUntilVisible(finder, 200, scrollable: homeList);
+  await settle(tester);
+}

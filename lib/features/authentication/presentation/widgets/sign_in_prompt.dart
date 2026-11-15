@@ -16,11 +16,22 @@ class SignInPrompt extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.message,
+    this.onBeforeNavigate,
   });
 
   final IconData icon;
   final String title;
   final String message;
+
+  /// Called before opening Sign In / Create Account (e.g. to close a
+  /// bottom sheet first).
+  final VoidCallback? onBeforeNavigate;
+
+  void _open(BuildContext context, String route) {
+    final router = GoRouter.of(context);
+    onBeforeNavigate?.call();
+    unawaited(router.push(route));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,13 +66,13 @@ class SignInPrompt extends StatelessWidget {
           const SizedBox(height: AppSpacing.xl),
           AppButton(
             label: 'Sign In',
-            onPressed: () => unawaited(context.push(AppRoutes.signIn)),
+            onPressed: () => _open(context, AppRoutes.signIn),
           ),
           const SizedBox(height: AppSpacing.sm),
           AppButton(
             label: 'Create Account',
             variant: AppButtonVariant.outline,
-            onPressed: () => unawaited(context.push(AppRoutes.signUp)),
+            onPressed: () => _open(context, AppRoutes.signUp),
           ),
         ],
       ),
