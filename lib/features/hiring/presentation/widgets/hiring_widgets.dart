@@ -22,7 +22,7 @@ String monthsLabel(int months) => months == 1 ? '1 month' : '$months months';
 
 /// Country name for a GCC ISO code, e.g. `AE` → United Arab Emirates.
 String gccCountryName(String isoCode) {
-  for (final country in GccCountry.all) {
+  for (final country in GccCountries.all) {
     if (country.isoCode == isoCode) return country.name;
   }
   return isoCode;

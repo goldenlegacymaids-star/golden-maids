@@ -448,7 +448,7 @@ class _HireFlowState extends ConsumerState<_HireFlow> {
             spacing: AppSpacing.xs,
             runSpacing: AppSpacing.xs,
             children: [
-              for (final country in GccCountry.all)
+              for (final country in GccCountries.all)
                 AppChip(
                   label: country.name,
                   selected: _sponsorNationality == country.isoCode,

@@ -6,6 +6,7 @@ import 'package:golden_maids/core/routing/app_routes.dart';
 import 'package:golden_maids/core/widgets/app_button.dart';
 import 'package:golden_maids/core/widgets/app_chip.dart';
 import 'package:golden_maids/features/authentication/domain/auth_repository.dart';
+import 'package:golden_maids/features/candidates/domain/candidate.dart';
 import 'package:golden_maids/features/candidates/domain/candidate_profile.dart';
 import 'package:golden_maids/features/hiring/domain/hiring_request.dart';
 import 'package:golden_maids/features/hiring/presentation/hire_screen.dart';

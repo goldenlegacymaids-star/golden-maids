@@ -12,7 +12,6 @@ import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/page_scaffold.dart';
 import '../../candidates/presentation/open_candidate.dart';
 import '../data/hiring_repository.dart';
-import '../domain/hiring_request.dart';
 import 'widgets/hiring_widgets.dart';
 
 /// One hiring request: summary, status timeline and cancelling.
