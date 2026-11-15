@@ -38,10 +38,12 @@ Future<void> _openWanjiru(
 }
 
 /// Scrolls the profile until [finder] is on screen.
+///
+/// The profile's list is the only scrollable on screen (Home is hidden
+/// under the profile page), and is found that way because rows near the
+/// top go off screen as it scrolls.
 Future<void> _scrollTo(WidgetTester tester, Finder finder) async {
-  final list = find
-      .ancestor(of: find.text('Ref. GM-00001'), matching: find.byType(Scrollable))
-      .first;
+  final list = find.byType(Scrollable).first;
   await tester.scrollUntilVisible(finder, 200, scrollable: list);
   await settle(tester);
 }
