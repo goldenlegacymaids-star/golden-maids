@@ -726,6 +726,67 @@ def main():
         assert one(c, "select status from public.hiring_requests where id=%s", (rid,)) == "shortlisted"
     check("Staff status updates: note on the same timeline entry, internal notes hidden, customers and guests refused", status_update_with_note)
 
+    # --- save_candidate (staff website) ----------------------------------------
+    save_sql = "select public.save_candidate(%s::jsonb, %s::jsonb, %s::text[], %s::jsonb, %s::jsonb, %s::uuid[])::text"
+
+    def candidate_json(**over):
+        base = {"id": None, "nationality": "Ethiopia", "designation": "Nanny", "accommodation": "live_in",
+                "years_experience": 3, "religion": "Christian", "marital_status": "Single",
+                "expected_salary": 1700, "availability_status": "available", "bio": "Kind and patient.",
+                "show_full_name": True, "is_published": True, "is_featured": False,
+                "consent_obtained_at": "2026-11-16T10:00:00Z", "archived": False}
+        base.update(over)
+        return psycopg.types.json.Jsonb(base)
+
+    private_json = psycopg.types.json.Jsonb({"full_name": "Abeba Tadesse", "date_of_birth": "1996-05-10",
+                                              "passport_number": "EP1234567", "internal_notes": "Referred by agent."})
+    langs = psycopg.types.json.Jsonb([{"language": "Amharic", "proficiency": "fluent"}, {"language": "English", "proficiency": "good"}])
+    jobs = psycopg.types.json.Jsonb([{"country": "Lebanon", "role": "Nanny", "start_year": 2020, "end_year": 2023, "description": ""}])
+
+    def save_candidate_rules():
+        as_user(c, rita)
+        try:
+            cid = one(c, save_sql, (candidate_json(), private_json, ["childcare", "cooking"], langs, jobs, [monthly, yearly]))
+            row = c.execute("select display_name, age, is_published, code from public.candidates where id=%s", (cid,)).fetchone()
+            assert row[0] == "Abeba Tadesse" and row[1] is not None and row[2] is True and row[3].startswith("GM-"), row
+            assert one(c, "select count(*) from public.candidate_skills where candidate_id=%s", (cid,)) == 2
+            assert one(c, "select count(*) from public.candidate_languages where candidate_id=%s", (cid,)) == 2
+            assert one(c, "select count(*) from public.candidate_experience where candidate_id=%s", (cid,)) == 1
+            assert one(c, "select count(*) from public.candidate_packages where candidate_id=%s", (cid,)) == 2
+            # Update: lists replaced, name hidden, archived.
+            same = one(c, save_sql, (candidate_json(id=cid, show_full_name=False, archived=True), private_json,
+                                     ["cleaning"], psycopg.types.json.Jsonb([]), psycopg.types.json.Jsonb([]), [monthly]))
+            assert same == cid
+            row = c.execute("select display_name, archived_at is not null from public.candidates where id=%s", (cid,)).fetchone()
+            assert row == (None, True), row
+            assert one(c, "select count(*) from public.candidate_skills where candidate_id=%s", (cid,)) == 1
+            assert one(c, "select count(*) from public.candidate_languages where candidate_id=%s", (cid,)) == 0
+            # All-or-nothing: an invalid skill leaves the candidate unchanged.
+            expect_violation(c, save_sql, (candidate_json(id=cid, bio="Changed"), private_json, ["flying"],
+                                           langs, jobs, [monthly]))
+            assert one(c, "select bio from public.candidates where id=%s", (cid,)) == "Kind and patient."
+            assert one(c, "select count(*) from public.candidate_skills where candidate_id=%s", (cid,)) == 1
+            # Publishing needs consent; name and date of birth are required.
+            expect_violation(c, save_sql, (candidate_json(consent_obtained_at=None), private_json, [], langs, jobs, []))
+            expect_violation(c, save_sql, (candidate_json(), psycopg.types.json.Jsonb({"full_name": " ", "date_of_birth": None}), [], langs, jobs, []))
+            # Under 18 is rejected.
+            expect_violation(c, save_sql, (candidate_json(), psycopg.types.json.Jsonb({"full_name": "Too Young", "date_of_birth": "2015-01-01"}), [], langs, jobs, []))
+        finally:
+            reset(c)
+        assert one(c, "select count(*) from public.admin_audit_logs where entity_type='candidates' and entity_id=%s", (cid,)) >= 2, "changes are audit-logged"
+        as_user(c, alice)
+        try:
+            expect_denied(c, save_sql, (candidate_json(), private_json, [], langs, jobs, []))
+            expect_denied(c, save_sql, (candidate_json(id=cid), private_json, [], langs, jobs, []))
+        finally:
+            reset(c)
+        as_user(c, None)
+        try:
+            expect_denied(c, save_sql, (candidate_json(), private_json, [], langs, jobs, []))
+        finally:
+            reset(c)
+    check("save_candidate: all-or-nothing save with private details and lists; consent/age rules; customers and guests refused", save_candidate_rules)
+
     # --- report ------------------------------------------------------------------
     c.close()
     print()
