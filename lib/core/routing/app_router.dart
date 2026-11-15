@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../config/env.dart';
 import 'app_routes.dart';
-import 'start_placeholder_screen.dart';
+import 'design_preview_screen.dart';
 
 /// The app's single [GoRouter] instance.
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -14,8 +14,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.start,
         name: 'start',
-        // TEMPORARY: replaced by the splash screen in Step 1.4.
-        builder: (context, state) => const StartPlaceholderScreen(),
+        // TEMPORARY: design preview. Replaced by the splash screen in Step 1.4.
+        builder: (context, state) => const DesignPreviewScreen(),
       ),
     ],
   );

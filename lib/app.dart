@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/constants/app_constants.dart';
 import 'core/routing/app_router.dart';
+import 'core/theme/app_theme.dart';
 
 /// Root widget of the Golden Maids app.
 class GoldenMaidsApp extends ConsumerWidget {
@@ -15,11 +16,7 @@ class GoldenMaidsApp extends ConsumerWidget {
     return MaterialApp.router(
       title: AppConstants.appName,
       debugShowCheckedModeBanner: false,
-      // Temporary theme. Replaced by the full design system in Step 1.2.
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF398FF2)),
-      ),
+      theme: AppTheme.light,
       routerConfig: router,
     );
   }

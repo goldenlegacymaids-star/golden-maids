@@ -45,6 +45,23 @@ flutter analyze   # must report "No issues found!"
 flutter test      # all tests must pass
 ```
 
+## Design system
+
+All UI must use the shared design system. Do not hard-code colours, fonts or sizes in screens.
+
+| Need | Use |
+|---|---|
+| Colours | `AppColors` (`lib/core/theme/app_colors.dart`) |
+| Text styles | `AppTypography` (Poppins headings, Inter body; fonts bundled in `assets/fonts/`) |
+| Spacing / radius / shadows | `AppSpacing`, `AppRadius`, `AppShadows` |
+| Buttons | `AppButton` (blocks repeat taps while an action runs), `AppIconButton` |
+| Inputs | `AppTextField`, `AppSearchBar`, `AppChip` |
+| Layout | `AppCard`, `SectionHeader` |
+| Images | `AppNetworkImage` (cached, skeleton placeholder, fallback), `AppLogo` |
+| States | `Skeleton`/`SkeletonBox`, `EmptyState`, `ErrorState` + `AppFailure` |
+
+The **Option A "Sparkle Home"** logo is in `assets/images/` (PNG at 1x/2x/3x, colour and white versions) with master SVGs in `design/logo/`.
+
 ## Security rules
 
 - Only the Supabase **project URL** and **anon/publishable key** may appear in `env.json`. They are safe in the app because every table is protected by Row Level Security.
@@ -58,8 +75,9 @@ lib/
   app.dart             # root widget: theme + router
   core/
     config/            # build-time settings (env.dart)
-    constants/         # app-wide constants
-    theme/             # colours, typography, spacing (Step 1.2)
+    constants/         # app-wide constants and asset paths
+    errors/            # AppFailure: user-friendly error types
+    theme/             # colours, typography, spacing, radius, shadows, theme
     routing/           # GoRouter setup and route names
     network/           # API clients
     services/          # shared services
@@ -73,6 +91,8 @@ lib/
   repositories/
 assets/
   images/  icons/  banners/  fonts/
+design/
+  logo/                # master logo SVGs (not bundled in the app)
 ```
 
 Each feature is split into `presentation/`, `domain/` and `data/` folders as it is built.
@@ -82,8 +102,8 @@ Each feature is split into `presentation/`, `domain/` and `data/` folders as it 
 | Step | Description | Status |
 |---|---|---|
 | 1.1 | Project skeleton, packages, folder structure, app ID | ✅ Done |
-| 1.2 | Design system (colours, fonts, components) + logo | ⏳ Next |
-| 1.3 | Supabase connection + core database (profiles, roles, addresses, RLS) | — |
+| 1.2 | Design system (colours, fonts, components) + logo | ✅ Done |
+| 1.3 | Supabase connection + core database (profiles, roles, addresses, RLS) | ⏳ Next |
 | 1.4 | Splash + onboarding | — |
 | 1.5 | Authentication | — |
 | 1.6 | Bottom navigation + app shell | — |
