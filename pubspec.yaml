@@ -20,7 +20,7 @@ dependencies:
   # Typography (Poppins + Inter) – configured in Step 1.2
   google_fonts: ^8.2.1
   # Images & loading states
-  cached_network_image: ^4.1.0
+  cached_network_image: ^4.0.3
   shimmer: ^3.0.0
   # Formatting (dates, AED currency)
   intl: ^0.20.2
