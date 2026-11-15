@@ -148,7 +148,7 @@ python3 design/tools/generate_app_icons.py   # needs rsvg-convert + ImageMagick
 
 ## Staff website
 
-The staff website lives in [`admin/`](admin/README.md) (Next.js). It uses the same Supabase project with the publishable key only.
+The staff website is a **separate Next.js project** (`golden-maids-admin`, delivered as a zip with its own README). It uses the same Supabase project with the publishable key only.
 
 ## Security rules
 
@@ -200,6 +200,6 @@ Each feature is split into `presentation/`, `domain/` and `data/` folders as it 
 | 2.2 | Candidate directory (*Find a Maid*: search, nationality, job type, package, skills, availability, sort) + *Featured Maids* on Home | ✅ Done |
 | 2.3 | Candidate profile, favourites (Saved Maids), Contact Agency (call, WhatsApp, email), Request Info | ✅ Done |
 | 2.4 | Hiring workflow (company visa monthly/yearly, 2-year GCC sponsor with nationality, maid choice or agency recommendation, review, reference) + My Hiring Requests (status timeline, cancel before shortlisting) | ✅ Done |
-| A.1 | **Staff website** (`admin/`, Next.js): staff sign-in with role check, dashboard | ✅ Done |
+| A.1 | **Staff website** (separate Next.js project, delivered as a zip): staff sign-in with role check, dashboard | ✅ Done |
 | A.2–A.4 | Staff website: requests & enquiries, candidates, prices & offers | ⏳ Next |
 | **Phase 3** | Home services by the agency's own staff, pay on completion | Planned |
