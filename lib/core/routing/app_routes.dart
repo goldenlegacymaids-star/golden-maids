@@ -19,6 +19,12 @@ abstract final class AppRoutes {
   static const String wallet = '/wallet';
   static const String profile = '/profile';
 
+  // Inside the Home tab
+  static const String search = '/home/search';
+  static const String notifications = '/home/notifications';
+  static String category(String slug) => '/home/category/$slug';
+  static String service(String slug) => '/home/service/$slug';
+
   // Profile
   static const String editProfile = '/profile/edit';
 

@@ -35,7 +35,7 @@ void main() {
 
     await _tap(tester, find.text('Continue as guest'));
     expect(find.text('Hello, guest'), findsOneWidget);
-    expect(find.text('Sign In'), findsOneWidget);
+    expect(find.text('What services do you want to use?'), findsOneWidget);
   });
 
   testWidgets('sign up with WhatsApp code', (tester) async {

@@ -20,6 +20,8 @@ Future<void> main() async {
 
   runApp(
     ProviderScope(
+      // No automatic retries: screens show an error with a "Try again" button.
+      retry: (retryCount, error) => null,
       overrides: [sharedPreferencesProvider.overrideWithValue(preferences)],
       child: const GoldenMaidsApp(),
     ),

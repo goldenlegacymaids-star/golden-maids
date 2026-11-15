@@ -15,10 +15,14 @@ import '../../features/authentication/presentation/verify_code_screen.dart';
 import '../../features/authentication/presentation/welcome_screen.dart';
 import '../../features/bookings/presentation/bookings_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
+import '../../features/notifications/presentation/notifications_screen.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../../features/onboarding/presentation/splash_screen.dart';
 import '../../features/profile/presentation/edit_profile_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
+import '../../features/services/presentation/category_screen.dart';
+import '../../features/services/presentation/search_screen.dart';
+import '../../features/services/presentation/service_details_screen.dart';
 import '../../features/wallet/presentation/wallet_screen.dart';
 import '../config/env.dart';
 import 'app_routes.dart';
@@ -128,6 +132,31 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 path: AppRoutes.home,
                 name: 'home',
                 builder: (context, state) => const HomeScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'search',
+                    name: 'search',
+                    builder: (context, state) => const SearchScreen(),
+                  ),
+                  GoRoute(
+                    path: 'notifications',
+                    name: 'notifications',
+                    builder: (context, state) => const NotificationsScreen(),
+                  ),
+                  GoRoute(
+                    path: 'category/:slug',
+                    name: 'category',
+                    builder: (context, state) =>
+                        CategoryScreen(slug: state.pathParameters['slug']!),
+                  ),
+                  GoRoute(
+                    path: 'service/:slug',
+                    name: 'service',
+                    builder: (context, state) => ServiceDetailsScreen(
+                      slug: state.pathParameters['slug']!,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

@@ -62,6 +62,12 @@ Schema changes are made **only** through SQL migrations in `supabase/migrations/
 | `addresses` | Saved customer addresses (UAE emirates validated, GCC-ready) |
 | `admin_audit_logs` | Append-only audit trail of administrative actions |
 | `app_settings` | Remote switches (e.g. `auth.sms_fallback_enabled`); admins edit values only, audit-logged |
+| `service_categories` | Home-service categories (11) – public read, admin-managed |
+| `services` | Services (20) – **prices set by admins** (null = "Price on request") |
+| `promotions` | Home banners/offers with optional `discount_percent`, start/end dates – admin-managed |
+| Storage `app-media` | Public images (categories, services, banners); admin upload only |
+
+Admin changes to categories, services and promotions are written to `admin_audit_logs` automatically.
 
 Role checks used by policies live in the private schema: `private.has_role()`, `private.has_any_role()`, `private.is_admin()`, `private.is_staff()`.
 
@@ -117,6 +123,8 @@ python3 design/tools/generate_app_icons.py   # needs rsvg-convert + ImageMagick
 - [ ] **Replace the onboarding photos** in `assets/images/onboarding/` with licensed stock or the client's own photo-shoot images (same file names, portrait, at least 1080 × 1440 px). The current images are temporary and their licence is unconfirmed. The banner candidates in `design/photos/` need the same treatment.
 - [ ] Custom SMTP with the client's domain, and email templates ([guide](docs/supabase_auth_setup.md)).
 - [ ] Meta Business Verification + WhatsApp sender connected to Twilio Verify.
+- [ ] Delete or change the password of the test account `goldenmaids@gmail.com`.
+- [ ] Nurse / Home Caregiver: confirm the client's healthcare licensing before showing these categories.
 - [ ] Android release signing config (currently debug keys).
 - [ ] Privacy policy and terms URLs.
 
@@ -165,4 +173,5 @@ Each feature is split into `presentation/`, `domain/` and `data/` folders as it 
 | 1.4 | App name + icons, launch screens, splash, onboarding | ✅ Done |
 | 1.5 | Authentication (WhatsApp code, email + password, reset, guest) | ✅ Done |
 | 1.6 | App shell: bottom navigation (Home, Bookings, Wallet, Profile), profile + edit name | ✅ Done |
-| 1.7 | Home screen + service categories | ⏳ Next |
+| 1.7 | Home screen: location, search, banners, categories, popular services; category, service details, search, notifications | ✅ Done |
+| **Phase 2** | Candidate directory, candidate profiles, hiring workflow (adds *Featured Maids* to Home) | ⏳ Next |

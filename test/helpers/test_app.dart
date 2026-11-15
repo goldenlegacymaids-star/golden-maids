@@ -7,9 +7,11 @@ import 'package:golden_maids/features/authentication/data/auth_providers.dart';
 import 'package:golden_maids/features/onboarding/data/onboarding_repository.dart';
 import 'package:golden_maids/features/onboarding/presentation/splash_screen.dart';
 import 'package:golden_maids/features/profile/data/profile_repository.dart';
+import 'package:golden_maids/features/services/data/catalog_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'fake_auth_repository.dart';
+import 'fake_catalog_repository.dart';
 import 'fake_profile_repository.dart';
 
 /// Starts the app as a returning user (onboarding already seen) on a
@@ -18,21 +20,30 @@ Future<void> pumpTestApp(
   WidgetTester tester, {
   required FakeAuthRepository auth,
   FakeProfileRepository? profiles,
+  FakeCatalogRepository? catalog,
+  Map<String, Object> preferences = const {},
 }) async {
   tester.view.physicalSize = const Size(430, 932);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
 
-  SharedPreferences.setMockInitialValues({OnboardingRepository.seenKey: true});
+  SharedPreferences.setMockInitialValues({
+    OnboardingRepository.seenKey: true,
+    ...preferences,
+  });
   final prefs = await SharedPreferences.getInstance();
 
   await tester.pumpWidget(
     ProviderScope(
+      retry: (retryCount, error) => null,
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         authRepositoryProvider.overrideWithValue(auth),
         profileRepositoryProvider.overrideWithValue(
           profiles ?? FakeProfileRepository(),
+        ),
+        catalogRepositoryProvider.overrideWithValue(
+          catalog ?? FakeCatalogRepository(),
         ),
       ],
       child: const GoldenMaidsApp(),

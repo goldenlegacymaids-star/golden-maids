@@ -72,6 +72,7 @@ The built-in email service only delivers to members of the Supabase team and is 
 4. **Authentication → Rate Limits**: raise the email limit to match the provider plan.
 
 ## 5. **[Launch]** Abuse protection
+- **Authentication → Attack Protection → Leaked password protection**: turn **on** (flagged by the Supabase security advisor; may require a paid plan). Blocks passwords known from data breaches.
 - **Authentication → Rate Limits**: review OTP and sign-in limits.
 - Consider CAPTCHA (hCaptcha / Cloudflare Turnstile) on sign-up if abuse appears.
 

@@ -357,6 +357,84 @@ def main():
         assert one(c, "select count(*) from public.admin_audit_logs where action='setting.updated' and entity_id='auth.sms_fallback_enabled' and actor_id=%s", (ada,)) == 1
     check("Admin changes a value only; change is recorded and audit-logged", admin_changes_value_audited)
 
+    # --- catalogue (categories, services, promotions, media) ----------------------
+    def guest_reads_live_catalogue():
+        as_user(c, None)
+        try:
+            assert one(c, "select count(*) from public.service_categories") == 11
+            assert one(c, "select count(*) from public.services") == 20
+            assert one(c, "select count(*) from public.services where is_popular") == 5
+            assert one(c, "select count(*) from public.promotions") == 2
+            assert one(c, "select count(*) from public.services where base_price is not null") == 0, \
+                "no invented prices"
+        finally:
+            reset(c)
+    check("Guest reads the live catalogue (11 categories, 20 services, 2 banners, no prices)", guest_reads_live_catalogue)
+
+    def hidden_content_is_hidden():
+        c.execute("update public.service_categories set is_active=false where slug='nurse'")
+        c.execute("insert into public.promotions (title, ends_at) values ('Expired offer', now() - interval '1 day')")
+        c.execute("insert into public.promotions (title, starts_at) values ('Future offer', now() + interval '1 day')")
+        as_user(c, None)
+        try:
+            assert one(c, "select count(*) from public.service_categories where slug='nurse'") == 0
+            assert one(c, "select count(*) from public.services where slug='nurse-at-home'") == 0, \
+                "services of a hidden category must be hidden"
+            assert one(c, "select count(*) from public.promotions") == 2, "expired/future banners hidden"
+        finally:
+            reset(c)
+        as_user(c, ada)
+        try:
+            assert one(c, "select count(*) from public.service_categories where slug='nurse'") == 1
+            assert one(c, "select count(*) from public.promotions") == 4
+        finally:
+            reset(c)
+        c.execute("update public.service_categories set is_active=true where slug='nurse'")
+    check("Hidden categories (and their services) and out-of-date banners are hidden; admins see all", hidden_content_is_hidden)
+
+    def customer_cannot_change_catalogue():
+        as_user(c, alice)
+        try:
+            expect_denied(c, "insert into public.service_categories (slug, name) values ('x','X')")
+            expect_denied(c, "insert into public.promotions (title, discount_percent) values ('Fake', 90)")
+            c.execute("update public.services set base_price=1, price_unit='fixed'")
+            c.execute("delete from public.promotions")
+        finally:
+            reset(c)
+        assert one(c, "select count(*) from public.services where base_price is not null") == 0
+        assert one(c, "select count(*) from public.promotions where is_active") >= 2
+    check("Customer cannot add, change or delete catalogue content", customer_cannot_change_catalogue)
+
+    def admin_manages_catalogue_audited():
+        as_user(c, ada)
+        try:
+            c.execute("update public.services set base_price=120, price_unit='per_visit' where slug='home-cleaning'")
+            c.execute("insert into public.promotions (title, discount_percent) values ('Ramadan offer', 20)")
+            expect_violation(c, "update public.services set base_price=50, price_unit=null where slug='deep-cleaning'")
+            expect_violation(c, "insert into public.promotions (title, discount_percent) values ('Bad', 150)")
+        finally:
+            reset(c)
+        assert one(c, "select base_price::text from public.services where slug='home-cleaning'") == "120.00"
+        assert one(c, "select count(*) from public.admin_audit_logs where action='services.updated' and actor_id=%s", (ada,)) == 1
+        assert one(c, "select count(*) from public.admin_audit_logs where action='promotions.created' and actor_id=%s", (ada,)) == 1
+    check("Admin sets prices and offers (validated) and every change is audit-logged", admin_manages_catalogue_audited)
+
+    def media_upload_admin_only():
+        as_user(c, alice)
+        try:
+            expect_denied(c, "insert into storage.objects (bucket_id, name) values ('app-media', 'banners/x.jpg')")
+        finally:
+            reset(c)
+        c.execute("insert into storage.buckets (id, name) values ('other', 'other') on conflict do nothing")
+        as_user(c, ada)
+        try:
+            c.execute("insert into storage.objects (bucket_id, name) values ('app-media', 'banners/ok.jpg')")
+            expect_denied(c, "insert into storage.objects (bucket_id, name) values ('other', 'x.jpg')")
+        finally:
+            reset(c)
+        assert one(c, "select public::text from storage.buckets where id='app-media'") == "true"
+    check("Only admins upload to the public media bucket (and only to that bucket)", media_upload_admin_only)
+
     # --- report ------------------------------------------------------------------
     c.close()
     print()
