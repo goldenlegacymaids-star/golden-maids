@@ -215,14 +215,13 @@ void main() {
       );
     });
 
-    testWidgets('signed-in users are told profiles are coming soon', (
-      tester,
-    ) async {
+    testWidgets('signed-in users open the full profile', (tester) async {
       await pumpTestApp(tester, auth: auth, candidates: candidates);
       await _openDirectory(tester);
 
       await tapAndSettle(tester, find.text('Maria Santos'));
-      expect(find.text('Full candidate profiles are coming soon.'), findsOneWidget);
+      expect(find.text('Ref. GM-00003'), findsOneWidget);
+      expect(find.text('Request Info'), findsOneWidget);
     });
   });
 

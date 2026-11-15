@@ -72,6 +72,7 @@ Schema changes are made **only** through SQL migrations in `supabase/migrations/
 | `candidate_skills` / `_languages` / `_experience` / `_packages` | Profile details; work history is for signed-in users only |
 | `candidate_documents` | Documents in the private bucket. Passport, visa and medical documents can **never** be shown to customers |
 | `candidate_favourites` | Each customer's saved candidates (private) |
+| `candidate_enquiries` | "Request Info" messages about a candidate (reference `EQ-2026-000001`); customers send and see their own (no edits), recruitment staff manage status; max 5 per customer per hour |
 | `hiring_requests` | Customer hiring requests (reference `HR-2026-000001`), validated against the package; customers can only cancel before processing |
 | `hiring_request_history` | Status timeline; internal notes hidden from customers |
 | Storage `candidate-photos` / `candidate-documents` | Public candidate photos / **private** documents; recruitment staff upload only |
@@ -140,6 +141,7 @@ python3 design/tools/generate_app_icons.py   # needs rsvg-convert + ImageMagick
 - [ ] **Delete the 3 TEST candidates** (`delete from public.candidates where is_test;`) and their avatars in `candidate-photos/test/`.
 - [ ] Candidate consent (UAE PDPL): every real candidate needs a recorded consent date before publishing (enforced by the database).
 - [ ] In-app account deletion (store requirement); hiring requests are kept for records, so define the retention rule with the client.
+- [ ] Confirm the agency number **+971 4 323 4393 is registered on WhatsApp Business** (used by the WhatsApp button); contact details are in `lib/core/constants/agency_contact.dart`.
 - [ ] Nurse / Home Caregiver: confirm the client's healthcare licensing before showing these categories.
 - [ ] Android release signing config (currently debug keys).
 - [ ] Privacy policy and terms URLs.
@@ -192,5 +194,5 @@ Each feature is split into `presentation/`, `domain/` and `data/` folders as it 
 | 1.7 | Home screen: location, search, banners, categories, popular services; category, service details, search, notifications | ✅ Done |
 | 2.1 | Recruitment database: packages, candidates, favourites, hiring requests, private storage, 3 TEST candidates | ✅ Done |
 | 2.2 | Candidate directory (*Find a Maid*: search, nationality, job type, package, skills, availability, sort) + *Featured Maids* on Home | ✅ Done |
-| 2.3 | Candidate profile, favourites, Contact Agency | ⏳ Next |
-| 2.4 | Hiring workflow + My Hiring Requests | Planned |
+| 2.3 | Candidate profile, favourites (Saved Maids), Contact Agency (call, WhatsApp, email), Request Info | ✅ Done |
+| 2.4 | Hiring workflow + My Hiring Requests | ⏳ Next |

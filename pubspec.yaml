@@ -24,6 +24,8 @@ dependencies:
   shimmer: ^3.0.0
   # Formatting (dates, AED currency)
   intl: ^0.20.2
+  # Open the phone dialler, WhatsApp and email (Contact Agency)
+  url_launcher: ^6.3.0
 
   cupertino_icons: ^1.0.8
 

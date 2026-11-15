@@ -92,6 +92,13 @@ sealed class AppFailure implements Exception {
         message: 'This record already exists.',
         cause: error,
       ),
+      // Rules checked by the database's own triggers come with a message
+      // written for customers (e.g. "This worker is no longer available.").
+      // Plain check-constraint errors mention "violates" and are not shown.
+      '23514' when !error.message.contains('violates') => ValidationFailure(
+        message: error.message,
+        cause: error,
+      ),
       // Check / not-null / foreign-key / bad input format.
       '23514' || '23502' || '23503' || '22P02' => ValidationFailure(
         message: 'Some of the details are not valid. Please check and try again.',

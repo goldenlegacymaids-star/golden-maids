@@ -57,6 +57,27 @@ void main() {
       );
     });
 
+    test('database rule messages are shown; raw constraint text is not', () {
+      expect(
+        AppFailure.from(
+          const PostgrestException(
+            message: 'This candidate is no longer listed.',
+            code: '23514',
+          ),
+        ).message,
+        'This candidate is no longer listed.',
+      );
+      expect(
+        AppFailure.from(
+          const PostgrestException(
+            message: 'new row for relation "x" violates check constraint "y"',
+            code: '23514',
+          ),
+        ).message,
+        'Some of the details are not valid. Please check and try again.',
+      );
+    });
+
     test('auth messages are passed through for the user', () {
       final failure = AppFailure.from(
         const AuthException('Invalid login credentials', statusCode: '400'),

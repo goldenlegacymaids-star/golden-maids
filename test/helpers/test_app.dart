@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_maids/app.dart';
+import 'package:golden_maids/core/services/external_launcher.dart';
 import 'package:golden_maids/core/services/shared_preferences_provider.dart';
 import 'package:golden_maids/features/authentication/data/auth_providers.dart';
 import 'package:golden_maids/features/candidates/data/candidate_repository.dart';
@@ -24,6 +25,7 @@ Future<void> pumpTestApp(
   FakeProfileRepository? profiles,
   FakeCatalogRepository? catalog,
   FakeCandidateRepository? candidates,
+  FakeLauncher? launcher,
   Map<String, Object> preferences = const {},
 }) async {
   tester.view.physicalSize = const Size(430, 932);
@@ -50,6 +52,9 @@ Future<void> pumpTestApp(
         ),
         candidateRepositoryProvider.overrideWithValue(
           candidates ?? FakeCandidateRepository(),
+        ),
+        externalLauncherProvider.overrideWithValue(
+          (launcher ?? FakeLauncher()).call,
         ),
       ],
       child: const GoldenMaidsApp(),
@@ -85,4 +90,17 @@ Future<void> scrollHomeTo(WidgetTester tester, Finder finder) async {
       .first;
   await tester.scrollUntilVisible(finder, 200, scrollable: homeList);
   await settle(tester);
+}
+
+/// Records links the app tries to open in other apps.
+class FakeLauncher {
+  final List<Uri> opened = [];
+
+  /// Set to false to simulate a device without the needed app.
+  bool succeeds = true;
+
+  Future<bool> call(Uri uri) async {
+    opened.add(uri);
+    return succeeds;
+  }
 }

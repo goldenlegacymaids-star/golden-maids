@@ -8,6 +8,7 @@ import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_network_image.dart';
 import '../../domain/candidate.dart';
+import 'favourite_button.dart';
 
 /// "Housemaid · 34 yrs"
 String candidateSubtitle(Candidate candidate) {
@@ -222,6 +223,15 @@ class CandidateCard extends StatelessWidget {
                     top: AppSpacing.xs,
                     child: TestTag(),
                   ),
+                Positioned(
+                  right: AppSpacing.xs,
+                  bottom: AppSpacing.xs,
+                  child: FavouriteButton(
+                    candidateId: candidate.id,
+                    candidateTitle: candidate.title,
+                    size: 34,
+                  ),
+                ),
               ],
             ),
             Padding(
@@ -337,9 +347,10 @@ class CandidateListTile extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(
-            Icons.chevron_right_rounded,
-            color: AppColors.textSecondary,
+          FavouriteButton(
+            candidateId: candidate.id,
+            candidateTitle: candidate.title,
+            size: 36,
           ),
         ],
       ),

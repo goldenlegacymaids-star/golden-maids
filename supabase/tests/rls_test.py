@@ -612,6 +612,78 @@ def main():
         assert one(c, "select age from public.candidates where id=%s", (kenya,)) is not None
     check("Daily age refresh restores ages", age_refresh_job)
 
+    # --- candidate enquiries ("Request Info") ---------------------------------
+    enquiry_sql = (
+        "insert into public.candidate_enquiries (candidate_id, customer_name, customer_phone, message, contact_method) "
+        "values (%s, 'Alice Customer', '+971501234567', %s, 'whatsapp') returning id::text"
+    )
+
+    def enquiry_sent_and_private():
+        as_user(c, alice)
+        try:
+            eid = one(c, enquiry_sql, (kenya, "  Is she available in January?  "))
+            row = c.execute("select reference, status, message, customer_id::text from public.candidate_enquiries where id=%s", (eid,)).fetchone()
+            assert row[0].startswith("EQ-") and len(row[0]) == 14, row[0]
+            assert row[1] == "new" and row[2] == "Is she available in January?", row
+            assert row[3] == alice
+            # Cannot send in someone else's name, change, or delete it.
+            expect_denied(c, "insert into public.candidate_enquiries (customer_id, candidate_id, customer_name, customer_phone, message) values (%s, %s, 'Bob', '+971501111111', 'hi')", (bob, kenya))
+            expect_denied(c, "update public.candidate_enquiries set message='changed' where id=%s", (eid,))
+            c.execute("update public.candidate_enquiries set status='closed' where id=%s", (eid,))
+            expect_denied(c, "delete from public.candidate_enquiries where id=%s", (eid,))
+        finally:
+            reset(c)
+        assert one(c, "select status from public.candidate_enquiries where id=%s", (eid,)) == "new", "customer must not change status"
+        as_user(c, bob)
+        try:
+            assert one(c, "select count(*) from public.candidate_enquiries") == 0, "other customers see nothing"
+        finally:
+            reset(c)
+        as_user(c, None)
+        try:
+            expect_denied(c, "select * from public.candidate_enquiries")
+            expect_denied(c, enquiry_sql, (kenya, "guest"))
+        finally:
+            reset(c)
+    check("Enquiries: customers send and see only their own, cannot edit or delete; guests none", enquiry_sent_and_private)
+
+    def enquiry_validation_and_rate_limit():
+        as_user(c, bob)
+        try:
+            expect_violation(c, enquiry_sql, (kenya, "   "))
+            expect_violation(c, enquiry_sql, (kenya, "x" * 1001))
+            for i in range(5):
+                one(c, enquiry_sql, (kenya, f"question {i}"))
+            expect_violation(c, enquiry_sql, (kenya, "sixth"))
+        finally:
+            reset(c)
+        c.execute("update public.candidates set archived_at=now() where id=%s", (kenya,))
+        as_user(c, alice)
+        try:
+            expect_violation(c, enquiry_sql, (kenya, "archived"))
+        finally:
+            reset(c)
+        c.execute("update public.candidates set archived_at=null where id=%s", (kenya,))
+    check("Enquiries: empty/too long rejected, archived candidates rejected, max 5 per hour", enquiry_validation_and_rate_limit)
+
+    def staff_handle_enquiries():
+        as_user(c, rita)
+        try:
+            assert one(c, "select count(*) from public.candidate_enquiries") == 6
+            eid = one(c, "select id::text from public.candidate_enquiries where customer_id=%s limit 1", (alice,))
+            c.execute("update public.candidate_enquiries set status='in_progress', handled_by=%s where id=%s", (rita, eid))
+            assert one(c, "select status from public.candidate_enquiries where id=%s", (eid,)) == "in_progress"
+            expect_violation(c, "update public.candidate_enquiries set status='done' where id=%s", (eid,))
+            expect_denied(c, "update public.candidate_enquiries set message='edited' where id=%s", (eid,))
+        finally:
+            reset(c)
+        as_user(c, ben)
+        try:
+            assert one(c, "select count(*) from public.candidate_enquiries") == 0, "booking manager is not recruitment staff"
+        finally:
+            reset(c)
+    check("Recruitment staff read all enquiries and update status only; other staff see none", staff_handle_enquiries)
+
     # --- report ------------------------------------------------------------------
     c.close()
     print()

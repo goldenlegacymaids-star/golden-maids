@@ -26,8 +26,13 @@ abstract final class AppRoutes {
   static String category(String slug) => '/home/category/$slug';
   static String service(String slug) => '/home/service/$slug';
 
+  // Candidate profile: full screen, above the bottom navigation.
+  static const String candidatePrefix = '/maid/';
+  static String candidate(String id) => '$candidatePrefix$id';
+
   // Profile
   static const String editProfile = '/profile/edit';
+  static const String savedMaids = '/profile/saved-maids';
 
   /// Development screen showing every design-system component
   /// (not available in production builds).

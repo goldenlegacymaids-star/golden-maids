@@ -15,6 +15,8 @@ import '../../features/authentication/presentation/verify_code_screen.dart';
 import '../../features/authentication/presentation/welcome_screen.dart';
 import '../../features/bookings/presentation/bookings_screen.dart';
 import '../../features/candidates/presentation/candidate_directory_screen.dart';
+import '../../features/candidates/presentation/candidate_profile_screen.dart';
+import '../../features/candidates/presentation/saved_maids_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/notifications/presentation/notifications_screen.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
@@ -36,11 +38,21 @@ class _RouterRefresh extends ChangeNotifier {
 }
 
 /// Pages that require a signed-in user.
-const Set<String> _signedInOnly = {AppRoutes.newPassword, AppRoutes.editProfile};
+const Set<String> _signedInOnly = {
+  AppRoutes.newPassword,
+  AppRoutes.editProfile,
+  AppRoutes.savedMaids,
+};
+
+bool _needsSignIn(String location) =>
+    _signedInOnly.contains(location) ||
+    // Full candidate profiles are for signed-in users only.
+    location.startsWith(AppRoutes.candidatePrefix);
 
 /// Session-aware redirects:
 /// - signed-in users never see the welcome / sign-in / sign-up screens;
-/// - account pages (e.g. edit profile, new password) require a session;
+/// - account pages (e.g. edit profile, new password) and full candidate
+///   profiles require a session;
 /// - the verification screen needs its arguments (lost on a web refresh).
 ///
 /// The main tabs stay open to guests (guest browsing); tabs with private
@@ -52,7 +64,7 @@ String? _redirect(AuthRepository auth, GoRouterState state) {
   if (signedIn && AppRoutes.guestOnly.contains(location)) {
     return AppRoutes.home;
   }
-  if (!signedIn && _signedInOnly.contains(location)) {
+  if (!signedIn && _needsSignIn(location)) {
     return AppRoutes.signIn;
   }
   if (location == AppRoutes.verifyCode && state.extra is! VerifyCodeArgs) {
@@ -116,6 +128,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.newPassword,
         name: 'new-password',
         builder: (context, state) => const NewPasswordScreen(),
+      ),
+      GoRoute(
+        path: '${AppRoutes.candidatePrefix}:id',
+        name: 'candidate',
+        builder: (context, state) =>
+            CandidateProfileScreen(candidateId: state.pathParameters['id']!),
       ),
       // Main tabs. Each branch keeps its own navigation stack and state.
       StatefulShellRoute(
@@ -192,6 +210,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 name: 'profile',
                 builder: (context, state) => const ProfileScreen(),
                 routes: [
+                  GoRoute(
+                    path: 'saved-maids',
+                    name: 'saved-maids',
+                    builder: (context, state) => const SavedMaidsScreen(),
+                  ),
                   GoRoute(
                     path: 'edit',
                     name: 'edit-profile',
