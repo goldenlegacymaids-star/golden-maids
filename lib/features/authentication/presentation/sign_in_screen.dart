@@ -186,8 +186,11 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
             ),
           ),
         const SizedBox(height: AppSpacing.xl),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        // Wrap (not Row) so the link moves to a new line on small screens
+        // or with large accessibility text sizes.
+        Wrap(
+          alignment: WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             Text(
               "Don't have an account?",

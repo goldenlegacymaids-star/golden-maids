@@ -228,8 +228,11 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: AppSpacing.md),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        // Wrap (not Row) so the link moves to a new line on small screens
+        // or with large accessibility text sizes.
+        Wrap(
+          alignment: WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             Text(
               'Already have an account?',
