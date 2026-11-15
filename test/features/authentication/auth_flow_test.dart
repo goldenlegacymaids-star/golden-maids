@@ -205,6 +205,11 @@ void main() {
     await _settle(tester);
 
     expect(find.byType(HomeScreen), findsOneWidget);
-    expect(find.text('Welcome back'), findsNothing);
+    // (Home also greets signed-in users with "Welcome back", so the
+    // sign-in screen is identified by its subtitle.)
+    expect(
+      find.text('Sign in to manage your bookings and hiring requests.'),
+      findsNothing,
+    );
   });
 }

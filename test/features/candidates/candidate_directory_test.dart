@@ -11,6 +11,21 @@ import '../../helpers/test_app.dart';
 
 Finder _chip(String label) => find.widgetWithText(AppChip, label);
 
+/// Taps a nationality chip, scrolling the chip row to it first (the row
+/// is wider than a phone screen).
+Future<void> _tapNationality(WidgetTester tester, String label) async {
+  // Found through whichever chips are visible (the row scrolls).
+  final row = find
+      .ancestor(of: find.byType(AppChip), matching: find.byType(Scrollable))
+      .first;
+  final index = ['All', ...CandidateNationalities.all].indexOf(label);
+  final current = tester.state<ScrollableState>(row).position.pixels;
+  // Scroll right for chips further along, back left for earlier ones.
+  final delta = index * 90.0 >= current ? 100.0 : -100.0;
+  await tester.scrollUntilVisible(_chip(label), delta, scrollable: row);
+  await tapAndSettle(tester, _chip(label));
+}
+
 /// Opens "Find a Maid" from the Featured Maids "See All" link.
 Future<void> _openDirectory(WidgetTester tester) async {
   await tapAndSettle(tester, find.text('See All'));
@@ -79,15 +94,15 @@ void main() {
       await pumpTestApp(tester, auth: auth, candidates: candidates);
       await _openDirectory(tester);
 
-      await tapAndSettle(tester, _chip('Kenya'));
+      await _tapNationality(tester, 'Kenya');
       expect(find.text('1 candidate'), findsOneWidget);
       expect(find.text('Wanjiru Kamau'), findsOneWidget);
       expect(find.text('Maria Santos'), findsNothing);
 
-      await tapAndSettle(tester, _chip('Philippines'));
+      await _tapNationality(tester, 'Philippines');
       expect(find.text('2 candidates'), findsOneWidget);
 
-      await tapAndSettle(tester, _chip('All'));
+      await _tapNationality(tester, 'All');
       expect(find.text('4 candidates'), findsOneWidget);
       expect(candidates.searches.last.nationalities, isEmpty);
     });
@@ -96,7 +111,7 @@ void main() {
       await pumpTestApp(tester, auth: auth, candidates: candidates);
       await _openDirectory(tester);
 
-      await tapAndSettle(tester, _chip('Indonesia'));
+      await _tapNationality(tester, 'Indonesia');
       expect(find.text('No candidates found'), findsOneWidget);
     });
 
