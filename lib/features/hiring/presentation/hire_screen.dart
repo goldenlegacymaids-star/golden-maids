@@ -26,6 +26,7 @@ import '../../candidates/domain/candidate.dart';
 import '../../candidates/domain/candidate_profile.dart';
 import '../../candidates/presentation/enquiry_sheet.dart';
 import '../../candidates/presentation/widgets/candidate_cards.dart';
+import '../../candidates/presentation/widgets/nationality_flag.dart';
 import '../../home/data/service_location.dart';
 import '../../profile/data/profile_repository.dart';
 import '../data/hiring_repository.dart';
@@ -126,6 +127,10 @@ class _HireFlowState extends ConsumerState<_HireFlow> {
   String? _sponsorNationality;
   Candidate? _candidate;
   bool _recommend = false;
+
+  /// Asked for when the agency recommends a maid and the price depends on
+  /// her nationality.
+  String? _preferredNationality;
   late String _emirate = ref.read(serviceLocationProvider);
   bool _children = false;
   bool _elderly = false;
@@ -199,6 +204,7 @@ class _HireFlowState extends ConsumerState<_HireFlow> {
     final options = durationOptions(package);
     _months = options.length == 1 ? options.single : null;
     if (!package.requiresSponsorNationality) _sponsorNationality = null;
+    _preferredNationality = null;
     // A maid chosen for another package may not offer this one.
     if (!_maidPreselected) {
       _candidate = null;
@@ -215,7 +221,11 @@ class _HireFlowState extends ConsumerState<_HireFlow> {
 
   bool get _canContinue => switch (_step) {
     _Step.package => _packageStepDone,
-    _Step.maid => _recommend || _candidate != null,
+    _Step.maid =>
+      _candidate != null ||
+          (_recommend &&
+              (!_package!.priceByNationality ||
+                  _preferredNationality != null)),
     _Step.details || _Step.review => true,
   };
 
@@ -247,6 +257,8 @@ class _HireFlowState extends ConsumerState<_HireFlow> {
       durationMonths: _months!,
       sponsorNationality: _sponsorNationality,
       candidateId: _recommend ? null : _candidate?.id,
+      // A chosen maid's nationality is filled in by the database.
+      preferredNationality: _recommend ? _preferredNationality : null,
       name: _name.text.trim(),
       phone: _phone.text.trim(),
       email: email.isEmpty ? null : email,
@@ -317,19 +329,24 @@ class _HireFlowState extends ConsumerState<_HireFlow> {
               ),
               children: switch (_step) {
                 _Step.package => _packageStep(),
-                _Step.maid => [_MaidStep(
-                  package: _package!,
-                  selected: _candidate,
-                  recommend: _recommend,
-                  onRecommend: () => setState(() {
-                    _recommend = true;
-                    _candidate = null;
-                  }),
-                  onSelect: (candidate) => setState(() {
-                    _recommend = false;
-                    _candidate = candidate;
-                  }),
-                )],
+                _Step.maid => [
+                  _MaidStep(
+                    package: _package!,
+                    selected: _candidate,
+                    recommend: _recommend,
+                    onRecommend: () => setState(() {
+                      _recommend = true;
+                      _candidate = null;
+                    }),
+                    onSelect: (candidate) => setState(() {
+                      _recommend = false;
+                      _candidate = candidate;
+                      _preferredNationality = null;
+                    }),
+                  ),
+                  if (_recommend && _package!.priceByNationality)
+                    ..._nationalityChoice(_package!),
+                ],
                 _Step.details => _detailsStep(),
                 _Step.review => _reviewStep(),
               },
@@ -413,7 +430,10 @@ class _HireFlowState extends ConsumerState<_HireFlow> {
           OptionCard(
             title: option.name,
             subtitle: option.description.isEmpty ? null : option.description,
-            trailing: packagePriceLabel(option),
+            trailing: packagePriceLabel(
+              option,
+              nationality: _candidate?.nationality,
+            ),
             selected: package?.id == option.id,
             onTap: () => setState(() => _choosePackage(option)),
           ),
@@ -426,7 +446,10 @@ class _HireFlowState extends ConsumerState<_HireFlow> {
           OptionCard(
             title: package.name,
             subtitle: package.description.isEmpty ? null : package.description,
-            trailing: packagePriceLabel(package),
+            trailing: packagePriceLabel(
+              package,
+              nationality: _candidate?.nationality,
+            ),
             selected: true,
             onTap: () {},
           ),
@@ -568,6 +591,46 @@ class _HireFlowState extends ConsumerState<_HireFlow> {
 
   // --- Step 4: review -------------------------------------------------------
 
+  /// The maid's nationality and its price, when the agency recommends the
+  /// maid and the package is priced by nationality.
+  List<Widget> _nationalityChoice(RecruitmentPackage package) {
+    final nationalities = ref.watch(maidNationalitiesProvider);
+    return [
+      const _StepHeading("Maid's nationality"),
+      const Text(
+        "The price of this package depends on the maid's nationality.",
+        style: AppTypography.bodySmall,
+      ),
+      const SizedBox(height: AppSpacing.sm),
+      ...nationalities.when<List<Widget>>(
+        loading: () => [
+          const Padding(
+            padding: EdgeInsets.all(AppSpacing.md),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+        ],
+        error: (error, _) => [
+          ErrorState(
+            failure: AppFailure.from(error),
+            onRetry: () => ref.invalidate(maidNationalitiesProvider),
+          ),
+        ],
+        data: (list) => [
+          for (final item in list) ...[
+            OptionCard(
+              leading: FlagImage(code: item.code, height: 20),
+              title: item.name,
+              trailing: packagePriceLabel(package, nationality: item.name),
+              selected: _preferredNationality == item.name,
+              onTap: () => setState(() => _preferredNationality = item.name),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+          ],
+        ],
+      ),
+    ];
+  }
+
   List<Widget> _reviewStep() {
     final package = _package!;
     final candidate = _candidate;
@@ -581,6 +644,9 @@ class _HireFlowState extends ConsumerState<_HireFlow> {
     final email = _email.text.trim();
     final requirements = _requirements.text.trim();
 
+    final nationality = _recommend
+        ? _preferredNationality
+        : candidate?.nationality;
     return [
       const _StepHeading('Review your request'),
       if (candidate != null && !_recommend) ...[
@@ -604,7 +670,12 @@ class _HireFlowState extends ConsumerState<_HireFlow> {
                   ? 'Agency recommendation'
                   : candidate?.title ?? '',
             ),
-            SummaryRow(label: 'Price', value: packagePriceLabel(package)),
+            if (nationality != null)
+              SummaryRow(label: 'Nationality', value: nationality),
+            SummaryRow(
+              label: 'Price',
+              value: packagePriceLabel(package, nationality: nationality),
+            ),
             const Divider(height: AppSpacing.lg),
             SummaryRow(label: 'Name', value: _name.text.trim()),
             SummaryRow(label: 'Phone', value: _phone.text.trim()),
@@ -892,9 +963,15 @@ class _MaidStep extends ConsumerWidget {
                     for (final candidate in list) ...[
                       OptionCard(
                         title: candidate.title,
-                        subtitle:
-                            '${candidateSubtitle(candidate)} · '
-                            '${candidate.nationality}',
+                        subtitle: [
+                          candidateSubtitle(candidate),
+                          candidate.nationality,
+                          if (package.priceByNationality)
+                            packagePriceLabel(
+                              package,
+                              nationality: candidate.nationality,
+                            ),
+                        ].join(' · '),
                         trailing: salaryLabel(candidate),
                         selected: !recommend && selected?.id == candidate.id,
                         onTap: () => onSelect(candidate),

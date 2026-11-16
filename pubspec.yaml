@@ -42,6 +42,8 @@ flutter:
     - assets/images/onboarding/
     - assets/icons/
     - assets/banners/
+    # Country flags for maid nationalities (public domain), by ISO code.
+    - assets/flags/
     # Font licence (SIL OFL) – shown on the app's licences page.
     - assets/fonts/OFL-Outfit.txt
 

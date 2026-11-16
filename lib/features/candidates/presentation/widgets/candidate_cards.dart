@@ -9,6 +9,7 @@ import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_network_image.dart';
 import '../../domain/candidate.dart';
 import 'favourite_button.dart';
+import 'nationality_flag.dart';
 
 /// "Housemaid · 34 yrs"
 String candidateSubtitle(Candidate candidate) {
@@ -32,9 +33,16 @@ String? salaryLabel(Candidate candidate) {
 }
 
 /// "AED 2,500 / month", "AED 9,000" or "Price on request" (prices are set
-/// by administrators).
-String packagePriceLabel(RecruitmentPackage package) {
-  final price = package.price;
+/// by administrators). For packages priced by nationality, give the maid's
+/// [nationality]; without it the lowest price is shown ("From AED 9,000").
+String packagePriceLabel(RecruitmentPackage package, {String? nationality}) {
+  if (package.priceByNationality && nationality == null) {
+    final prices = package.nationalityPrices.values;
+    if (prices.isEmpty) return 'Price on request';
+    final lowest = prices.reduce((a, b) => a < b ? a : b);
+    return 'From ${Formatters.aed(lowest)}';
+  }
+  final price = package.priceFor(nationality);
   if (price == null) return 'Price on request';
   return package.priceUnit == 'per_month'
       ? '${Formatters.aed(price)} / month'
@@ -165,12 +173,8 @@ class _NationalityLine extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Icon(
-          Icons.public_rounded,
-          size: 14,
-          color: AppColors.textSecondary,
-        ),
-        const SizedBox(width: AppSpacing.xxs),
+        NationalityFlag(nationality: nationality, height: 12),
+        const SizedBox(width: AppSpacing.xxs + 2),
         Expanded(
           child: Text(
             nationality,

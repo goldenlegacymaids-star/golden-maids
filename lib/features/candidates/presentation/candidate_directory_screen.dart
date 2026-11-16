@@ -21,6 +21,7 @@ import '../data/candidate_repository.dart';
 import '../domain/candidate.dart';
 import 'open_candidate.dart';
 import 'widgets/candidate_cards.dart';
+import 'widgets/nationality_flag.dart';
 
 /// "Find a Maid": search and filter domestic-worker candidates.
 ///
@@ -74,6 +75,8 @@ class _CandidateDirectoryScreenState
   @override
   Widget build(BuildContext context) {
     final sheetFilters = _filter.activeCount - _filter.nationalities.length;
+    final nationalities =
+        ref.watch(maidNationalitiesProvider).value ?? const <MaidNationality>[];
 
     return PageScaffold(
       title: 'Find a Maid',
@@ -118,12 +121,13 @@ class _CandidateDirectoryScreenState
                     () => _filter = _filter.copyWith(nationalities: const {}),
                   ),
                 ),
-                for (final nationality in CandidateNationalities.all) ...[
+                for (final nationality in nationalities) ...[
                   const SizedBox(width: AppSpacing.xs),
                   AppChip(
-                    label: nationality,
-                    selected: _filter.nationalities.contains(nationality),
-                    onTap: () => _toggleNationality(nationality),
+                    label: nationality.name,
+                    leading: FlagImage(code: nationality.code, height: 14),
+                    selected: _filter.nationalities.contains(nationality.name),
+                    onTap: () => _toggleNationality(nationality.name),
                   ),
                 ],
               ],

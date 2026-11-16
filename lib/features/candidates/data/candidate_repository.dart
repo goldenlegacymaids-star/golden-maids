@@ -22,6 +22,9 @@ abstract interface class CandidateRepository {
   /// Active hiring packages, in display order.
   Future<List<RecruitmentPackage>> getPackages();
 
+  /// Nationalities customers can choose from (active only), in order.
+  Future<List<MaidNationality>> getNationalities();
+
   /// Job titles in use (e.g. Housemaid, Nanny), for the filter.
   Future<List<String>> getDesignations();
 
@@ -147,6 +150,16 @@ class SupabaseCandidateRepository implements CandidateRepository {
         .select(RecruitmentPackage.columns)
         .order('sort_order', ascending: true);
     return rows.map(RecruitmentPackage.fromJson).toList();
+  });
+
+  @override
+  Future<List<MaidNationality>> getNationalities() => _guard(() async {
+    final rows = await _client
+        .from('maid_nationalities')
+        .select(MaidNationality.columns)
+        .order('sort_order', ascending: true)
+        .order('name', ascending: true);
+    return rows.map(MaidNationality.fromJson).toList();
   });
 
   @override
@@ -324,6 +337,9 @@ class UnavailableCandidateRepository implements CandidateRepository {
   Future<List<RecruitmentPackage>> getPackages() => Future.error(_failure);
 
   @override
+  Future<List<MaidNationality>> getNationalities() => Future.error(_failure);
+
+  @override
   Future<List<String>> getDesignations() => Future.error(_failure);
 
   @override
@@ -362,6 +378,11 @@ final featuredCandidatesProvider = FutureProvider<List<Candidate>>(
 
 final recruitmentPackagesProvider = FutureProvider<List<RecruitmentPackage>>(
   (ref) => ref.watch(candidateRepositoryProvider).getPackages(),
+);
+
+/// Nationalities customers can choose from, with their flag codes.
+final maidNationalitiesProvider = FutureProvider<List<MaidNationality>>(
+  (ref) => ref.watch(candidateRepositoryProvider).getNationalities(),
 );
 
 final candidateDesignationsProvider = FutureProvider<List<String>>(

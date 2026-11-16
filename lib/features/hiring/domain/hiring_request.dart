@@ -60,6 +60,9 @@ class HiringRequest {
     this.preferredStartDate,
     this.requirements = '',
     this.contactMethod = ContactMethod.phone,
+    this.preferredNationality,
+    this.quotedPrice,
+    this.quotedPriceUnit,
   });
 
   factory HiringRequest.fromJson(Map<String, dynamic> json) {
@@ -91,6 +94,9 @@ class HiringRequest {
       hasPets: json['has_pets'] as bool? ?? false,
       preferredStartDate: start == null ? null : DateTime.tryParse(start),
       requirements: json['requirements'] as String? ?? '',
+      preferredNationality: json['preferred_nationality'] as String?,
+      quotedPrice: (json['quoted_price'] as num?)?.toDouble(),
+      quotedPriceUnit: json['quoted_price_unit'] as String?,
       contactMethod: ContactMethod.values.firstWhere(
         (m) => m.value == json['contact_method'],
         orElse: () => ContactMethod.phone,
@@ -105,6 +111,7 @@ class HiringRequest {
       'candidate_id, status, created_at, customer_name, customer_phone, '
       'customer_email, emirate, household_size, has_children, has_elderly, '
       'has_pets, preferred_start_date, requirements, contact_method, '
+      'preferred_nationality, quoted_price, quoted_price_unit, '
       'recruitment_packages(name), candidates(${Candidate.cardColumns})';
 
   final String id;
@@ -135,6 +142,15 @@ class HiringRequest {
   final String requirements;
   final ContactMethod contactMethod;
 
+  /// The maid's nationality (chosen maid, or asked for).
+  final String? preferredNationality;
+
+  /// The price shown when the request was sent (null = on request).
+  final double? quotedPrice;
+
+  /// `per_month` or `total`.
+  final String? quotedPriceUnit;
+
   /// The same request with a new [status].
   HiringRequest withStatus(HiringStatus status) => HiringRequest(
     id: id,
@@ -158,6 +174,9 @@ class HiringRequest {
     preferredStartDate: preferredStartDate,
     requirements: requirements,
     contactMethod: contactMethod,
+    preferredNationality: preferredNationality,
+    quotedPrice: quotedPrice,
+    quotedPriceUnit: quotedPriceUnit,
   );
 
   /// The maid's name or code, or "Agency recommendation".
@@ -197,6 +216,7 @@ class HiringDraft {
     required this.emirate,
     this.sponsorNationality,
     this.candidateId,
+    this.preferredNationality,
     this.email,
     this.householdSize,
     this.hasChildren = false,
@@ -211,6 +231,9 @@ class HiringDraft {
   final int durationMonths;
   final String? sponsorNationality;
   final String? candidateId;
+
+  /// The maid nationality asked for when the agency recommends the maid.
+  final String? preferredNationality;
   final String name;
   final String phone;
   final String? email;
@@ -230,6 +253,7 @@ class HiringDraft {
       'duration_months': durationMonths,
       'sponsor_nationality': sponsorNationality,
       'candidate_id': candidateId,
+      'preferred_nationality': preferredNationality,
       'customer_name': name,
       'customer_phone': phone,
       'customer_email': email,

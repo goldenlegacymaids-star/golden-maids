@@ -1,12 +1,20 @@
-/// Nationalities the agency recruits from (matches the database check).
-abstract final class CandidateNationalities {
-  static const List<String> all = [
-    'Kenya',
-    'Ethiopia',
-    'Myanmar',
-    'Philippines',
-    'Indonesia',
-  ];
+/// A nationality the agency recruits from (`public.maid_nationalities`).
+/// Administrators manage the list; [code] is the ISO country code (KE) used
+/// for the flag.
+class MaidNationality {
+  const MaidNationality({required this.name, required this.code});
+
+  factory MaidNationality.fromJson(Map<String, dynamic> json) {
+    return MaidNationality(
+      name: json['name'] as String,
+      code: json['code'] as String,
+    );
+  }
+
+  static const String columns = 'name, code';
+
+  final String name;
+  final String code;
 }
 
 /// Skills a candidate can have (`public.candidate_skills.skill`).
@@ -152,9 +160,12 @@ class RecruitmentPackage {
     this.requiresSponsorNationality = false,
     this.price,
     this.priceUnit,
+    this.priceByNationality = false,
+    this.nationalityPrices = const {},
   });
 
   factory RecruitmentPackage.fromJson(Map<String, dynamic> json) {
+    final prices = json['recruitment_package_prices'] as List<dynamic>? ?? [];
     return RecruitmentPackage(
       id: json['id'] as String,
       slug: json['slug'] as String,
@@ -169,12 +180,19 @@ class RecruitmentPackage {
           json['requires_sponsor_nationality'] as bool? ?? false,
       price: (json['price'] as num?)?.toDouble(),
       priceUnit: json['price_unit'] as String?,
+      priceByNationality: json['price_by_nationality'] as bool? ?? false,
+      nationalityPrices: {
+        for (final row in prices.cast<Map<String, dynamic>>())
+          row['nationality'] as String: (row['price'] as num).toDouble(),
+      },
     );
   }
 
   static const String columns =
       'id, slug, name, description, visa_type, contract_term, min_months, '
-      'max_months, month_step, requires_sponsor_nationality, price, price_unit';
+      'max_months, month_step, requires_sponsor_nationality, price, '
+      'price_unit, price_by_nationality, '
+      'recruitment_package_prices(nationality, price)';
 
   final String id;
   final String slug;
@@ -191,11 +209,26 @@ class RecruitmentPackage {
   final int monthStep;
   final bool requiresSponsorNationality;
 
-  /// Set by administrators; null means "Price on request".
+  /// Set by administrators; null means "Price on request". Not used when
+  /// [priceByNationality] is true.
   final double? price;
 
   /// `per_month` or `total`.
   final String? priceUnit;
+
+  /// The price depends on the maid's nationality (2-Year GCC Sponsor
+  /// package: a one-off recruitment cost).
+  final bool priceByNationality;
+
+  /// Nationality name → price, for [priceByNationality] packages.
+  final Map<String, double> nationalityPrices;
+
+  /// The price for a maid of [nationality] (null = on request, or unknown
+  /// nationality).
+  double? priceFor(String? nationality) {
+    if (!priceByNationality) return price;
+    return nationality == null ? null : nationalityPrices[nationality];
+  }
 
   /// Short label for filter chips.
   String get shortName => switch (contractTerm) {

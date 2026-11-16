@@ -87,7 +87,20 @@ class FakeCandidateRepository implements CandidateRepository {
       maxMonths: 24,
       monthStep: 24,
       requiresSponsorNationality: true,
+      priceUnit: 'total',
+      priceByNationality: true,
+      nationalityPrices: {'Kenya': 15000, 'Philippines': 16500},
     ),
+  ];
+
+  /// The nationality list, in the database's order.
+  static const defaultNationalities = [
+    MaidNationality(name: 'Kenya', code: 'KE'),
+    MaidNationality(name: 'Ethiopia', code: 'ET'),
+    MaidNationality(name: 'Myanmar', code: 'MM'),
+    MaidNationality(name: 'Indonesia', code: 'ID'),
+    MaidNationality(name: 'Philippines', code: 'PH'),
+    MaidNationality(name: 'Madagascar', code: 'MG'),
   ];
 
   static const defaultPackagesByCandidate = {
@@ -159,6 +172,12 @@ class FakeCandidateRepository implements CandidateRepository {
   Future<List<RecruitmentPackage>> getPackages() async {
     _check();
     return defaultPackages;
+  }
+
+  @override
+  Future<List<MaidNationality>> getNationalities() async {
+    _check();
+    return defaultNationalities;
   }
 
   @override

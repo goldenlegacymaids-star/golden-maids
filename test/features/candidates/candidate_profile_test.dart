@@ -91,7 +91,9 @@ void main() {
       expect(find.text('2018 – 2021'), findsOneWidget);
 
       await _scrollTo(tester, find.text('2-Year Contract – GCC Sponsor Visa'));
+      // Monthly has no price yet; the 2-Year price is Wanjiru's (Kenya).
       expect(find.text('Price on request'), findsWidgets);
+      expect(find.text('AED 15,000'), findsOneWidget);
 
       await _scrollTo(tester, find.text('Housekeeping certificate'));
       await _scrollTo(tester, find.text('Hire this maid'));

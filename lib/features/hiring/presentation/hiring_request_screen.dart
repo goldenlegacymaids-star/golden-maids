@@ -5,6 +5,7 @@ import '../../../core/errors/app_failure.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_snackbar.dart';
@@ -113,6 +114,21 @@ class HiringRequestScreen extends ConsumerWidget {
                       SummaryRow(
                         label: "Sponsor's nationality",
                         value: gccCountryName(iso),
+                      ),
+                    if (data.preferredNationality case final nationality?)
+                      SummaryRow(label: 'Nationality', value: nationality),
+                    // Requests sent before prices were saved show no price.
+                    if (data.quotedPrice case final price?)
+                      SummaryRow(
+                        label: 'Price',
+                        value: data.quotedPriceUnit == 'per_month'
+                            ? '${Formatters.aed(price)} / month'
+                            : Formatters.aed(price),
+                      )
+                    else if (data.preferredNationality != null)
+                      const SummaryRow(
+                        label: 'Price',
+                        value: 'Price on request',
                       ),
                     SummaryRow(label: 'Emirate', value: data.emirate),
                     if (household.isNotEmpty)

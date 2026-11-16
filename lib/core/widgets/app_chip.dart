@@ -11,12 +11,16 @@ class AppChip extends StatelessWidget {
     required this.selected,
     required this.onTap,
     this.icon,
+    this.leading,
   });
 
   final String label;
   final bool selected;
   final VoidCallback? onTap;
   final IconData? icon;
+
+  /// Shown instead of [icon], e.g. a small flag.
+  final Widget? leading;
 
   @override
   Widget build(BuildContext context) {
@@ -25,6 +29,7 @@ class AppChip extends StatelessWidget {
       side: BorderSide(color: selected ? AppColors.primary : AppColors.border),
     );
     final chipIcon = icon;
+    final leadingWidget = leading;
 
     return Semantics(
       button: true,
@@ -40,7 +45,10 @@ class AppChip extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (chipIcon != null) ...[
+                if (leadingWidget != null) ...[
+                  leadingWidget,
+                  const SizedBox(width: 6),
+                ] else if (chipIcon != null) ...[
                   Icon(chipIcon, size: 18, color: foreground),
                   const SizedBox(width: 6),
                 ],

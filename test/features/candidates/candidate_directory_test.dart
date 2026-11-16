@@ -18,7 +18,10 @@ Future<void> _tapNationality(WidgetTester tester, String label) async {
   final row = find
       .ancestor(of: find.byType(AppChip), matching: find.byType(Scrollable))
       .first;
-  final index = ['All', ...CandidateNationalities.all].indexOf(label);
+  final index = [
+    'All',
+    for (final n in FakeCandidateRepository.defaultNationalities) n.name,
+  ].indexOf(label);
   final current = tester.state<ScrollableState>(row).position.pixels;
   // Scroll right for chips further along, back left for earlier ones.
   final delta = index * 90.0 >= current ? 100.0 : -100.0;

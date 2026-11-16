@@ -28,6 +28,7 @@ import '../domain/candidate_profile.dart';
 import 'enquiry_sheet.dart';
 import 'widgets/candidate_cards.dart';
 import 'widgets/favourite_button.dart';
+import 'widgets/nationality_flag.dart';
 
 /// Opens [uri] in another app, or explains that it could not.
 Future<void> openExternal(
@@ -161,7 +162,10 @@ class _ProfileBody extends ConsumerWidget {
               if (profile.packages.isNotEmpty) ...[
                 const _Heading('Available for'),
                 for (final package in profile.packages)
-                  _PackageTile(package: package),
+                  _PackageTile(
+                    package: package,
+                    nationality: profile.candidate.nationality,
+                  ),
               ],
               if (profile.documents.isNotEmpty) ...[
                 const _Heading('Documents'),
@@ -243,11 +247,17 @@ class _Facts extends StatelessWidget {
   Widget build(BuildContext context) {
     final salary = candidate.expectedSalary;
     final age = candidate.age;
-    final facts = <(IconData, String, String)>[
-      (Icons.public_rounded, 'Nationality', candidate.nationality),
-      if (age != null) (Icons.cake_rounded, 'Age', '$age years'),
+    Widget icon(IconData data) =>
+        Icon(data, size: 20, color: AppColors.primary);
+    final facts = <(Widget, String, String)>[
       (
-        Icons.work_history_rounded,
+        NationalityFlag(nationality: candidate.nationality, height: 16),
+        'Nationality',
+        candidate.nationality,
+      ),
+      if (age != null) (icon(Icons.cake_rounded), 'Age', '$age years'),
+      (
+        icon(Icons.work_history_rounded),
         'Experience',
         candidate.yearsExperience == 0
             ? 'None'
@@ -255,13 +265,21 @@ class _Facts extends StatelessWidget {
                   '${candidate.yearsExperience == 1 ? 'year' : 'years'}',
       ),
       (
-        Icons.home_rounded,
+        icon(Icons.home_rounded),
         'Accommodation',
         candidate.accommodation == 'live_out' ? 'Live-out' : 'Live-in',
       ),
-      (Icons.event_available_rounded, 'Available from', _availableFrom()),
+      (
+        icon(Icons.event_available_rounded),
+        'Available from',
+        _availableFrom(),
+      ),
       if (salary != null)
-        (Icons.payments_rounded, 'Expected salary', Formatters.aed(salary)),
+        (
+          icon(Icons.payments_rounded),
+          'Expected salary',
+          Formatters.aed(salary),
+        ),
     ];
 
     return LayoutBuilder(
@@ -271,14 +289,14 @@ class _Facts extends StatelessWidget {
           spacing: AppSpacing.sm,
           runSpacing: AppSpacing.sm,
           children: [
-            for (final (icon, label, value) in facts)
+            for (final (leading, label, value) in facts)
               SizedBox(
                 width: width,
                 child: AppCard(
                   padding: const EdgeInsets.all(AppSpacing.sm),
                   child: Row(
                     children: [
-                      Icon(icon, size: 20, color: AppColors.primary),
+                      SizedBox(width: 24, child: Center(child: leading)),
                       const SizedBox(width: AppSpacing.xs),
                       Expanded(
                         child: Column(
@@ -395,9 +413,12 @@ class _ExperienceTile extends StatelessWidget {
 }
 
 class _PackageTile extends StatelessWidget {
-  const _PackageTile({required this.package});
+  const _PackageTile({required this.package, required this.nationality});
 
   final RecruitmentPackage package;
+
+  /// The maid's nationality (some packages are priced by nationality).
+  final String nationality;
 
   @override
   Widget build(BuildContext context) {
@@ -425,7 +446,7 @@ class _PackageTile extends StatelessWidget {
                     Text(package.description, style: AppTypography.bodySmall),
                   const SizedBox(height: AppSpacing.xxs),
                   Text(
-                    packagePriceLabel(package),
+                    packagePriceLabel(package, nationality: nationality),
                     style: AppTypography.labelMedium.copyWith(
                       color: AppColors.primary,
                     ),

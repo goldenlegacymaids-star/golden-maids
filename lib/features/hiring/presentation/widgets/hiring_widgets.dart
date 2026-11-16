@@ -75,12 +75,16 @@ class OptionCard extends StatelessWidget {
     this.subtitle,
     this.trailing,
     this.icon,
+    this.leading,
   });
 
   final String title;
   final String? subtitle;
   final String? trailing;
   final IconData? icon;
+
+  /// Shown instead of [icon], e.g. a flag.
+  final Widget? leading;
   final bool selected;
   final VoidCallback onTap;
 
@@ -89,6 +93,7 @@ class OptionCard extends StatelessWidget {
     final subtitleText = subtitle;
     final trailingText = trailing;
     final optionIcon = icon;
+    final leadingWidget = leading;
 
     return Semantics(
       button: true,
@@ -109,7 +114,10 @@ class OptionCard extends StatelessWidget {
             padding: const EdgeInsets.all(AppSpacing.md),
             child: Row(
               children: [
-                if (optionIcon != null) ...[
+                if (leadingWidget != null) ...[
+                  leadingWidget,
+                  const SizedBox(width: AppSpacing.sm),
+                ] else if (optionIcon != null) ...[
                   Icon(optionIcon, color: AppColors.primary),
                   const SizedBox(width: AppSpacing.sm),
                 ],

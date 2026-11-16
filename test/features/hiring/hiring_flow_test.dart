@@ -153,9 +153,14 @@ void main() {
       expect(find.text('24 months (fixed)'), findsOneWidget);
       expect(_continueEnabled(tester), isFalse, reason: 'nationality needed');
 
+      // Priced by nationality: the lowest price until a maid is chosen.
+      expect(find.text('From AED 15,000'), findsOneWidget);
       await tapAndSettle(tester, _chip('Saudi Arabia'));
       await tapAndSettle(tester, find.text('Continue'));
       expect(find.text('Step 2 of 4'), findsOneWidget);
+      // Each maid shows the price for her nationality.
+      expect(find.textContaining('Philippines · AED 16,500'), findsOneWidget);
+      expect(find.textContaining('Kenya · AED 15,000'), findsOneWidget);
 
       // Only available maids offering the GCC package are listed.
       expect(find.text('Wanjiru Kamau'), findsOneWidget);
@@ -169,6 +174,8 @@ void main() {
       expect(find.text('Step 4 of 4'), findsOneWidget);
       expect(find.text('Saudi Arabia'), findsOneWidget);
       expect(find.text('24 months'), findsOneWidget);
+      expect(find.text('Philippines'), findsOneWidget);
+      expect(find.text('AED 16,500'), findsOneWidget);
 
       await tapAndSettle(tester, find.text('Submit request'));
       final draft = hiring.submitted.single;
@@ -176,6 +183,39 @@ void main() {
       expect(draft.durationMonths, 24);
       expect(draft.sponsorNationality, 'SA');
       expect(draft.candidateId, 'p1');
+      // The database fills in a chosen maid's nationality.
+      expect(draft.preferredNationality, isNull);
+    });
+
+    testWidgets('GCC sponsor visa with a recommended maid: choose nationality', (
+      tester,
+    ) async {
+      await start(tester);
+      await hireFromDirectory(tester);
+
+      await tapAndSettle(tester, find.text('GCC sponsor visa'));
+      await tapAndSettle(tester, _chip('United Arab Emirates'));
+      await tapAndSettle(tester, find.text('Continue'));
+      await tapAndSettle(tester, find.text('Let the agency recommend someone'));
+
+      // The price depends on the nationality, which must be chosen.
+      expect(find.text("Maid's nationality"), findsOneWidget);
+      expect(_continueEnabled(tester), isFalse, reason: 'nationality needed');
+      await tester.ensureVisible(find.text('Madagascar'));
+      expect(find.text('Price on request'), findsWidgets);
+      await tapAndSettle(tester, find.text('Kenya'));
+      expect(_continueEnabled(tester), isTrue);
+
+      await tapAndSettle(tester, find.text('Continue'));
+      await tapAndSettle(tester, find.text('Continue'));
+      expect(find.text('Agency recommendation'), findsOneWidget);
+      expect(find.text('Kenya'), findsOneWidget);
+      expect(find.text('AED 15,000'), findsOneWidget);
+
+      await tapAndSettle(tester, find.text('Submit request'));
+      final draft = hiring.submitted.single;
+      expect(draft.candidateId, isNull);
+      expect(draft.preferredNationality, 'Kenya');
     });
 
     testWidgets('the agency can be asked to recommend a maid', (tester) async {
