@@ -115,6 +115,27 @@ void main() {
     expect(find.text('No results'), findsOneWidget);
   });
 
+  testWidgets('search finds maids by nationality, name or code', (
+    tester,
+  ) async {
+    await pumpTestApp(tester, auth: auth, catalog: catalog);
+
+    await tapAndSettle(tester, find.byType(TextField).first);
+    await tester.enterText(find.byType(TextField), 'ken');
+    await settle(tester);
+    expect(find.text('Maids · 1'), findsOneWidget);
+    expect(find.text('Wanjiru Kamau'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), 'gm-00004');
+    await settle(tester);
+    expect(find.text('Maids · 1'), findsOneWidget);
+    expect(find.text('GM-00004'), findsOneWidget);
+    expect(find.text('Wanjiru Kamau'), findsNothing);
+
+    await tapAndSettle(tester, find.text('GM-00004'));
+    expect(find.text('Search'), findsNothing); // the maid's profile opened
+  });
+
   testWidgets('choosing a service location is remembered', (tester) async {
     await pumpTestApp(tester, auth: auth, catalog: catalog);
 

@@ -14,17 +14,49 @@ import '../../../core/widgets/app_search_bar.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/page_scaffold.dart';
+import '../../candidates/data/candidate_repository.dart';
+import '../../candidates/domain/candidate.dart';
+import '../../candidates/presentation/open_candidate.dart';
+import '../../candidates/presentation/widgets/candidate_cards.dart';
 import '../data/catalog_repository.dart';
 import '../domain/catalog.dart';
 import 'catalog_display.dart';
 import 'widgets/service_tiles.dart';
 
-/// Search services by name or description, optionally within a category.
-/// (Searching domestic-worker candidates is added in Phase 2.)
+/// Maids matching a search: by nationality when the words start a
+/// nationality's name ("ken" → Kenya), otherwise by name or code (GM-…).
+final maidSearchProvider = FutureProvider.family<List<Candidate>, String>((
+  ref,
+  query,
+) async {
+  final term = query.trim().toLowerCase();
+  var nationalities = const <MaidNationality>[];
+  try {
+    nationalities = await ref.watch(maidNationalitiesProvider.future);
+  } on Object {
+    // Without the list, search by name and code only.
+  }
+  final matching = {
+    for (final n in nationalities)
+      if (n.name.toLowerCase().startsWith(term)) n.name,
+  };
+  final repository = ref.watch(candidateRepositoryProvider);
+  return repository.search(
+    matching.isEmpty
+        ? CandidateFilter(query: query.trim())
+        : CandidateFilter(nationalities: matching),
+  );
+}, isAutoDispose: true);
+
+/// Search maids (name, code or nationality) and home services (name or
+/// description, optionally within a category).
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
 
   static const int minQueryLength = 2;
+
+  /// Maids shown before "See all maids".
+  static const int maidPreview = 5;
 
   @override
   ConsumerState<SearchScreen> createState() => _SearchScreenState();
@@ -116,7 +148,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             child: AppSearchBar(
               controller: _controller,
               autofocus: true,
-              hint: 'Search for services...',
+              hint: 'Search maids, nationalities or services...',
               onChanged: _onChanged,
               onFilterPressed: categories.isEmpty
                   ? null
@@ -183,54 +215,103 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
     final results = ref.watch(serviceSearchProvider(_query));
     final catalog = ref.watch(catalogRepositoryProvider);
+    // A service category filter is about services: maids are left out.
+    final maids = _categoryId == null
+        ? ref.watch(maidSearchProvider(_query))
+        : const AsyncData(<Candidate>[]);
+    final candidates = ref.watch(candidateRepositoryProvider);
 
-    return results.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => ErrorState(
-        failure: AppFailure.from(error),
-        onRetry: () => ref.invalidate(serviceSearchProvider(_query)),
-      ),
-      data: (services) {
-        final filtered = _categoryId == null
-            ? services
-            : services.where((s) => s.categoryId == _categoryId).toList();
-        if (filtered.isEmpty) {
-          return const SingleChildScrollView(
-            child: EmptyState(
-              icon: Icons.search_off_rounded,
-              title: 'No results',
-              message: 'Try a different word, or browse the categories.',
+    if (results.isLoading && maids.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (results.hasError && !results.hasValue) {
+      return ErrorState(
+        failure: AppFailure.from(results.error!),
+        onRetry: () {
+          ref
+            ..invalidate(serviceSearchProvider(_query))
+            ..invalidate(maidSearchProvider(_query));
+        },
+      );
+    }
+
+    final services = results.value ?? const <HomeService>[];
+    final filtered = _categoryId == null
+        ? services
+        : services.where((s) => s.categoryId == _categoryId).toList();
+    // A maid search that fails only hides the maids section.
+    final maidList = maids.value ?? const <Candidate>[];
+    if (filtered.isEmpty && maidList.isEmpty && !maids.isLoading) {
+      return const SingleChildScrollView(
+        child: EmptyState(
+          icon: Icons.search_off_rounded,
+          title: 'No results',
+          message:
+              'Try a name, a code (GM-…), a nationality or a service, or '
+              'browse the categories.',
+        ),
+      );
+    }
+
+    final shownMaids = maidList.take(SearchScreen.maidPreview).toList();
+    return ListView(
+      padding: listPadding,
+      children: [
+        if (maidList.isNotEmpty) ...[
+          Text(
+            'Maids · ${maidList.length}',
+            style: AppTypography.titleSmall,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          for (final candidate in shownMaids) ...[
+            CandidateListTile(
+              candidate: candidate,
+              photoUrl: candidates.photoUrl(candidate.photoPath),
+              onTap: () => openCandidate(context, ref, candidate),
             ),
-          );
-        }
-        return ListView.separated(
-          padding: listPadding,
-          itemCount: filtered.length + 1,
-          separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-          itemBuilder: (context, index) {
-            if (index == 0) {
-              return Text(
-                '${filtered.length} '
-                '${filtered.length == 1 ? 'result' : 'results'}',
-                style: AppTypography.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              );
-            }
-            final service = filtered[index - 1];
-            final category = categories
-                .where((c) => c.id == service.categoryId)
-                .firstOrNull;
-            return ServiceListTile(
+            const SizedBox(height: AppSpacing.sm),
+          ],
+          if (maidList.length > shownMaids.length)
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: TextButton(
+                onPressed: () => unawaited(context.push(AppRoutes.maids)),
+                child: const Text('See all maids'),
+              ),
+            ),
+          const SizedBox(height: AppSpacing.md),
+        ],
+        if (filtered.isNotEmpty) ...[
+          if (maidList.isNotEmpty) ...[
+            const Text('Services', style: AppTypography.titleSmall),
+            const SizedBox(height: AppSpacing.xxs),
+          ],
+          Text(
+            '${filtered.length} '
+            '${filtered.length == 1 ? 'result' : 'results'}',
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          for (final service in filtered) ...[
+            ServiceListTile(
               service: service,
               imageUrl: catalog.imageUrl(service.imagePath),
-              icon: categoryIcon(category?.icon ?? ''),
+              icon: categoryIcon(
+                categories
+                        .where((c) => c.id == service.categoryId)
+                        .firstOrNull
+                        ?.icon ??
+                    '',
+              ),
               onTap: () =>
                   unawaited(context.push(AppRoutes.service(service.slug))),
-            );
-          },
-        );
-      },
+            ),
+            const SizedBox(height: AppSpacing.sm),
+          ],
+        ],
+      ],
     );
   }
 }
