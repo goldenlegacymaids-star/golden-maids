@@ -128,13 +128,13 @@ class _BrandTitle extends StatelessWidget {
       header: true,
       label: AppConstants.appName,
       excludeSemantics: true,
-      child: Row(
+      child: const Row(
         children: [
-          const AppLogo.icon(size: 32),
-          const SizedBox(width: AppSpacing.xs),
+          AppLogo.icon(size: 32),
+          SizedBox(width: AppSpacing.xs),
           Flexible(
             child: Text.rich(
-              const TextSpan(
+              TextSpan(
                 children: [
                   TextSpan(text: 'Golden '),
                   TextSpan(
