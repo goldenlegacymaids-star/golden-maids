@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -98,6 +100,7 @@ class _BookFlowState extends ConsumerState<_BookFlow> {
   PaymentMethod _payment = PaymentMethod.cash;
   bool _submitting = false;
   String? _error;
+  final _scroll = ScrollController();
   String? _reference;
 
   HomeService get _service => widget.service;
@@ -145,6 +148,7 @@ class _BookFlowState extends ConsumerState<_BookFlow> {
     _instructions.dispose();
     _name.dispose();
     _phone.dispose();
+    _scroll.dispose();
     super.dispose();
   }
 
@@ -270,6 +274,18 @@ class _BookFlowState extends ConsumerState<_BookFlow> {
         _submitting = false;
         _error = AppFailure.from(error).message;
       });
+      // The message and "Choose another time" sit at the end of the review:
+      // bring them into view.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_scroll.hasClients) return;
+        unawaited(
+          _scroll.animateTo(
+            _scroll.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          ),
+        );
+      });
     }
   }
 
@@ -295,6 +311,7 @@ class _BookFlowState extends ConsumerState<_BookFlow> {
           child: Form(
             key: _formKey,
             child: ListView(
+              controller: _scroll,
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.screenPadding,
                 AppSpacing.md,
