@@ -13,6 +13,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/app_icon_button.dart';
 import '../../../../core/widgets/app_logo.dart';
 import '../../../authentication/data/auth_providers.dart';
+import '../../../notifications/data/notification_repository.dart';
 import '../../../profile/data/profile_repository.dart';
 import '../../data/service_location.dart';
 
@@ -140,6 +141,7 @@ class HomeHeader extends ConsumerWidget {
             AppIconButton(
               icon: Icons.notifications_none_rounded,
               tooltip: 'Notifications',
+              showBadge: ref.watch(unreadNotificationCountProvider) > 0,
               onPressed: () => unawaited(context.push(AppRoutes.notifications)),
             ),
           ],

@@ -91,9 +91,9 @@ void main() {
     await pumpTestApp(tester, auth: auth, profiles: profiles);
     await openTab(tester, _profileIcon);
 
-    // Visa applications, contracts, documents, payment methods and
-    // notifications are not built yet.
-    expect(find.text('Coming soon'), findsNWidgets(5));
+    // Visa applications, contracts, documents and payment methods are not
+    // built yet.
+    expect(find.text('Coming soon'), findsNWidgets(4));
 
     await tapAndSettle(tester, find.text('My Visa Applications'));
     expect(find.text('Sarah Khan'), findsOneWidget); // still on Profile

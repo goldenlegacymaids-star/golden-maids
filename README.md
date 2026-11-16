@@ -138,6 +138,7 @@ python3 design/tools/generate_app_icons.py   # needs rsvg-convert + ImageMagick
 |---|---|---|
 | **1** | Replace onboarding (and banner) photos with licensed or own photo-shoot images | Before store release |
 | **2** | Supabase Auth setup ([guide](docs/supabase_auth_setup.md) §1–3: email settings + templates, Twilio Verify + test numbers) and a live sign-in test, then verify the profile + Customer role were created | To revisit |
+| **3** | Push notifications to the phone (lock screen) for the same updates: needs the client's Firebase project, then a Supabase Edge Function with the Firebase key entered as a secret in the Supabase dashboard | Later |
 
 ## ⚠️ Before store release (checklist)
 
@@ -215,3 +216,4 @@ Each feature is split into `presentation/`, `domain/` and `data/` folders as it 
 | 3.4 | Staff website A.5: bookings, service staff, booking settings | ✅ Done |
 | 4.1 | **Profile essentials**: Saved Addresses (add, edit, delete, default), Help Centre (FAQ from the live booking rules + call, WhatsApp, email), draft Privacy Policy and Terms, Delete my account (request for admins; withdraw while pending) | ✅ Done |
 | 4.2 | **Nationalities & 2-Year prices**: nationalities loaded from the database (Madagascar added; admins can add more), flags instead of the globe (bundled in `assets/flags/`, public domain), 2-Year GCC Sponsor price per maid nationality ("From AED …" until a nationality is known), customers choose a nationality when the agency recommends; requests show the nationality and the quoted price | ✅ Done |
+| 4.3 | **Customer notifications (in-app)**: the database notifies customers when the agency changes a booking (confirmed, professional assigned, on the way, started, completed, cancelled, rescheduled), a hiring request (each status) or an enquiry, or adds a note visible to the customer (internal notes and the customer's own actions never); Home bell with unread dot, live list (Realtime), tap to open the booking / request / maid, mark all read; Profile → Notifications opens the list | ✅ Done |

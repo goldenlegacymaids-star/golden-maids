@@ -8,6 +8,7 @@ import 'package:golden_maids/features/authentication/data/auth_providers.dart';
 import 'package:golden_maids/features/bookings/data/booking_repository.dart';
 import 'package:golden_maids/features/candidates/data/candidate_repository.dart';
 import 'package:golden_maids/features/hiring/data/hiring_repository.dart';
+import 'package:golden_maids/features/notifications/data/notification_repository.dart';
 import 'package:golden_maids/features/onboarding/data/onboarding_repository.dart';
 import 'package:golden_maids/features/onboarding/presentation/splash_screen.dart';
 import 'package:golden_maids/features/profile/data/account_deletion_repository.dart';
@@ -21,6 +22,7 @@ import 'fake_booking_repository.dart';
 import 'fake_candidate_repository.dart';
 import 'fake_catalog_repository.dart';
 import 'fake_hiring_repository.dart';
+import 'fake_notification_repository.dart';
 import 'fake_profile_repository.dart';
 
 /// Starts the app as a returning user (onboarding already seen) on a
@@ -35,6 +37,7 @@ Future<void> pumpTestApp(
   FakeHiringRepository? hiring,
   FakeBookingRepository? bookings,
   FakeAccountDeletionRepository? accountDeletion,
+  FakeNotificationRepository? notifications,
   Map<String, Object> preferences = const {},
 }) async {
   tester.view.physicalSize = const Size(430, 932);
@@ -70,6 +73,9 @@ Future<void> pumpTestApp(
         ),
         bookingRepositoryProvider.overrideWithValue(
           bookings ?? FakeBookingRepository(),
+        ),
+        notificationRepositoryProvider.overrideWithValue(
+          notifications ?? FakeNotificationRepository(),
         ),
         externalLauncherProvider.overrideWithValue(
           (launcher ?? FakeLauncher()).call,

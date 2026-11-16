@@ -1286,6 +1286,75 @@ def main():
         assert mq[0] is None and mq[1] == monthly_price[0] and (mq[2] == (monthly_price[1] if monthly_price[0] is not None else None)), (mq, monthly_price)
     check("Nationalities: admins manage the list (codes, rename, hide, no delete in use); 2-Year prices per nationality; hiring requests keep nationality and quoted price", nationalities_and_prices)
 
+    # --- customer notifications -------------------------------------------------
+    def customer_notifications():
+        def rows(uid):
+            return c.execute(
+                "select kind, title, body, booking_id::text, hiring_request_id::text, candidate_id::text, read_at "
+                "from public.customer_notifications where customer_id=%s order by id", (uid,)).fetchall()
+
+        alice_rows = rows(alice)
+        kinds = [r[0] for r in alice_rows]
+        # Staff actions on Alice's booking a10, hiring requests and enquiry earlier in these tests.
+        assigned = [r for r in alice_rows if r[0] == "booking.provider_assigned" and r[3] == bk["a10"]]
+        assert len(assigned) == 1, kinds
+        assert "Grace will arrive at 10 am." in assigned[0][2], assigned[0]
+        assert not any("Gate code" in r[2] for r in alice_rows), "internal note reached the customer"
+        # Alice's own reschedule and cancellation of a10 are not notified.
+        assert not any(r[3] == bk["a10"] and r[0] in ("booking.rescheduled", "booking.cancelled") for r in alice_rows), kinds
+        review = [r for r in alice_rows if r[0] == "hiring.under_review"]
+        assert review and any("We are reviewing your request." in r[2] for r in review), kinds
+        assert not any("Customer prefers Kenyan maids." in r[2] for r in alice_rows), "internal hiring note reached the customer"
+        assert "hiring.shortlisted" in kinds and "enquiry.in_progress" in kinds, kinds
+        enquiry = next(r for r in alice_rows if r[0] == "enquiry.in_progress")
+        assert enquiry[5] == kenya, enquiry
+        assert all(r[0] != "booking.pending" for r in alice_rows), "booking creation notified"
+
+        # Bob: the agency cancelled b18 with a visible note.
+        bob_rows = rows(bob)
+        cancelled = [r for r in bob_rows if r[0] == "booking.cancelled" and r[3] == bk["b18"]]
+        assert len(cancelled) == 1 and "Customer called to cancel." in cancelled[0][2], bob_rows
+
+        # Staff reschedule and visible notes; customer's own changes stay silent.
+        before = len(rows(bob))
+        as_user(c, ben)
+        try:
+            c.execute("select public.update_booking_status(%s, 'confirmed', '', true)", (bk["b11"],))
+            c.execute("select public.update_booking_status(%s, 'confirmed', 'Please keep the pets inside.', true)", (bk["b11"],))
+            c.execute("select public.update_booking_status(%s, 'confirmed', 'Internal only.', false)", (bk["b11"],))
+            c.execute("update public.bookings set starts_at=%s where id=%s", (at(15, days=1), bk["b11"]))
+        finally:
+            reset(c)
+        new = rows(bob)[before:]
+        assert [r[0] for r in new] == ["booking.confirmed", "booking.note", "booking.rescheduled"], new
+        assert new[1][2] == "Please keep the pets inside." and new[1][3] == bk["b11"], new[1]
+        assert new[2][2].startswith("Your ") and "03:00 PM." in new[2][2] and "Rescheduled to" not in new[2][2], new[2]
+
+        # Customers see only their own, cannot write or fake them, and can only mark read.
+        as_user(c, bob)
+        try:
+            assert one(c, "select count(*) from public.customer_notifications where customer_id<>%s", (bob,)) == 0
+            expect_denied(c, "insert into public.customer_notifications (customer_id, kind, title) values (%s, 'x.y', 'Fake')", (bob,))
+            expect_denied(c, "update public.customer_notifications set title='Changed'")
+            expect_denied(c, "delete from public.customer_notifications")
+            expect_denied(c, "select private.notify_customer(%s, 'x.y', 'Fake', '')", (bob,))
+            first = one(c, "select id from public.customer_notifications order by id limit 1")
+            c.execute("select public.mark_customer_notifications_read(%s)", ([first],))
+            assert one(c, "select count(*) from public.customer_notifications where read_at is not null") == 1
+            c.execute("select public.mark_customer_notifications_read()")
+            assert one(c, "select count(*) from public.customer_notifications where read_at is null") == 0
+        finally:
+            reset(c)
+        assert one(c, "select count(*) from public.customer_notifications where customer_id=%s and read_at is null", (alice,)) > 0, \
+            "Bob marked Alice's notifications as read"
+        as_user(c, None)
+        try:
+            expect_denied(c, "select * from public.customer_notifications")
+            expect_denied(c, "select public.mark_customer_notifications_read()")
+        finally:
+            reset(c)
+    check("Customer notifications: agency updates notify the customer (own actions and internal notes never); customers read only theirs and can only mark them read", customer_notifications)
+
     # --- report ------------------------------------------------------------------
     c.close()
     print()

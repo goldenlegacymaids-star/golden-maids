@@ -135,9 +135,11 @@ class ProfileScreen extends ConsumerWidget {
                     icon: Icons.credit_card_rounded,
                     title: 'Payment Methods',
                   ),
-                  const ProfileMenuTile(
+                  ProfileMenuTile(
                     icon: Icons.notifications_rounded,
                     title: 'Notifications',
+                    onTap: () =>
+                        unawaited(context.push(AppRoutes.notifications)),
                   ),
                 ],
               ),
