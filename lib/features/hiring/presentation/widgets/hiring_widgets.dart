@@ -57,7 +57,7 @@ class HiringStatusBadge extends StatelessWidget {
         status.label,
         style: AppTypography.labelSmall.copyWith(
           color: color,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w500,
         ),
       ),
     );

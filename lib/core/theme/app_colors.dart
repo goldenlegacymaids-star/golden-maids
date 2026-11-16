@@ -12,7 +12,8 @@ abstract final class AppColors {
 
   // Neutrals
   static const Color white = Color(0xFFFFFFFF);
-  static const Color textPrimary = Color(0xFF202631);
+  // Softer than near-black: Outfit reads heavier than the previous fonts.
+  static const Color textPrimary = Color(0xFF3A4352);
   static const Color textSecondary = Color(0xFF7B8491);
   static const Color border = Color(0xFFE5EAF1);
 

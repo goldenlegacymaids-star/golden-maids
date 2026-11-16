@@ -149,7 +149,7 @@ abstract final class AppTheme {
         secondaryLabelStyle: TextStyle(
           fontFamily: AppTypography.bodyFont,
           fontSize: 13,
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.w400,
           color: AppColors.white,
         ),
         side: BorderSide(color: AppColors.border),
@@ -181,7 +181,7 @@ abstract final class AppTheme {
         unselectedLabelColor: AppColors.textSecondary,
         labelStyle: AppTypography.labelLarge,
         unselectedLabelStyle: AppTypography.labelLarge.copyWith(
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.w400,
         ),
         indicatorColor: AppColors.primary,
         indicatorSize: TabBarIndicatorSize.label,
