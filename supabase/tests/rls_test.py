@@ -1148,6 +1148,63 @@ def main():
         assert one(c, "select count(*) from storage.objects where name='services/test2.jpg'") == 1, "non-admin removed a file"
     check("App images: only admins list, replace and remove them", admins_manage_app_media)
 
+    # --- staff notifications (bell) -------------------------------------------------
+    def staff_notifications():
+        kinds = dict(c.execute("select kind, count(*) from public.staff_notifications group by kind").fetchall())
+        for kind in ["booking.created", "booking.cancelled", "booking.rescheduled", "hiring.created",
+                     "enquiry.created", "account.deletion_requested", "account.deletion_withdrawn",
+                     "account.signed_up"]:
+            assert kinds.get(kind, 0) >= 1, f"no {kind} notification: {kinds}"
+        # Staff actions are not notified (staff cancelled b18 by phone).
+        assert one(c, "select count(*) from public.staff_notifications where kind='booking.cancelled' and link like %s",
+                   ("%" + bk["b18"],)) == 0, "staff cancellation notified"
+        # A customer's own reschedule of a10 was notified, with its link.
+        assert one(c, "select count(*) from public.staff_notifications where kind='booking.rescheduled' and link=%s",
+                   ("/bookings/view/?id=" + bk["a10"],)) == 1
+        by_area = dict(c.execute("select area, count(*) from public.staff_notifications group by area").fetchall())
+
+        as_user(c, None)
+        try:
+            expect_denied(c, "select * from public.staff_notifications")
+        finally:
+            reset(c)
+        as_user(c, alice)
+        try:
+            assert one(c, "select count(*) from public.staff_notifications") == 0, "customer sees notifications"
+            expect_denied(c, "insert into public.staff_notifications (area, kind, title) values ('admin', 'x.y', 'Fake')")
+        finally:
+            reset(c)
+        for user, areas in ((ben, ["bookings"]), (rita, ["recruitment"]), (sam, ["bookings", "recruitment", "admin"])):
+            as_user(c, user)
+            try:
+                seen = dict(c.execute("select area, count(*) from public.staff_notifications group by area").fetchall())
+                assert seen == {a: by_area[a] for a in areas}, (user, seen)
+            finally:
+                reset(c)
+
+        # Read status is personal.
+        recruitment_id = one(c, "select id from public.staff_notifications where area='recruitment' limit 1")
+        as_user(c, ben)
+        try:
+            c.execute("select public.mark_staff_notifications_read()")
+            unread = one(c, "select count(*) from public.staff_notifications n where not exists (select 1 from public.staff_notification_reads r where r.notification_id = n.id)")
+            assert unread == 0, unread
+            assert one(c, "select count(*) from public.staff_notification_reads") == by_area["bookings"]
+            expect_denied(c, "insert into public.staff_notification_reads (notification_id) values (%s)", (recruitment_id,))
+            # Marking twice is harmless.
+            c.execute("select public.mark_staff_notifications_read()")
+        finally:
+            reset(c)
+        as_user(c, sam)
+        try:
+            assert one(c, "select count(*) from public.staff_notification_reads") == 0, "sam sees ben's reads"
+            first = one(c, "select id from public.staff_notifications order by id limit 1")
+            c.execute("select public.mark_staff_notifications_read(%s)", ([first],))
+            assert one(c, "select count(*) from public.staff_notification_reads") == 1
+        finally:
+            reset(c)
+    check("Staff notifications: app events notify the right area only; staff actions are not notified; read status is per person", staff_notifications)
+
     # --- report ------------------------------------------------------------------
     c.close()
     print()
