@@ -12,11 +12,9 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/app_icon_button.dart';
 import '../../../../core/widgets/app_logo.dart';
-import '../../../authentication/data/auth_providers.dart';
-import '../../../profile/data/profile_repository.dart';
 import '../../data/service_location.dart';
 
-/// App title and notifications, then avatar, greeting and service location.
+/// App title and notifications, then the service location.
 class HomeHeader extends ConsumerWidget {
   const HomeHeader({super.key});
 
@@ -64,21 +62,7 @@ class HomeHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user =
-        ref.watch(authStateProvider).value ??
-        ref.watch(authRepositoryProvider).currentUser;
-    final profile = ref.watch(myProfileProvider).value;
-    final fullName = profile?.fullName ?? user?.fullName;
-    final firstName = profile?.firstName ?? fullName?.split(' ').first;
     final emirate = ref.watch(serviceLocationProvider);
-
-    final initials = (fullName ?? '')
-        .trim()
-        .split(RegExp(r'\s+'))
-        .where((part) => part.isNotEmpty)
-        .take(2)
-        .map((part) => part[0].toUpperCase())
-        .join();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -90,54 +74,6 @@ class HomeHeader extends ConsumerWidget {
               icon: Icons.notifications_none_rounded,
               tooltip: 'Notifications',
               onPressed: () => unawaited(context.push(AppRoutes.notifications)),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.md),
-        Row(
-          children: [
-            Semantics(
-              button: true,
-              label: 'Profile',
-              excludeSemantics: true,
-              child: GestureDetector(
-                onTap: () => context.go(AppRoutes.profile),
-                child: CircleAvatar(
-                  radius: 24,
-                  backgroundColor: AppColors.lightBlue,
-                  child: initials.isEmpty
-                      ? const Icon(
-                          Icons.person_rounded,
-                          color: AppColors.primary,
-                        )
-                      : Text(
-                          initials,
-                          style: AppTypography.titleSmall.copyWith(
-                            color: AppColors.primary,
-                          ),
-                        ),
-                ),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    user == null ? 'Welcome' : 'Welcome back',
-                    style: AppTypography.bodySmall,
-                  ),
-                  Text(
-                    user == null
-                        ? 'Hello, guest'
-                        : 'Hello, ${firstName ?? 'there'}',
-                    style: AppTypography.titleLarge,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
             ),
           ],
         ),

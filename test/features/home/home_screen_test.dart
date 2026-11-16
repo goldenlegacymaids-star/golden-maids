@@ -20,13 +20,14 @@ void main() {
   });
   tearDown(() => auth.dispose());
 
-  testWidgets('shows greeting, banners, categories and popular services', (
+  testWidgets('shows the title, banners, categories and popular services', (
     tester,
   ) async {
     await pumpTestApp(tester, auth: auth, catalog: catalog);
 
-    expect(find.text('Welcome back'), findsOneWidget);
-    expect(find.text('Hello, Sarah'), findsOneWidget);
+    expect(find.text('Golden Maids', findRichText: true), findsOneWidget);
+    expect(find.text('Welcome back'), findsNothing);
+    expect(find.text('Hello, Sarah'), findsNothing);
     expect(find.text('Dubai, UAE'), findsOneWidget);
     expect(find.text('What services do you want to use?'), findsOneWidget);
     expect(find.text('Find Your Perfect Maid'), findsOneWidget);

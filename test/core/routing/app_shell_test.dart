@@ -40,7 +40,7 @@ void main() {
   testWidgets('the four tabs open their screens', (tester) async {
     await pumpTestApp(tester, auth: auth, profiles: profiles);
     expect(find.byType(HomeScreen), findsOneWidget);
-    expect(find.text('Hello, Sarah'), findsOneWidget);
+    expect(find.text('What services do you want to use?'), findsOneWidget);
 
     await openTab(tester, _bookingsIcon);
     expect(find.text('No upcoming bookings'), findsOneWidget);
@@ -71,7 +71,7 @@ void main() {
     auth = FakeAuthRepository();
     await pumpTestApp(tester, auth: auth);
     await tapAndSettle(tester, find.text('Continue as guest'));
-    expect(find.text('Hello, guest'), findsOneWidget);
+    expect(find.text('What services do you want to use?'), findsOneWidget);
 
     await openTab(tester, _bookingsIcon);
     expect(find.text('Sign in to see your bookings'), findsOneWidget);
@@ -126,7 +126,7 @@ void main() {
     await tester.binding.handlePopRoute();
     await settle(tester);
 
-    expect(find.text('Hello, Sarah'), findsOneWidget);
+    expect(find.text('What services do you want to use?'), findsOneWidget);
   });
 
   testWidgets('log out from Profile after confirming', (tester) async {
