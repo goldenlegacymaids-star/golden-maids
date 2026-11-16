@@ -45,9 +45,9 @@ class NotificationsScreen extends ConsumerWidget {
     final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     if (user == null) {
-      return PageScaffold(
+      return const PageScaffold(
         title: 'Notifications',
-        body: const SingleChildScrollView(
+        body: SingleChildScrollView(
           child: SignInPrompt(
             icon: Icons.notifications_none_rounded,
             title: 'Sign in to see updates',

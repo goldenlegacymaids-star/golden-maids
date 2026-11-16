@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../data/candidate_repository.dart';
+import '../../domain/candidate.dart';
 
 /// Bundled flag image for an ISO country code, e.g. `KE` → `assets/flags/ke.png`.
 String flagAsset(String code) => 'assets/flags/${code.toLowerCase()}.png';
@@ -20,7 +21,8 @@ class NationalityFlag extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     String? code;
     for (final item
-        in ref.watch(maidNationalitiesProvider).value ?? const []) {
+        in ref.watch(maidNationalitiesProvider).value ??
+            const <MaidNationality>[]) {
       if (item.name == nationality) code = item.code;
     }
     return FlagImage(code: code, height: height);
