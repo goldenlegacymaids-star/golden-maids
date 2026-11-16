@@ -1052,6 +1052,102 @@ def main():
             reset(c)
     check("Account deletion requests: customers request and withdraw their own; only administrators see all and process", account_deletion_requests)
 
+    # --- account deletion processing (A.6) ----------------------------------------
+    def account_deletion_processing():
+        dina = new_user(c, "dina@example.com", "Dina Leaving")
+        as_user(c, dina)
+        try:
+            addr = one(c, "insert into public.addresses (region, area, building) values ('Dubai', 'JLT', 'Tower 4') returning id::text")
+            booking = one(c, "insert into public.bookings (service_id, starts_at, address_id, emirate, area, building, apartment, address_notes, instructions, customer_name, customer_phone) "
+                             "values (%s, %s, %s, 'Dubai', 'JLT', 'Tower 4', '801', 'Gate 2', 'Call on arrival', 'Dina Leaving', '+971509998888') returning id::text",
+                          (svc["nurse-at-home"], at(10, days=5), addr))
+            hiring = one(c, "insert into public.hiring_requests (package_id, duration_months, customer_name, customer_phone, customer_email, emirate, requirements) "
+                            "values (%s, 3, 'Dina Leaving', '+971509998888', 'dina@example.com', 'Dubai', 'Two children') returning id::text", (monthly,))
+            c.execute("insert into public.candidate_favourites (candidate_id) values (%s)", (kenya,))
+            req = one(c, "insert into public.account_deletion_requests (reason) values ('Moving') returning id::text")
+            # Customers cannot process requests.
+            expect_denied(c, "select public.process_account_deletion(%s)", (req,))
+        finally:
+            reset(c)
+        for staff in (ben, rita):
+            as_user(c, staff)
+            try:
+                expect_denied(c, "select public.process_account_deletion(%s)", (req,))
+            finally:
+                reset(c)
+
+        def refused(message):
+            as_user(c, sam)
+            try:
+                try:
+                    with c.transaction():
+                        c.execute("select public.process_account_deletion(%s)", (req,))
+                    raise AssertionError("deletion was not refused: " + message)
+                except errors.CheckViolation as e:
+                    assert message in str(e), str(e)
+            finally:
+                reset(c)
+
+        refused("upcoming or active bookings")
+        c.execute("set session_replication_role = replica")
+        c.execute("update public.bookings set status='completed' where id=%s", (booking,))
+        c.execute("set session_replication_role = origin")
+        refused("open hiring requests")
+        c.execute("set session_replication_role = replica")
+        c.execute("update public.hiring_requests set status='completed' where id=%s", (hiring,))
+        c.execute("set session_replication_role = origin")
+        c.execute("insert into public.user_roles (user_id, role_id) values (%s, 'booking_manager')", (dina,))
+        refused("staff roles")
+        c.execute("delete from public.user_roles where user_id=%s and role_id='booking_manager'", (dina,))
+
+        as_user(c, sam)
+        try:
+            c.execute("select public.process_account_deletion(%s, 'Done on request.')", (req,))
+        finally:
+            reset(c)
+
+        assert one(c, "select count(*) from auth.users where id=%s", (dina,)) == 0, "sign-in not removed"
+        assert one(c, "select count(*) from public.profiles where id=%s", (dina,)) == 0
+        assert one(c, "select count(*) from public.addresses where id=%s", (addr,)) == 0
+        assert one(c, "select count(*) from public.candidate_favourites where user_id=%s", (dina,)) == 0
+        b = c.execute("select customer_id, customer_name, customer_phone, building, apartment, address_notes, instructions, address_id, area, status from public.bookings where id=%s", (booking,)).fetchone()
+        assert b == (None, "Deleted customer", "Removed", "Removed", "", "", "", None, "JLT", "completed"), b
+        h = c.execute("select customer_id, customer_name, customer_phone, customer_email, requirements, status from public.hiring_requests where id=%s", (hiring,)).fetchone()
+        assert h == (None, "Deleted customer", "Removed", None, "", "completed"), h
+        r = c.execute("select user_id, status, staff_note, handled_by::text, handled_at is not null from public.account_deletion_requests where id=%s", (req,)).fetchone()
+        assert r == (None, "completed", "Done on request.", sam, True), r
+        log = c.execute("select actor_id::text, entity_id, details->>'bookings_kept', details->>'hiring_requests_kept' from public.admin_audit_logs where action='account.deleted'").fetchone()
+        assert log == (sam, dina, "1", "1"), log
+        refused("no longer pending")
+        # Customers still cannot create records without themselves.
+        as_user(c, alice)
+        try:
+            expect_denied(c, "insert into public.bookings (customer_id, service_id, starts_at, emirate, area, building, customer_name, customer_phone) values (null, %s, %s, 'Dubai', 'JLT', 'T', 'Alice', '+971501234567')",
+                          (svc["nurse-at-home"], at(11, days=6)))
+        finally:
+            reset(c)
+    check("Account deletion: only admins process; refused with open work or staff roles; sign-in and personal data removed, records kept anonymised and audit-logged", account_deletion_processing)
+
+    def admins_manage_app_media():
+        c.execute("insert into storage.objects (bucket_id, name) values ('app-media', 'services/test.jpg')")
+        as_user(c, sam)
+        try:
+            assert one(c, "select count(*) from storage.objects where bucket_id='app-media' and name='services/test.jpg'") == 1
+            c.execute("delete from storage.objects where bucket_id='app-media' and name='services/test.jpg'")
+        finally:
+            reset(c)
+        assert one(c, "select count(*) from storage.objects where name='services/test.jpg'") == 0, "admin could not remove the file"
+        c.execute("insert into storage.objects (bucket_id, name) values ('app-media', 'services/test2.jpg')")
+        for user in (alice, ben):
+            as_user(c, user)
+            try:
+                assert one(c, "select count(*) from storage.objects where bucket_id='app-media'") == 0
+                c.execute("delete from storage.objects where bucket_id='app-media'")
+            finally:
+                reset(c)
+        assert one(c, "select count(*) from storage.objects where name='services/test2.jpg'") == 1, "non-admin removed a file"
+    check("App images: only admins list, replace and remove them", admins_manage_app_media)
+
     # --- report ------------------------------------------------------------------
     c.close()
     print()

@@ -76,7 +76,7 @@ Schema changes are made **only** through SQL migrations in `supabase/migrations/
 | `bookings` / `booking_history` | Home-service bookings (reference `BK-2026-000001`), price estimate, address snapshot, status timeline; customers cancel/reschedule until 24 h before, booking staff manage all |
 | `service_staff` (+ `_private`, `_categories`) | The agency's staff who do home services; customers see only the staff assigned to their booking |
 | `booking_settings` | Working hours, slot length, min/max hours, notice, window, cancellation limit (admins) |
-| `account_deletion_requests` | Customers request deletion of their own account (optional reason) and may withdraw it while pending; only admins see all and mark them completed (who/when recorded). Kept as a record after the account is deleted |
+| `account_deletion_requests` | Customers request deletion of their own account (optional reason) and may withdraw it while pending; only admins see all and mark them completed (who/when recorded). Kept as a record after the account is deleted. Admins process a request with `process_account_deletion()` (staff website): sign-in, profile, addresses, saved maids and enquiries are removed; bookings and hiring requests are kept without name, phone, email, building or notes; audit-logged. Refused while bookings/hiring requests are open or the user has staff roles |
 | `hiring_requests` | Customer hiring requests (reference `HR-2026-000001`), validated against the package; customers can only cancel before processing |
 | `hiring_request_history` | Status timeline; internal notes hidden from customers |
 | Storage `candidate-photos` / `candidate-documents` | Public candidate photos / **private** documents; recruitment staff upload only |
