@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,18 +12,22 @@ import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_icon_button.dart';
 import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/page_scaffold.dart';
 import '../../../core/widgets/skeleton.dart';
+import '../../bookings/data/booking_repository.dart';
+import '../../bookings/domain/booking.dart';
+import '../../candidates/presentation/open_candidate.dart';
 import '../data/catalog_repository.dart';
 import '../domain/catalog.dart';
 import 'catalog_display.dart';
 import 'widgets/service_tiles.dart';
 
-/// Service details: image, description, price and duration.
-/// Booking (provider, date, time, payment) is added in Phase 3.
+/// Service details: image, description, price and duration, with the
+/// button that starts a booking.
 class ServiceDetailsScreen extends ConsumerWidget {
   const ServiceDetailsScreen({super.key, required this.slug});
 
@@ -182,25 +188,9 @@ class _ServiceDetails extends ConsumerWidget {
                       ),
                     ],
                     const SizedBox(height: AppSpacing.xl),
-                    const AppCard(
-                      color: AppColors.veryLightBlue,
-                      shadow: false,
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.info_outline_rounded,
-                            color: AppColors.primary,
-                          ),
-                          SizedBox(width: AppSpacing.sm),
-                          Expanded(
-                            child: Text(
-                              'Online booking for this service is opening '
-                              'soon.',
-                              style: AppTypography.bodyMedium,
-                            ),
-                          ),
-                        ],
-                      ),
+                    _BookCard(
+                      service: service,
+                      isMaidVisa: category?.slug == _maidVisaCategory,
                     ),
                   ],
                 ),
@@ -209,6 +199,86 @@ class _ServiceDetails extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// The 2-year maid visa is arranged through a hiring request.
+const String _maidVisaCategory = 'maid-visa';
+
+/// "Book now" (or "Request this service"), with a line on how it works.
+class _BookCard extends ConsumerWidget {
+  const _BookCard({required this.service, required this.isMaidVisa});
+
+  final HomeService service;
+  final bool isMaidVisa;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cancelHours =
+        ref.watch(bookingSettingsProvider).value?.cancelHours ??
+        const BookingSettings().cancelHours;
+    final (label, note) = isMaidVisa
+        ? (
+            'Start a hiring request',
+            'Choose the 2-year package and a maid, and our recruitment team '
+                'will arrange the visa with you.',
+          )
+        : switch (service.bookingType) {
+            BookingType.hourly || BookingType.visit => (
+              'Book now',
+              'Choose a date and time. You pay on completion, by cash or '
+                  'card. Free cancellation up to $cancelHours hours before.',
+            ),
+            BookingType.request => (
+              'Request this service',
+              'Tell us your preferred time and our team will call you to '
+                  'confirm the details and the price.',
+            ),
+          };
+
+    void start() {
+      if (!isSignedIn(ref)) {
+        showSignInSheet(
+          context,
+          title: 'Sign in to book',
+          message:
+              'Create a free account or sign in to book home services and '
+              'follow your bookings.',
+        );
+        return;
+      }
+      unawaited(
+        context.push(
+          isMaidVisa ? AppRoutes.hire() : AppRoutes.book(service.slug),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        AppCard(
+          color: AppColors.veryLightBlue,
+          shadow: false,
+          child: Row(
+            children: [
+              const Icon(
+                Icons.info_outline_rounded,
+                color: AppColors.primary,
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(child: Text(note, style: AppTypography.bodyMedium)),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        AppButton(
+          label: label,
+          icon: Icons.event_available_rounded,
+          onPressed: start,
+        ),
+      ],
     );
   }
 }

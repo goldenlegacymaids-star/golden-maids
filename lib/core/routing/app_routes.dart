@@ -32,6 +32,10 @@ abstract final class AppRoutes {
 
   /// Hiring form: full screen. With [candidateId], that maid is
   /// pre-selected.
+  /// Booking a home service (signed-in only).
+  static const String bookPrefix = '/book/';
+  static String book(String slug) => '$bookPrefix$slug';
+
   static const String hirePath = '/hire';
   static String hire({String? candidateId}) => candidateId == null
       ? hirePath

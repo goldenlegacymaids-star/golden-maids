@@ -38,7 +38,7 @@ class SupabaseCatalogRepository implements CatalogRepository {
   static const _serviceColumns =
       'id, category_id, slug, name, short_description, description, '
       'requirements, image_path, base_price, price_unit, duration_minutes, '
-      'is_popular';
+      'is_popular, booking_type';
 
   Future<T> _guard<T>(Future<T> Function() action) async {
     try {

@@ -13,6 +13,7 @@ import '../../features/authentication/presentation/sign_up_screen.dart';
 import '../../features/authentication/presentation/verify_code_args.dart';
 import '../../features/authentication/presentation/verify_code_screen.dart';
 import '../../features/authentication/presentation/welcome_screen.dart';
+import '../../features/bookings/presentation/book_service_screen.dart';
 import '../../features/bookings/presentation/bookings_screen.dart';
 import '../../features/candidates/presentation/candidate_directory_screen.dart';
 import '../../features/candidates/presentation/candidate_profile_screen.dart';
@@ -53,6 +54,7 @@ bool _needsSignIn(String location) =>
     _signedInOnly.contains(location) ||
     // Full candidate profiles and request details are for signed-in users.
     location.startsWith(AppRoutes.candidatePrefix) ||
+    location.startsWith(AppRoutes.bookPrefix) ||
     location.startsWith('${AppRoutes.hiringRequests}/');
 
 /// Session-aware redirects:
@@ -140,6 +142,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'hire',
         builder: (context, state) =>
             HireScreen(candidateId: state.uri.queryParameters['maid']),
+      ),
+      GoRoute(
+        path: '${AppRoutes.bookPrefix}:slug',
+        name: 'book',
+        builder: (context, state) =>
+            BookServiceScreen(slug: state.pathParameters['slug']!),
       ),
       GoRoute(
         path: '${AppRoutes.candidatePrefix}:id',

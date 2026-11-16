@@ -5,6 +5,7 @@ import 'package:golden_maids/app.dart';
 import 'package:golden_maids/core/services/external_launcher.dart';
 import 'package:golden_maids/core/services/shared_preferences_provider.dart';
 import 'package:golden_maids/features/authentication/data/auth_providers.dart';
+import 'package:golden_maids/features/bookings/data/booking_repository.dart';
 import 'package:golden_maids/features/candidates/data/candidate_repository.dart';
 import 'package:golden_maids/features/hiring/data/hiring_repository.dart';
 import 'package:golden_maids/features/onboarding/data/onboarding_repository.dart';
@@ -14,6 +15,7 @@ import 'package:golden_maids/features/services/data/catalog_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'fake_auth_repository.dart';
+import 'fake_booking_repository.dart';
 import 'fake_candidate_repository.dart';
 import 'fake_catalog_repository.dart';
 import 'fake_hiring_repository.dart';
@@ -29,6 +31,7 @@ Future<void> pumpTestApp(
   FakeCandidateRepository? candidates,
   FakeLauncher? launcher,
   FakeHiringRepository? hiring,
+  FakeBookingRepository? bookings,
   Map<String, Object> preferences = const {},
 }) async {
   tester.view.physicalSize = const Size(430, 932);
@@ -58,6 +61,9 @@ Future<void> pumpTestApp(
         ),
         hiringRepositoryProvider.overrideWithValue(
           hiring ?? FakeHiringRepository(),
+        ),
+        bookingRepositoryProvider.overrideWithValue(
+          bookings ?? FakeBookingRepository(),
         ),
         externalLauncherProvider.overrideWithValue(
           (launcher ?? FakeLauncher()).call,

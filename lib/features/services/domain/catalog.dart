@@ -54,6 +54,29 @@ enum PriceUnit {
   }
 }
 
+/// How a service is booked (`services.booking_type`).
+enum BookingType {
+  /// Customer picks the number of hours and a slot.
+  hourly('hourly'),
+
+  /// Fixed-length job; customer picks a slot.
+  visit('visit'),
+
+  /// Customer picks a preferred time; the agency calls to arrange.
+  request('request');
+
+  const BookingType(this.value);
+
+  final String value;
+
+  static BookingType fromValue(String? value) {
+    for (final type in values) {
+      if (type.value == value) return type;
+    }
+    return BookingType.request;
+  }
+}
+
 /// A bookable home service (`public.services`).
 class HomeService {
   const HomeService({
@@ -69,6 +92,7 @@ class HomeService {
     this.priceUnit,
     this.durationMinutes,
     this.isPopular = false,
+    this.bookingType = BookingType.request,
   });
 
   factory HomeService.fromJson(Map<String, dynamic> json) {
@@ -85,6 +109,7 @@ class HomeService {
       priceUnit: PriceUnit.fromValue(json['price_unit'] as String?),
       durationMinutes: json['duration_minutes'] as int?,
       isPopular: json['is_popular'] as bool? ?? false,
+      bookingType: BookingType.fromValue(json['booking_type'] as String?),
     );
   }
 
@@ -102,6 +127,9 @@ class HomeService {
   final PriceUnit? priceUnit;
   final int? durationMinutes;
   final bool isPopular;
+
+  /// How customers book it (hourly, a visit, or a request).
+  final BookingType bookingType;
 }
 
 /// A home-screen banner or offer (`public.promotions`).

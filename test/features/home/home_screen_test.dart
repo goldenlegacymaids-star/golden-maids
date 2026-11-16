@@ -67,7 +67,7 @@ void main() {
     expect(find.text('Hourly Maid'), findsNothing);
   });
 
-  testWidgets('service details show price, duration and booking note', (
+  testWidgets('service details show price, duration and how to book', (
     tester,
   ) async {
     await pumpTestApp(tester, auth: auth, catalog: catalog);
@@ -77,7 +77,9 @@ void main() {
     expect(find.text('Hourly Maid'), findsWidgets);
     expect(find.text('AED 45 / hour'), findsOneWidget);
     expect(find.text('2 h'), findsOneWidget);
-    expect(find.textContaining('Online booking'), findsOneWidget);
+    expect(find.textContaining('You pay on completion'), findsOneWidget);
+    expect(find.textContaining('up to 24 hours before'), findsOneWidget);
+    expect(find.text('Book now'), findsOneWidget);
   });
 
   testWidgets('search finds services and can filter by category', (

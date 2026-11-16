@@ -37,12 +37,14 @@ class FakeCatalogRepository implements CatalogRepository {
       name: 'Home Cleaning',
       shortDescription: 'Regular cleaning for apartments and villas.',
       isPopular: true,
+      bookingType: BookingType.hourly,
     ),
     HomeService(
       id: 's2',
       categoryId: 'c1',
       slug: 'move-in-cleaning',
       name: 'Move-In Cleaning',
+      bookingType: BookingType.visit,
     ),
     HomeService(
       id: 's3',
@@ -53,6 +55,7 @@ class FakeCatalogRepository implements CatalogRepository {
       priceUnit: PriceUnit.perHour,
       durationMinutes: 120,
       isPopular: true,
+      bookingType: BookingType.hourly,
     ),
   ];
 
