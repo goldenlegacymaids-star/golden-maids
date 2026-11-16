@@ -101,7 +101,7 @@ All UI must use the shared design system. Do not hard-code colours, fonts or siz
 | Need | Use |
 |---|---|
 | Colours | `AppColors` (`lib/core/theme/app_colors.dart`) |
-| Text styles | `AppTypography` (Poppins headings, Inter body; fonts bundled in `assets/fonts/`) |
+| Text styles | `AppTypography` (Outfit for headings and body; bundled in `assets/fonts/` with its OFL licence) |
 | Spacing / radius / shadows | `AppSpacing`, `AppRadius`, `AppShadows` |
 | Buttons | `AppButton` (blocks repeat taps while an action runs), `AppIconButton` |
 | Inputs | `AppTextField`, `AppSearchBar`, `AppChip` |

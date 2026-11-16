@@ -12,7 +12,6 @@ abstract final class AppAssets {
   static const String onboarding2 = 'assets/images/onboarding/onboarding_2.jpg';
   static const String onboarding3 = 'assets/images/onboarding/onboarding_3.jpg';
 
-  // Font licences
-  static const String poppinsLicence = 'assets/fonts/OFL-Poppins.txt';
-  static const String interLicence = 'assets/fonts/OFL-Inter.txt';
+  // Font licence
+  static const String outfitLicence = 'assets/fonts/OFL-Outfit.txt';
 }

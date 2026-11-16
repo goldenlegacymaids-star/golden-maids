@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
 
-/// Typography: Poppins for headings, Inter for body text.
+/// Typography: Outfit for headings and body text.
 ///
-/// Both fonts are bundled in `assets/fonts/` (no runtime downloads).
+/// The font is bundled in `assets/fonts/` (no runtime downloads).
 abstract final class AppTypography {
-  static const String headingFont = 'Poppins';
-  static const String bodyFont = 'Inter';
+  static const String headingFont = 'Outfit';
+  static const String bodyFont = 'Outfit';
 
-  // Headings (Poppins)
+  // Headings
   static const TextStyle displayLarge = TextStyle(
     fontFamily: headingFont,
     fontSize: 32,
@@ -63,7 +63,7 @@ abstract final class AppTypography {
     color: AppColors.textPrimary,
   );
 
-  // Body (Inter)
+  // Body
   static const TextStyle bodyLarge = TextStyle(
     fontFamily: bodyFont,
     fontSize: 16,
@@ -86,7 +86,7 @@ abstract final class AppTypography {
     color: AppColors.textSecondary,
   );
 
-  // Labels (Inter): buttons, chips, tabs
+  // Labels: buttons, chips, tabs
   static const TextStyle labelLarge = TextStyle(
     fontFamily: bodyFont,
     fontSize: 15,

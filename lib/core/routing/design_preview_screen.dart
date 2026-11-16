@@ -259,7 +259,7 @@ class _DesignPreviewScreenState extends ConsumerState<DesignPreviewScreen> {
           Text('Hattie Carson', style: AppTypography.titleMedium),
           SizedBox(height: AppSpacing.xs),
           Text(
-            'Body text in Inter. Professional, verified domestic workers for '
+            'Body text in Outfit. Professional, verified domestic workers for '
             'your home in the UAE.',
             style: AppTypography.bodyMedium,
           ),
