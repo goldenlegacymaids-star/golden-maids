@@ -208,4 +208,4 @@ Each feature is split into `presentation/`, `domain/` and `data/` folders as it 
 | 3.1 | **Bookings database**: booking types (hourly / visit / request), slots 8 am–8 pm daily, 2–8 h, exact staff capacity (no double-booking), free cancel/reschedule until 24 h before, timeline, pay on completion | ✅ Done |
 | 3.2 | Booking flow in the app | ⏳ Next |
 | 3.3 | My Bookings (list, details, cancel, reschedule) | Planned |
-| 3.4 | Staff website A.5: bookings, staff, working hours | Planned |
+| 3.4 | Staff website A.5: bookings, service staff, booking settings | ✅ Done |
