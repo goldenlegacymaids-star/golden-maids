@@ -8,10 +8,106 @@ class FakeBookingRepository implements BookingRepository {
   FakeBookingRepository({
     this.settings = const BookingSettings(),
     List<SavedAddress>? addresses,
-  }) : addresses = [...?addresses];
+    List<Booking>? bookings,
+  }) : addresses = [...?addresses],
+       bookings = [...?bookings];
 
   final BookingSettings settings;
   final List<SavedAddress> addresses;
+
+  /// The customer's bookings (for My Bookings).
+  final List<Booking> bookings;
+
+  /// Timelines by booking id (a single "booked" step when missing).
+  final Map<String, List<BookingEvent>> history = {};
+
+  /// Cancellations made, as (booking id, reason).
+  final List<(String, String)> cancelled = [];
+
+  /// Reschedules made, as (booking id, new start).
+  final List<(String, DateTime)> rescheduled = [];
+
+  /// A booking for My Bookings; starts [startsIn] from now.
+  static Booking sample({
+    required String id,
+    required String reference,
+    BookingStatus status = BookingStatus.pending,
+    Duration startsIn = const Duration(days: 3),
+    int? hours = 2,
+    String serviceName = 'Hourly Maid',
+    String serviceId = 's3',
+    BookingType type = BookingType.hourly,
+    double? price = 90,
+    String? staffName,
+    int? staffYears,
+    String cancelReason = '',
+  }) {
+    final now = DateTime.now().toUtc();
+    final start = DateTime.utc(
+      now.year,
+      now.month,
+      now.day,
+      now.hour,
+    ).add(startsIn);
+    return Booking(
+      id: id,
+      reference: reference,
+      serviceId: serviceId,
+      serviceName: serviceName,
+      bookingType: type,
+      hours: hours,
+      startsAt: start,
+      endsAt: start.add(Duration(hours: hours ?? 1)),
+      emirate: 'Dubai',
+      area: 'JLT',
+      building: 'Tower 2',
+      apartment: '1204',
+      customerName: 'Sarah Khan',
+      customerPhone: '+971501234567',
+      priceEstimate: price,
+      status: status,
+      staffName: staffName,
+      staffYearsExperience: staffYears,
+      cancelReason: cancelReason,
+      createdAt: now.subtract(const Duration(days: 1)),
+    );
+  }
+
+  static Booking _copy(
+    Booking b, {
+    BookingStatus? status,
+    DateTime? startsAt,
+    String? cancelReason,
+    bool keepStaff = true,
+  }) {
+    final start = startsAt ?? b.startsAt;
+    return Booking(
+      id: b.id,
+      reference: b.reference,
+      serviceId: b.serviceId,
+      serviceName: b.serviceName,
+      bookingType: b.bookingType,
+      hours: b.hours,
+      startsAt: start,
+      endsAt: start.add(b.endsAt.difference(b.startsAt)),
+      emirate: b.emirate,
+      area: b.area,
+      building: b.building,
+      apartment: b.apartment,
+      addressNotes: b.addressNotes,
+      instructions: b.instructions,
+      customerName: b.customerName,
+      customerPhone: b.customerPhone,
+      priceEstimate: b.priceEstimate,
+      priceUnit: b.priceUnit,
+      paymentMethod: b.paymentMethod,
+      status: status ?? b.status,
+      staffName: keepStaff ? b.staffName : null,
+      staffYearsExperience: keepStaff ? b.staffYearsExperience : null,
+      cancelReason: cancelReason ?? b.cancelReason,
+      createdAt: b.createdAt,
+    );
+  }
 
   /// UAE start hours (e.g. 9 for 9 am) shown as taken.
   final Set<int> takenHours = {};
@@ -77,5 +173,85 @@ class FakeBookingRepository implements BookingRepository {
     }
     created.add(draft);
     return 'BK-2026-${created.length.toString().padLeft(6, '0')}';
+  }
+
+  int _index(String id) {
+    final index = bookings.indexWhere((b) => b.id == id);
+    if (index < 0) throw const NotFoundFailure();
+    return index;
+  }
+
+  /// Same rule and message as the database.
+  void _checkCanChange(Booking booking) {
+    if (!booking.canChange(settings)) {
+      throw const PermissionFailure(
+        message:
+            'This booking can no longer be changed in the app. Please call '
+            'us on +971 4 323 4393.',
+      );
+    }
+  }
+
+  void _addEvent(String id, BookingStatus status, [String note = '']) {
+    history
+        .putIfAbsent(id, () => [])
+        .add(
+          BookingEvent(status: status, note: note, createdAt: DateTime.now()),
+        );
+  }
+
+  @override
+  Future<List<Booking>> getMyBookings() async => [...bookings];
+
+  @override
+  Future<Booking> getBooking(String id) async => bookings[_index(id)];
+
+  @override
+  Future<List<BookingEvent>> getHistory(String bookingId) async {
+    final booking = bookings[_index(bookingId)];
+    return [
+      ...history[bookingId] ??
+          [
+            BookingEvent(
+              status: BookingStatus.pending,
+              createdAt: booking.createdAt,
+            ),
+          ],
+    ];
+  }
+
+  @override
+  Future<void> cancelBooking(String id, {String reason = ''}) async {
+    final index = _index(id);
+    _checkCanChange(bookings[index]);
+    cancelled.add((id, reason));
+    bookings[index] = _copy(
+      bookings[index],
+      status: BookingStatus.cancelled,
+      cancelReason: reason,
+    );
+    _addEvent(id, BookingStatus.cancelled, reason);
+  }
+
+  @override
+  Future<void> rescheduleBooking(String id, DateTime startsAt) async {
+    final index = _index(id);
+    _checkCanChange(bookings[index]);
+    final uae = toUae(startsAt);
+    if (takenHours.contains(uae.hour)) {
+      throw const ValidationFailure(
+        message:
+            'Sorry, this slot has just been taken. Please choose another time.',
+      );
+    }
+    rescheduled.add((id, startsAt));
+    // The agency confirms the new time and assigns staff again.
+    bookings[index] = _copy(
+      bookings[index],
+      status: BookingStatus.pending,
+      startsAt: startsAt,
+      keepStaff: false,
+    );
+    _addEvent(id, BookingStatus.pending, 'Rescheduled.');
   }
 }

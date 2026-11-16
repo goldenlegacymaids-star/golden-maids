@@ -257,3 +257,192 @@ int jobMinutes(HomeService service, BookingSettings settings, int? hours) {
     BookingType.request => 60,
   };
 }
+
+/// Where a booking is (`bookings.status`).
+enum BookingStatus {
+  pending('pending', 'Awaiting confirmation'),
+  confirmed('confirmed', 'Confirmed'),
+  providerAssigned('provider_assigned', 'Professional assigned'),
+  onTheWay('on_the_way', 'On the way'),
+  inProgress('in_progress', 'In progress'),
+  completed('completed', 'Completed'),
+  cancelled('cancelled', 'Cancelled');
+
+  const BookingStatus(this.value, this.label);
+
+  final String value;
+  final String label;
+
+  static BookingStatus fromValue(String? value) {
+    for (final status in values) {
+      if (status.value == value) return status;
+    }
+    return BookingStatus.pending;
+  }
+
+  /// Not started yet (customers may still cancel or reschedule, in time).
+  bool get isUpcoming =>
+      this == pending || this == confirmed || this == providerAssigned;
+
+  /// The professional is on the way or at work.
+  bool get isActive => this == onTheWay || this == inProgress;
+}
+
+/// The tabs on the Bookings screen.
+enum BookingTab {
+  upcoming('Upcoming'),
+  active('Active'),
+  completed('Completed'),
+  cancelled('Cancelled');
+
+  const BookingTab(this.label);
+
+  final String label;
+
+  static BookingTab of(BookingStatus status) {
+    if (status.isUpcoming) return upcoming;
+    if (status.isActive) return active;
+    return status == BookingStatus.completed ? completed : cancelled;
+  }
+}
+
+/// A customer's booking (`public.bookings`).
+class Booking {
+  const Booking({
+    required this.id,
+    required this.reference,
+    required this.serviceId,
+    required this.serviceName,
+    required this.bookingType,
+    required this.startsAt,
+    required this.endsAt,
+    required this.emirate,
+    required this.area,
+    required this.building,
+    required this.customerName,
+    required this.customerPhone,
+    required this.status,
+    required this.createdAt,
+    this.hours,
+    this.apartment = '',
+    this.addressNotes = '',
+    this.instructions = '',
+    this.priceEstimate,
+    this.priceUnit,
+    this.paymentMethod = PaymentMethod.cash,
+    this.staffName,
+    this.staffYearsExperience,
+    this.cancelReason = '',
+  });
+
+  factory Booking.fromJson(Map<String, dynamic> json) {
+    final staff = json['service_staff'] as Map<String, dynamic>?;
+    final payment = json['payment_method'] as String?;
+    return Booking(
+      id: json['id'] as String,
+      reference: json['reference'] as String,
+      serviceId: json['service_id'] as String,
+      serviceName: json['service_name'] as String,
+      bookingType: BookingType.fromValue(json['booking_type'] as String?),
+      hours: json['hours'] as int?,
+      startsAt: DateTime.parse(json['starts_at'] as String),
+      endsAt: DateTime.parse(json['ends_at'] as String),
+      emirate: json['emirate'] as String,
+      area: json['area'] as String,
+      building: json['building'] as String,
+      apartment: json['apartment'] as String? ?? '',
+      addressNotes: json['address_notes'] as String? ?? '',
+      instructions: json['instructions'] as String? ?? '',
+      customerName: json['customer_name'] as String,
+      customerPhone: json['customer_phone'] as String,
+      priceEstimate: (json['price_estimate'] as num?)?.toDouble(),
+      priceUnit: PriceUnit.fromValue(json['price_unit'] as String?),
+      paymentMethod: PaymentMethod.values.firstWhere(
+        (method) => method.value == payment,
+        orElse: () => PaymentMethod.cash,
+      ),
+      status: BookingStatus.fromValue(json['status'] as String?),
+      staffName: staff?['display_name'] as String?,
+      staffYearsExperience: staff?['years_experience'] as int?,
+      cancelReason: json['cancel_reason'] as String? ?? '',
+      createdAt: DateTime.parse(json['created_at'] as String),
+    );
+  }
+
+  /// Customers see only the staff assigned to their own bookings.
+  static const String columns =
+      'id, reference, service_id, service_name, booking_type, hours, '
+      'starts_at, ends_at, emirate, area, building, apartment, address_notes, '
+      'instructions, customer_name, customer_phone, price_estimate, '
+      'price_unit, payment_method, status, cancel_reason, created_at, '
+      'service_staff(display_name, years_experience)';
+
+  final String id;
+  final String reference;
+  final String serviceId;
+  final String serviceName;
+  final BookingType bookingType;
+  final int? hours;
+  final DateTime startsAt;
+  final DateTime endsAt;
+  final String emirate;
+  final String area;
+  final String building;
+  final String apartment;
+  final String addressNotes;
+  final String instructions;
+  final String customerName;
+  final String customerPhone;
+
+  /// Null = the price is confirmed by the agency.
+  final double? priceEstimate;
+  final PriceUnit? priceUnit;
+  final PaymentMethod paymentMethod;
+  final BookingStatus status;
+
+  /// The assigned professional, e.g. "Grace K." (null until assigned).
+  final String? staffName;
+  final int? staffYearsExperience;
+  final String cancelReason;
+  final DateTime createdAt;
+
+  BookingTab get tab => BookingTab.of(status);
+
+  /// "1204, Tower 1, JLT, Dubai"
+  String get address => [
+    if (apartment.isNotEmpty) apartment,
+    building,
+    area,
+    emirate,
+  ].join(', ');
+
+  /// The last moment the customer can cancel or reschedule in the app.
+  DateTime changeDeadline(BookingSettings settings) =>
+      startsAt.subtract(Duration(hours: settings.cancelHours));
+
+  /// The database applies the same rule.
+  bool canChange(BookingSettings settings, [DateTime? now]) =>
+      status.isUpcoming &&
+      (now ?? DateTime.now()).isBefore(changeDeadline(settings));
+}
+
+/// One step in a booking's timeline (`public.booking_history`).
+class BookingEvent {
+  const BookingEvent({
+    required this.status,
+    required this.createdAt,
+    this.note = '',
+  });
+
+  factory BookingEvent.fromJson(Map<String, dynamic> json) {
+    return BookingEvent(
+      status: BookingStatus.fromValue(json['status'] as String?),
+      note: json['note'] as String? ?? '',
+      createdAt: DateTime.parse(json['created_at'] as String),
+    );
+  }
+
+  final BookingStatus status;
+  final String note;
+  final DateTime createdAt;
+}

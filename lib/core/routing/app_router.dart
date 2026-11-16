@@ -14,7 +14,9 @@ import '../../features/authentication/presentation/verify_code_args.dart';
 import '../../features/authentication/presentation/verify_code_screen.dart';
 import '../../features/authentication/presentation/welcome_screen.dart';
 import '../../features/bookings/presentation/book_service_screen.dart';
+import '../../features/bookings/presentation/booking_details_screen.dart';
 import '../../features/bookings/presentation/bookings_screen.dart';
+import '../../features/bookings/presentation/reschedule_booking_screen.dart';
 import '../../features/candidates/presentation/candidate_directory_screen.dart';
 import '../../features/candidates/presentation/candidate_profile_screen.dart';
 import '../../features/candidates/presentation/saved_maids_screen.dart';
@@ -55,6 +57,7 @@ bool _needsSignIn(String location) =>
     // Full candidate profiles and request details are for signed-in users.
     location.startsWith(AppRoutes.candidatePrefix) ||
     location.startsWith(AppRoutes.bookPrefix) ||
+    location.startsWith('${AppRoutes.bookings}/') ||
     location.startsWith('${AppRoutes.hiringRequests}/');
 
 /// Session-aware redirects:
@@ -211,6 +214,24 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 path: AppRoutes.bookings,
                 name: 'bookings',
                 builder: (context, state) => const BookingsScreen(),
+                routes: [
+                  GoRoute(
+                    path: ':id',
+                    name: 'booking',
+                    builder: (context, state) => BookingDetailsScreen(
+                      bookingId: state.pathParameters['id']!,
+                    ),
+                    routes: [
+                      GoRoute(
+                        path: 'reschedule',
+                        name: 'reschedule-booking',
+                        builder: (context, state) => RescheduleBookingScreen(
+                          bookingId: state.pathParameters['id']!,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ],
           ),

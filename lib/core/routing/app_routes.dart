@@ -16,6 +16,8 @@ abstract final class AppRoutes {
   // Main tabs (bottom navigation)
   static const String home = '/home';
   static const String bookings = '/bookings';
+  static String booking(String id) => '$bookings/$id';
+  static String rescheduleBooking(String id) => '$bookings/$id/reschedule';
   static const String wallet = '/wallet';
   static const String profile = '/profile';
 
