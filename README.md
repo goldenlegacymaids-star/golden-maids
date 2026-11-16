@@ -76,6 +76,7 @@ Schema changes are made **only** through SQL migrations in `supabase/migrations/
 | `bookings` / `booking_history` | Home-service bookings (reference `BK-2026-000001`), price estimate, address snapshot, status timeline; customers cancel/reschedule until 24 h before, booking staff manage all |
 | `service_staff` (+ `_private`, `_categories`) | The agency's staff who do home services; customers see only the staff assigned to their booking |
 | `booking_settings` | Working hours, slot length, min/max hours, notice, window, cancellation limit (admins) |
+| `account_deletion_requests` | Customers request deletion of their own account (optional reason) and may withdraw it while pending; only admins see all and mark them completed (who/when recorded). Kept as a record after the account is deleted |
 | `hiring_requests` | Customer hiring requests (reference `HR-2026-000001`), validated against the package; customers can only cancel before processing |
 | `hiring_request_history` | Status timeline; internal notes hidden from customers |
 | Storage `candidate-photos` / `candidate-documents` | Public candidate photos / **private** documents; recruitment staff upload only |
@@ -143,11 +144,11 @@ python3 design/tools/generate_app_icons.py   # needs rsvg-convert + ImageMagick
 - [ ] Delete or change the password of the test account `goldenmaids@gmail.com`.
 - [ ] **Delete the 3 TEST candidates** (`delete from public.candidates where is_test;`) and their avatars in `candidate-photos/test/`.
 - [ ] Candidate consent (UAE PDPL): every real candidate needs a recorded consent date before publishing (enforced by the database).
-- [ ] In-app account deletion (store requirement); hiring requests are kept for records, so define the retention rule with the client.
+- [ ] **Account deletion requests** (Profile → Delete my account) are saved for admins. Before release: the staff website page to process them, the step that removes the sign-in and personal details while keeping anonymised bookings and hiring requests, and the client's retention rule.
 - [ ] Confirm the agency number **+971 4 323 4393 is registered on WhatsApp Business** (used by the WhatsApp button); contact details are in `lib/core/constants/agency_contact.dart`.
 - [ ] Nurse / Home Caregiver: confirm the client's healthcare licensing before showing these categories.
 - [ ] Android release signing config (currently debug keys).
-- [ ] Privacy policy and terms URLs.
+- [ ] **Privacy Policy and Terms** are basic drafts in `lib/features/support/domain/legal_texts.dart` (shown with a "Draft" label). The client reviews them (with legal advice), then set `LegalTexts.isDraft = false`; the stores also need both as public web pages (URLs).
 
 ## Staff website
 
@@ -209,3 +210,4 @@ Each feature is split into `presentation/`, `domain/` and `data/` folders as it 
 | 3.2 | **Booking flow in the app**: Book now on service details (guests asked to sign in; 2-Year Maid Visa opens the hiring form), hours, day strip, free slots (UAE time), saved or new address (optional save), instructions, price estimate, pay on completion (cash or card), BK reference | ✅ Done |
 | 3.3 | **My Bookings**: Upcoming / Active / Completed / Cancelled tabs, details (assigned professional, price, payment, address), status timeline, free cancel (optional reason) and reschedule until 24 h before; after that, call the agency | ✅ Done |
 | 3.4 | Staff website A.5: bookings, service staff, booking settings | ✅ Done |
+| 4.1 | **Profile essentials**: Saved Addresses (add, edit, delete, default), Help Centre (FAQ from the live booking rules + call, WhatsApp, email), draft Privacy Policy and Terms, Delete my account (request for admins; withdraw while pending) | ✅ Done |

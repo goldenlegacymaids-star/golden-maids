@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/addresses/presentation/saved_addresses_screen.dart';
 import '../../features/authentication/data/auth_providers.dart';
 import '../../features/authentication/domain/auth_repository.dart';
 import '../../features/authentication/presentation/forgot_password_screen.dart';
@@ -32,6 +33,9 @@ import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/services/presentation/category_screen.dart';
 import '../../features/services/presentation/search_screen.dart';
 import '../../features/services/presentation/service_details_screen.dart';
+import '../../features/support/domain/legal_texts.dart';
+import '../../features/support/presentation/help_centre_screen.dart';
+import '../../features/support/presentation/legal_screen.dart';
 import '../../features/wallet/presentation/wallet_screen.dart';
 import '../config/env.dart';
 import 'app_routes.dart';
@@ -48,6 +52,7 @@ const Set<String> _signedInOnly = {
   AppRoutes.newPassword,
   AppRoutes.editProfile,
   AppRoutes.savedMaids,
+  AppRoutes.savedAddresses,
   AppRoutes.hirePath,
   AppRoutes.hiringRequests,
 };
@@ -270,6 +275,28 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     path: 'saved-maids',
                     name: 'saved-maids',
                     builder: (context, state) => const SavedMaidsScreen(),
+                  ),
+                  GoRoute(
+                    path: 'addresses',
+                    name: 'saved-addresses',
+                    builder: (context, state) => const SavedAddressesScreen(),
+                  ),
+                  GoRoute(
+                    path: 'help',
+                    name: 'help-centre',
+                    builder: (context, state) => const HelpCentreScreen(),
+                  ),
+                  GoRoute(
+                    path: 'privacy',
+                    name: 'privacy-policy',
+                    builder: (context, state) =>
+                        const LegalScreen(document: LegalTexts.privacy),
+                  ),
+                  GoRoute(
+                    path: 'terms',
+                    name: 'terms',
+                    builder: (context, state) =>
+                        const LegalScreen(document: LegalTexts.terms),
                   ),
                   GoRoute(
                     path: 'edit',

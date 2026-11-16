@@ -145,23 +145,73 @@ class FakeBookingRepository implements BookingRepository {
     ];
   }
 
+  /// Default first, as the database orders them.
   @override
-  Future<List<SavedAddress>> getSavedAddresses() async => [...addresses];
+  Future<List<SavedAddress>> getSavedAddresses() async => [
+    ...addresses.where((a) => a.isDefault),
+    ...addresses.where((a) => !a.isDefault),
+  ];
+
+  static SavedAddress _address(String id, AddressInput input) => SavedAddress(
+    id: id,
+    label: input.label,
+    emirate: input.emirate,
+    area: input.area,
+    building: input.building,
+    apartment: input.apartment,
+    instructions: input.notes,
+    isDefault: input.isDefault,
+  );
+
+  /// Only one default, as in the database.
+  void _clearOtherDefaults(String id) {
+    for (var i = 0; i < addresses.length; i++) {
+      final a = addresses[i];
+      if (a.id != id && a.isDefault) {
+        addresses[i] = _address(a.id, a.toInput().withDefault(false));
+      }
+    }
+  }
+
+  int _addressIndex(String id) {
+    final index = addresses.indexWhere((a) => a.id == id);
+    if (index < 0) throw const NotFoundFailure();
+    return index;
+  }
 
   @override
   Future<SavedAddress> saveAddress(AddressInput address) async {
     savedInputs.add(address);
-    final saved = SavedAddress(
-      id: 'addr-${savedInputs.length}',
-      label: address.label,
-      emirate: address.emirate,
-      area: address.area,
-      building: address.building,
-      apartment: address.apartment,
-      instructions: address.notes,
-    );
+    final saved = _address('addr-${savedInputs.length}', address);
     addresses.add(saved);
+    if (saved.isDefault) _clearOtherDefaults(saved.id);
     return saved;
+  }
+
+  /// Address updates, as (id, new values).
+  final List<(String, AddressInput)> updatedAddresses = [];
+
+  @override
+  Future<void> updateAddress(String id, AddressInput address) async {
+    final index = _addressIndex(id);
+    updatedAddresses.add((id, address));
+    addresses[index] = _address(id, address);
+    if (address.isDefault) _clearOtherDefaults(id);
+  }
+
+  @override
+  Future<void> deleteAddress(String id) async {
+    addresses.removeAt(_addressIndex(id));
+  }
+
+  @override
+  Future<void> setDefaultAddress(String id) async {
+    final index = _addressIndex(id);
+    addresses[index] = _address(
+      id,
+      addresses[index].toInput().withDefault(true),
+    );
+    _clearOtherDefaults(id);
   }
 
   @override

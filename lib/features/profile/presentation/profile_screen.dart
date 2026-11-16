@@ -20,6 +20,7 @@ import '../../authentication/domain/auth_repository.dart';
 import '../../authentication/presentation/widgets/sign_in_prompt.dart';
 import '../data/profile_repository.dart';
 import '../domain/profile.dart';
+import 'widgets/account_deletion.dart';
 import 'widgets/profile_menu_tile.dart';
 
 /// Profile tab: account details, shortcuts to the customer's records,
@@ -86,6 +87,7 @@ class ProfileScreen extends ConsumerWidget {
             else ...[
               _ProfileHeader(user: user, profile: profile),
               const SizedBox(height: AppSpacing.xl),
+              const PendingDeletionCard(),
               _MenuSection(
                 title: 'My activity',
                 tiles: [
@@ -120,18 +122,20 @@ class ProfileScreen extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: AppSpacing.lg),
-              const _MenuSection(
+              _MenuSection(
                 title: 'Account',
                 tiles: [
                   ProfileMenuTile(
                     icon: Icons.location_on_rounded,
                     title: 'Saved Addresses',
+                    onTap: () =>
+                        unawaited(context.push(AppRoutes.savedAddresses)),
                   ),
-                  ProfileMenuTile(
+                  const ProfileMenuTile(
                     icon: Icons.credit_card_rounded,
                     title: 'Payment Methods',
                   ),
-                  ProfileMenuTile(
+                  const ProfileMenuTile(
                     icon: Icons.notifications_rounded,
                     title: 'Notifications',
                   ),
@@ -142,17 +146,21 @@ class ProfileScreen extends ConsumerWidget {
             _MenuSection(
               title: 'Support',
               tiles: [
-                const ProfileMenuTile(
+                ProfileMenuTile(
                   icon: Icons.help_rounded,
                   title: 'Help Centre',
+                  onTap: () => unawaited(context.push(AppRoutes.helpCentre)),
                 ),
-                const ProfileMenuTile(
+                ProfileMenuTile(
                   icon: Icons.privacy_tip_rounded,
                   title: 'Privacy Policy',
+                  onTap: () =>
+                      unawaited(context.push(AppRoutes.privacyPolicy)),
                 ),
-                const ProfileMenuTile(
+                ProfileMenuTile(
                   icon: Icons.gavel_rounded,
                   title: 'Terms and Conditions',
+                  onTap: () => unawaited(context.push(AppRoutes.terms)),
                 ),
                 ProfileMenuTile(
                   icon: Icons.info_rounded,
@@ -173,6 +181,8 @@ class ProfileScreen extends ConsumerWidget {
                 variant: AppButtonVariant.outline,
                 onPressed: () => _confirmLogOut(context, ref),
               ),
+              const SizedBox(height: AppSpacing.sm),
+              const DeleteAccountButton(),
             ],
             const SizedBox(height: AppSpacing.lg),
             const Text(

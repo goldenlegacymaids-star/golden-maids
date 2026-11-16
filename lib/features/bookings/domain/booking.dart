@@ -131,6 +131,7 @@ class SavedAddress {
     required this.building,
     this.apartment = '',
     this.instructions = '',
+    this.isDefault = false,
   });
 
   factory SavedAddress.fromJson(Map<String, dynamic> json) {
@@ -142,11 +143,13 @@ class SavedAddress {
       building: json['building'] as String,
       apartment: json['apartment'] as String? ?? '',
       instructions: json['instructions'] as String? ?? '',
+      isDefault: json['is_default'] as bool? ?? false,
     );
   }
 
   static const String columns =
-      'id, label, region, area, building, apartment, instructions';
+      'id, label, region, area, building, apartment, instructions, '
+      'is_default';
 
   final String id;
   final String label;
@@ -155,6 +158,20 @@ class SavedAddress {
   final String building;
   final String apartment;
   final String instructions;
+
+  /// Chosen first when booking.
+  final bool isDefault;
+
+  /// The address as typed in a form (for editing).
+  AddressInput toInput() => AddressInput(
+    emirate: emirate,
+    area: area,
+    building: building,
+    apartment: apartment,
+    notes: instructions,
+    label: label,
+    isDefault: isDefault,
+  );
 
   /// "Apt 1204, Tower 1, JLT, Dubai"
   String get summary => [
@@ -174,6 +191,7 @@ class AddressInput {
     this.apartment = '',
     this.notes = '',
     this.label = 'Home',
+    this.isDefault = false,
   });
 
   final String emirate;
@@ -183,14 +201,32 @@ class AddressInput {
   final String notes;
   final String label;
 
+  /// Saved addresses only: chosen first when booking.
+  final bool isDefault;
+
+  AddressInput withDefault(bool value) => AddressInput(
+    emirate: emirate,
+    area: area,
+    building: building,
+    apartment: apartment,
+    notes: notes,
+    label: label,
+    isDefault: value,
+  );
+
   Map<String, dynamic> toInsertJson() => {
-    'label': label,
     'country_code': 'AE',
+    ...toUpdateJson(),
+  };
+
+  Map<String, dynamic> toUpdateJson() => {
+    'label': label,
     'region': emirate,
     'area': area,
     'building': building,
     'apartment': apartment.isEmpty ? null : apartment,
     'instructions': notes.isEmpty ? null : notes,
+    'is_default': isDefault,
   };
 }
 

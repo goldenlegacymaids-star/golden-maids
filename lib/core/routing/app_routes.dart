@@ -46,6 +46,10 @@ abstract final class AppRoutes {
   // Profile
   static const String editProfile = '/profile/edit';
   static const String savedMaids = '/profile/saved-maids';
+  static const String savedAddresses = '/profile/addresses';
+  static const String helpCentre = '/profile/help';
+  static const String privacyPolicy = '/profile/privacy';
+  static const String terms = '/profile/terms';
   static const String hiringRequests = '/profile/hiring-requests';
   static String hiringRequest(String id) => '$hiringRequests/$id';
 

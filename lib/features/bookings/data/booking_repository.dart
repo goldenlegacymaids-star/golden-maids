@@ -28,6 +28,15 @@ abstract interface class BookingRepository {
   /// Saves an address and returns it.
   Future<SavedAddress> saveAddress(AddressInput address);
 
+  /// Changes a saved address (Profile → Saved Addresses).
+  Future<void> updateAddress(String id, AddressInput address);
+
+  /// Deletes a saved address. Bookings keep their own copy of it.
+  Future<void> deleteAddress(String id);
+
+  /// Makes an address the default (the previous default is cleared).
+  Future<void> setDefaultAddress(String id);
+
   /// Creates a booking and returns its reference (BK-…).
   Future<String> createBooking(BookingDraft draft);
 
@@ -119,6 +128,51 @@ class SupabaseBookingRepository implements BookingRepository {
         .single();
     return SavedAddress.fromJson(row);
   });
+
+  /// Changes one of the customer's addresses; a refused change returns no
+  /// rows rather than an error.
+  Future<void> _changeAddress(
+    Future<PostgrestList> Function(String userId) change,
+  ) async {
+    final rows = await change(_userId());
+    if (rows.isEmpty) throw const NotFoundFailure();
+  }
+
+  @override
+  Future<void> updateAddress(String id, AddressInput address) => _guard(
+    () => _changeAddress(
+      (userId) => _client
+          .from('addresses')
+          .update(address.toUpdateJson())
+          .eq('id', id)
+          .eq('user_id', userId)
+          .select('id'),
+    ),
+  );
+
+  @override
+  Future<void> deleteAddress(String id) => _guard(
+    () => _changeAddress(
+      (userId) => _client
+          .from('addresses')
+          .delete()
+          .eq('id', id)
+          .eq('user_id', userId)
+          .select('id'),
+    ),
+  );
+
+  @override
+  Future<void> setDefaultAddress(String id) => _guard(
+    () => _changeAddress(
+      (userId) => _client
+          .from('addresses')
+          .update({'is_default': true})
+          .eq('id', id)
+          .eq('user_id', userId)
+          .select('id'),
+    ),
+  );
 
   @override
   Future<String> createBooking(BookingDraft draft) => _guard(() async {
@@ -215,6 +269,16 @@ class UnavailableBookingRepository implements BookingRepository {
   @override
   Future<SavedAddress> saveAddress(AddressInput address) =>
       Future.error(_failure);
+
+  @override
+  Future<void> updateAddress(String id, AddressInput address) =>
+      Future.error(_failure);
+
+  @override
+  Future<void> deleteAddress(String id) => Future.error(_failure);
+
+  @override
+  Future<void> setDefaultAddress(String id) => Future.error(_failure);
 
   @override
   Future<String> createBooking(BookingDraft draft) => Future.error(_failure);
