@@ -32,11 +32,15 @@ abstract final class AppColors {
   /// Overlay behind dialogs and bottom sheets.
   static const Color scrim = Color(0x66202631);
 
-  /// Soft blue-to-white wash used behind the top of main screens.
+  /// Screen background: soft blue at the top, fading to [veryLightBlue] so
+  /// white cards and fields stand out.
   static const LinearGradient backgroundWash = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    colors: [lightBlue, white],
-    stops: [0, 0.45],
+    colors: [washTop, lightBlue, veryLightBlue, veryLightBlue],
+    stops: [0, 0.3, 0.6, 1],
   );
+
+  /// Top of the background wash: a little deeper than [lightBlue].
+  static const Color washTop = Color(0xFFD6E8FF);
 }

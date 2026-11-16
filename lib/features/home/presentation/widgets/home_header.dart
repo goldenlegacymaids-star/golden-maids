@@ -4,17 +4,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/uae.dart';
 import '../../../../core/routing/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/app_icon_button.dart';
 import '../../../../core/widgets/app_logo.dart';
+import '../../../authentication/data/auth_providers.dart';
+import '../../../profile/data/profile_repository.dart';
 import '../../data/service_location.dart';
 
-/// App title and notifications, then the service location.
+/// Avatar, greeting, logo and notifications, then the service location.
 class HomeHeader extends ConsumerWidget {
   const HomeHeader({super.key});
 
@@ -62,14 +64,79 @@ class HomeHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final user =
+        ref.watch(authStateProvider).value ??
+        ref.watch(authRepositoryProvider).currentUser;
+    final profile = ref.watch(myProfileProvider).value;
+    final fullName = profile?.fullName ?? user?.fullName;
+    final firstName = profile?.firstName ?? fullName?.split(' ').first;
     final emirate = ref.watch(serviceLocationProvider);
+
+    final initials = (fullName ?? '')
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .take(2)
+        .map((part) => part[0].toUpperCase())
+        .join();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            const Expanded(child: _BrandTitle()),
+            Semantics(
+              button: true,
+              label: 'Profile',
+              excludeSemantics: true,
+              child: GestureDetector(
+                onTap: () => context.go(AppRoutes.profile),
+                child: DecoratedBox(
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: AppShadows.soft,
+                  ),
+                  child: CircleAvatar(
+                    radius: 24,
+                    backgroundColor: AppColors.white,
+                    child: initials.isEmpty
+                        ? const Icon(
+                            Icons.person_rounded,
+                            color: AppColors.primary,
+                          )
+                        : Text(
+                            initials,
+                            style: AppTypography.titleSmall.copyWith(
+                              color: AppColors.primary,
+                            ),
+                          ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    user == null ? 'Welcome' : 'Welcome back',
+                    style: AppTypography.bodySmall,
+                  ),
+                  Text(
+                    user == null
+                        ? 'Hello, guest'
+                        : 'Hello, ${firstName ?? 'there'}',
+                    style: AppTypography.titleLarge,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            const AppLogo.icon(size: 36),
+            const SizedBox(width: AppSpacing.xs),
             AppIconButton(
               icon: Icons.notifications_none_rounded,
               tooltip: 'Notifications',
@@ -114,42 +181,6 @@ class HomeHeader extends ConsumerWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-/// The app icon and "Golden Maids", in the logo's colours.
-class _BrandTitle extends StatelessWidget {
-  const _BrandTitle();
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      header: true,
-      label: AppConstants.appName,
-      excludeSemantics: true,
-      child: const Row(
-        children: [
-          AppLogo.icon(size: 32),
-          SizedBox(width: AppSpacing.xs),
-          Flexible(
-            child: Text.rich(
-              TextSpan(
-                children: [
-                  TextSpan(text: 'Golden '),
-                  TextSpan(
-                    text: 'Maids',
-                    style: TextStyle(color: AppColors.primary),
-                  ),
-                ],
-              ),
-              style: AppTypography.titleLarge,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
