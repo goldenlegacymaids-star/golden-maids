@@ -72,6 +72,7 @@ class BookingStatusBadge extends StatelessWidget {
 /// A horizontal row of days; closed days are shown but cannot be chosen.
 class BookingDayStrip extends StatelessWidget {
   const BookingDayStrip({
+    super.key,
     required this.days,
     required this.selected,
     required this.isOpen,
@@ -152,6 +153,7 @@ class BookingDayStrip extends StatelessWidget {
 /// Start times for the chosen day; taken times are greyed out.
 class BookingSlotPicker extends ConsumerWidget {
   const BookingSlotPicker({
+    super.key,
     required this.slotsKey,
     required this.selected,
     required this.isOpenDay,
