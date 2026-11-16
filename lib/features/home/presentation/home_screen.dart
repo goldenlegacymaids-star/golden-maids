@@ -29,8 +29,8 @@ import '../../services/presentation/widgets/service_tiles.dart';
 import 'widgets/home_header.dart';
 import 'widgets/promo_carousel.dart';
 
-/// Home tab: greeting and location, offers, hiring a maid (GCC Sponsor or
-/// Company visa), service search, categories, featured maids and popular
+/// Home tab: greeting and location, offers, search, hiring a maid (GCC
+/// Sponsor or Company visa), service categories, featured maids and popular
 /// services.
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -81,6 +81,16 @@ class HomeScreen extends ConsumerWidget {
                   const Padding(padding: screen, child: HomeHeader()),
                   const SizedBox(height: AppSpacing.lg),
                   const PromoCarousel(),
+                  const SizedBox(height: AppSpacing.md),
+                  Padding(
+                    padding: screen,
+                    child: AppSearchBar(
+                      readOnly: true,
+                      onTap: () => unawaited(context.push(AppRoutes.search)),
+                      onFilterPressed: () =>
+                          unawaited(context.push(AppRoutes.search)),
+                    ),
+                  ),
                   const SizedBox(height: AppSpacing.xl),
                   Padding(
                     padding: screen,
@@ -101,16 +111,6 @@ class HomeScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: AppSpacing.md),
-                  Padding(
-                    padding: screen,
-                    child: AppSearchBar(
-                      readOnly: true,
-                      onTap: () => unawaited(context.push(AppRoutes.search)),
-                      onFilterPressed: () =>
-                          unawaited(context.push(AppRoutes.search)),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
                   const Padding(
                     padding: screen,
                     child: SectionHeader(title: 'Categories'),

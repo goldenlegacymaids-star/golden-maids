@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_maids/core/errors/app_failure.dart';
 import 'package:golden_maids/core/widgets/app_logo.dart';
+import 'package:golden_maids/core/widgets/app_search_bar.dart';
 import 'package:golden_maids/features/authentication/domain/auth_repository.dart';
 import 'package:golden_maids/features/home/data/service_location.dart';
 
@@ -33,13 +34,15 @@ void main() {
     expect(find.text('What services do you want to use?'), findsOneWidget);
     expect(find.text('Find Your Perfect Maid'), findsOneWidget);
 
-    // Offers first, then hiring a maid, then home services.
+    // Offers first, then search, hiring a maid and home services.
     final offers = tester.getTopLeft(find.text('Find Your Perfect Maid')).dy;
+    final search = tester.getTopLeft(find.byType(AppSearchBar)).dy;
     final hire = tester.getTopLeft(find.text('Hire a Maid')).dy;
     final services = tester
         .getTopLeft(find.text('What services do you want to use?'))
         .dy;
-    expect(offers, lessThan(hire));
+    expect(offers, lessThan(search));
+    expect(search, lessThan(hire));
     expect(hire, lessThan(services));
 
     expect(find.text('General Cleaning'), findsOneWidget);
