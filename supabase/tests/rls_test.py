@@ -1205,6 +1205,87 @@ def main():
             reset(c)
     check("Staff notifications: app events notify the right area only; staff actions are not notified; read status is per person", staff_notifications)
 
+    # --- maid nationalities and prices per nationality ---------------------------
+    def nationalities_and_prices():
+        as_user(c, None)
+        try:
+            names = [r[0] for r in c.execute("select name from public.maid_nationalities order by sort_order").fetchall()]
+            assert names == ["Kenya", "Ethiopia", "Myanmar", "Indonesia", "Philippines", "Madagascar"], names
+            assert one(c, "select code from public.maid_nationalities where name='Madagascar'") == "MG"
+            expect_denied(c, "insert into public.maid_nationalities (name, code) values ('Uganda', 'UG')")
+        finally:
+            reset(c)
+        as_user(c, alice)
+        try:
+            expect_violation(c, "insert into public.maid_nationalities (name, code) values ('Uganda', 'UG')")
+            expect_violation(c, "insert into public.recruitment_package_prices (package_id, nationality, price) values (%s, 'Kenya', 1)", (gcc,))
+        finally:
+            reset(c)
+        as_user(c, sam)
+        try:
+            c.execute("insert into public.maid_nationalities (name, code, sort_order, is_active) values ('Uganda', 'UG', 70, false)")
+            try:
+                with c.transaction():
+                    c.execute("insert into public.maid_nationalities (name, code) values ('Nowhere', 'nw')")
+                raise AssertionError("lower-case code accepted")
+            except errors.CheckViolation:
+                pass
+            c.execute("insert into public.recruitment_package_prices (package_id, nationality, price) values (%s, 'Kenya', 15000), (%s, 'Myanmar', 13500)", (gcc, gcc))
+            # A nationality in use cannot be deleted.
+            try:
+                with c.transaction():
+                    c.execute("delete from public.maid_nationalities where name='Kenya'")
+                raise AssertionError("deleted a nationality in use")
+            except errors.ForeignKeyViolation:
+                pass
+            # Renaming follows through to candidates and prices.
+            c.execute("update public.maid_nationalities set name='Republic of Kenya' where name='Kenya'")
+            assert one(c, "select nationality from public.candidates where id=%s", (kenya,)) == "Republic of Kenya"
+            assert one(c, "select count(*) from public.recruitment_package_prices where nationality='Republic of Kenya'") == 1
+            c.execute("update public.maid_nationalities set name='Kenya' where name='Republic of Kenya'")
+        finally:
+            reset(c)
+        # Hidden nationalities: hidden from guests and customers, visible to recruitment staff.
+        for user, expected in ((None, 6), (alice, 6), (rita, 7)):
+            as_user(c, user)
+            try:
+                assert one(c, "select count(*) from public.maid_nationalities") == expected, (user, expected)
+            finally:
+                reset(c)
+        # Candidates must use a listed nationality.
+        try:
+            with c.transaction():
+                c.execute("update public.candidates set nationality='Atlantis' where id=%s", (kenya,))
+            raise AssertionError("unknown nationality accepted")
+        except errors.ForeignKeyViolation:
+            pass
+
+        gcc_sql = ("insert into public.hiring_requests (package_id, duration_months, sponsor_nationality, candidate_id, preferred_nationality, customer_name, customer_phone, emirate) "
+                   "values (%s, 24, 'AE', %s, %s, 'Alice Customer', '+971501234567', 'Dubai') returning id::text")
+        as_user(c, alice)
+        try:
+            # Agency recommends: a nationality must be chosen, and an active one.
+            expect_violation(c, gcc_sql, (gcc, None, None))
+            expect_violation(c, gcc_sql, (gcc, None, "Uganda"))
+            r1 = one(c, gcc_sql, (gcc, None, "Myanmar"))
+            # A chosen maid decides the nationality, whatever was sent.
+            r2 = one(c, gcc_sql, (gcc, kenya, "Myanmar"))
+            # No price set for the nationality: on request.
+            r3 = one(c, gcc_sql, (gcc, None, "Ethiopia"))
+            # The customer cannot set the quoted price.
+            expect_denied(c, "insert into public.hiring_requests (package_id, duration_months, sponsor_nationality, preferred_nationality, customer_name, customer_phone, emirate, quoted_price) values (%s, 24, 'AE', 'Kenya', 'Alice', '+971501234567', 'Dubai', 1)", (gcc,))
+            m = one(c, "insert into public.hiring_requests (package_id, duration_months, customer_name, customer_phone, emirate) values (%s, 3, 'Alice Customer', '+971501234567', 'Dubai') returning id::text", (monthly,))
+        finally:
+            reset(c)
+        q = lambda rid: c.execute("select preferred_nationality, quoted_price, quoted_price_unit from public.hiring_requests where id=%s", (rid,)).fetchone()
+        assert q(r1) == ("Myanmar", 13500, "total"), q(r1)
+        assert q(r2) == ("Kenya", 15000, "total"), q(r2)
+        assert q(r3) == ("Ethiopia", None, None), q(r3)
+        monthly_price = c.execute("select price, price_unit from public.recruitment_packages where id=%s", (monthly,)).fetchone()
+        mq = q(m)
+        assert mq[0] is None and mq[1] == monthly_price[0] and (mq[2] == (monthly_price[1] if monthly_price[0] is not None else None)), (mq, monthly_price)
+    check("Nationalities: admins manage the list (codes, rename, hide, no delete in use); 2-Year prices per nationality; hiring requests keep nationality and quoted price", nationalities_and_prices)
+
     # --- report ------------------------------------------------------------------
     c.close()
     print()
