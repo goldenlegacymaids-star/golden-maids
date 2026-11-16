@@ -29,10 +29,7 @@ abstract final class AppRoutes {
   /// The maid list opened on a visa route (`sponsor` / `company`) and/or a
   /// location (`in_uae` / `outside_uae`).
   static String maidsFor({String? visa, String? location}) {
-    final query = {
-      if (visa != null) 'visa': visa,
-      if (location != null) 'location': location,
-    };
+    final query = {'visa': ?visa, 'location': ?location};
     return query.isEmpty
         ? maids
         : Uri(path: maids, queryParameters: query).toString();

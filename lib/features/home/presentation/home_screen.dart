@@ -71,7 +71,7 @@ class HomeScreen extends ConsumerWidget {
               child: ListView(
                 // Home is short: build the lower sections early so they load
                 // together with the top of the page.
-                cacheExtent: 800,
+                scrollCacheExtent: const ScrollCacheExtent.pixels(800),
                 padding: EdgeInsets.only(
                   top: AppSpacing.md,
                   bottom: bottomInset + AppSpacing.xl,
