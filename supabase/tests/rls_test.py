@@ -969,6 +969,89 @@ def main():
         c.execute("update public.booking_settings set close_time='20:00'")
     check("Booking settings: everyone reads; only administrators change", booking_settings_rules)
 
+    # --- profile essentials (Phase 4.1) -------------------------------------------
+    def delete_address_used_by_locked_booking():
+        # Alice's cancelled booking a10 used a saved address.
+        as_user(c, alice)
+        try:
+            addr = one(c, "insert into public.addresses (region, area, building) values ('Dubai', 'JLT', 'Tower 9') returning id::text")
+        finally:
+            reset(c)
+        c.execute("set session_replication_role = replica")
+        c.execute("update public.bookings set address_id=%s where id=%s", (addr, bk["a10"]))
+        c.execute("set session_replication_role = origin")
+        assert one(c, "select status from public.bookings where id=%s", (bk["a10"],)) == "cancelled"
+        as_user(c, alice)
+        try:
+            c.execute("delete from public.addresses where id=%s", (addr,))
+            assert one(c, "select count(*) from public.addresses where id=%s", (addr,)) == 0
+            row = c.execute("select address_id, status, building from public.bookings where id=%s", (bk["a10"],)).fetchone()
+            assert row == (None, "cancelled", "Cluster X, Tower 1"), row
+            # Customers still cannot change a locked booking otherwise.
+            expect_violation(c, "update public.bookings set starts_at=starts_at + interval '1 hour' where id=%s", (bk["a10"],))
+        finally:
+            reset(c)
+    check("Deleting a saved address unlinks it from locked bookings (snapshot kept)", delete_address_used_by_locked_booking)
+
+    def account_deletion_requests():
+        as_user(c, None)
+        try:
+            expect_denied(c, "select * from public.account_deletion_requests")
+            expect_denied(c, "insert into public.account_deletion_requests (reason) values ('x')")
+        finally:
+            reset(c)
+        as_user(c, alice)
+        try:
+            req = one(c, "insert into public.account_deletion_requests (reason) values ('No longer needed') returning id::text")
+            row = c.execute("select user_id::text, status from public.account_deletion_requests where id=%s", (req,)).fetchone()
+            assert row == (alice, "pending"), row
+            # One pending request at a time.
+            try:
+                with c.transaction():
+                    c.execute("insert into public.account_deletion_requests (reason) values ('again')")
+                raise AssertionError("second pending request was accepted")
+            except errors.UniqueViolation:
+                pass
+            # Customers cannot set other fields or another user.
+            expect_denied(c, "insert into public.account_deletion_requests (user_id, reason) values (%s, 'x')", (bob,))
+            expect_denied(c, "insert into public.account_deletion_requests (status) values ('completed')")
+            expect_violation(c, "update public.account_deletion_requests set status='completed' where id=%s", (req,))
+            expect_violation(c, "update public.account_deletion_requests set staff_note='done' where id=%s", (req,))
+            expect_denied(c, "update public.account_deletion_requests set reason='changed' where id=%s", (req,))
+            expect_denied(c, "delete from public.account_deletion_requests where id=%s", (req,))
+        finally:
+            reset(c)
+        for other in (bob, ben):
+            as_user(c, other)
+            try:
+                assert one(c, "select count(*) from public.account_deletion_requests") == 0, "others see the request"
+                c.execute("update public.account_deletion_requests set status='withdrawn' where id=%s", (req,))
+            finally:
+                reset(c)
+        assert one(c, "select status from public.account_deletion_requests where id=%s", (req,)) == "pending"
+        # Alice withdraws, then asks again.
+        as_user(c, alice)
+        try:
+            c.execute("update public.account_deletion_requests set status='withdrawn' where id=%s", (req,))
+            assert one(c, "select status from public.account_deletion_requests where id=%s", (req,)) == "withdrawn"
+            # A withdrawn request cannot be reopened.
+            c.execute("update public.account_deletion_requests set status='pending' where id=%s", (req,))
+            assert one(c, "select status from public.account_deletion_requests where id=%s", (req,)) == "withdrawn"
+            req2 = one(c, "insert into public.account_deletion_requests (reason) values ('') returning id::text")
+        finally:
+            reset(c)
+        # Administrators see all requests and mark them done.
+        as_user(c, sam)
+        try:
+            assert one(c, "select count(*) from public.account_deletion_requests") == 2
+            c.execute("update public.account_deletion_requests set status='completed', staff_note='Login and personal data deleted.' where id=%s", (req2,))
+            row = c.execute("select status, handled_by::text, handled_at is not null from public.account_deletion_requests where id=%s", (req2,)).fetchone()
+            assert row == ("completed", sam, True), row
+            expect_denied(c, "delete from public.account_deletion_requests where id=%s", (req2,))
+        finally:
+            reset(c)
+    check("Account deletion requests: customers request and withdraw their own; only administrators see all and process", account_deletion_requests)
+
     # --- report ------------------------------------------------------------------
     c.close()
     print()
