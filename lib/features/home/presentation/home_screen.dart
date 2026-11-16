@@ -29,8 +29,8 @@ import '../../services/presentation/widgets/service_tiles.dart';
 import 'widgets/home_header.dart';
 import 'widgets/promo_carousel.dart';
 
-/// Home tab: greeting and location, hiring a maid (GCC Sponsor or Company
-/// visa), search, offers, service categories, featured maids and popular
+/// Home tab: greeting and location, offers, hiring a maid (GCC Sponsor or
+/// Company visa), service search, categories, featured maids and popular
 /// services.
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -80,6 +80,8 @@ class HomeScreen extends ConsumerWidget {
                 children: [
                   const Padding(padding: screen, child: HomeHeader()),
                   const SizedBox(height: AppSpacing.lg),
+                  const PromoCarousel(),
+                  const SizedBox(height: AppSpacing.xl),
                   Padding(
                     padding: screen,
                     child: SectionHeader(
@@ -108,8 +110,6 @@ class HomeScreen extends ConsumerWidget {
                           unawaited(context.push(AppRoutes.search)),
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.lg),
-                  const PromoCarousel(),
                   const SizedBox(height: AppSpacing.xl),
                   const Padding(
                     padding: screen,

@@ -33,6 +33,15 @@ void main() {
     expect(find.text('What services do you want to use?'), findsOneWidget);
     expect(find.text('Find Your Perfect Maid'), findsOneWidget);
 
+    // Offers first, then hiring a maid, then home services.
+    final offers = tester.getTopLeft(find.text('Find Your Perfect Maid')).dy;
+    final hire = tester.getTopLeft(find.text('Hire a Maid')).dy;
+    final services = tester
+        .getTopLeft(find.text('What services do you want to use?'))
+        .dy;
+    expect(offers, lessThan(hire));
+    expect(hire, lessThan(services));
+
     expect(find.text('General Cleaning'), findsOneWidget);
     expect(find.text('2-Year Maid Visa'), findsOneWidget);
 
