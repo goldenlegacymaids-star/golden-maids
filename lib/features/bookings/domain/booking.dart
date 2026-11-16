@@ -1,5 +1,8 @@
 import '../../services/domain/catalog.dart';
 
+// How a service is booked and priced, for every booking file.
+export '../../services/domain/catalog.dart' show BookingType, PriceUnit;
+
 /// How the customer pays (on completion, for now).
 enum PaymentMethod {
   cash('cash', 'Cash on completion'),
