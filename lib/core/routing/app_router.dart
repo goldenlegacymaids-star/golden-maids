@@ -18,9 +18,11 @@ import '../../features/bookings/presentation/book_service_screen.dart';
 import '../../features/bookings/presentation/booking_details_screen.dart';
 import '../../features/bookings/presentation/bookings_screen.dart';
 import '../../features/bookings/presentation/reschedule_booking_screen.dart';
+import '../../features/candidates/domain/candidate.dart';
 import '../../features/candidates/presentation/candidate_directory_screen.dart';
 import '../../features/candidates/presentation/candidate_profile_screen.dart';
 import '../../features/candidates/presentation/saved_maids_screen.dart';
+import '../../features/documents/presentation/my_documents_screen.dart';
 import '../../features/hiring/presentation/hire_screen.dart';
 import '../../features/hiring/presentation/hiring_request_screen.dart';
 import '../../features/hiring/presentation/my_hiring_requests_screen.dart';
@@ -52,6 +54,7 @@ const Set<String> _signedInOnly = {
   AppRoutes.newPassword,
   AppRoutes.editProfile,
   AppRoutes.savedMaids,
+  AppRoutes.myDocuments,
   AppRoutes.savedAddresses,
   AppRoutes.hirePath,
   AppRoutes.hiringRequests,
@@ -193,8 +196,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   GoRoute(
                     path: 'maids',
                     name: 'maids',
-                    builder: (context, state) =>
-                        const CandidateDirectoryScreen(),
+                    builder: (context, state) => CandidateDirectoryScreen(
+                      initialVisa: VisaRoute.fromValue(
+                        state.uri.queryParameters['visa'],
+                      ),
+                      initialLocation: MaidLocation.fromValue(
+                        state.uri.queryParameters['location'],
+                      ),
+                    ),
                   ),
                   GoRoute(
                     path: 'category/:slug',
@@ -275,6 +284,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     path: 'saved-maids',
                     name: 'saved-maids',
                     builder: (context, state) => const SavedMaidsScreen(),
+                  ),
+                  GoRoute(
+                    path: 'documents',
+                    name: 'my-documents',
+                    builder: (context, state) => const MyDocumentsScreen(),
                   ),
                   GoRoute(
                     path: 'addresses',

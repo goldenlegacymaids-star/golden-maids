@@ -115,9 +115,11 @@ class ProfileScreen extends ConsumerWidget {
                     icon: Icons.description_rounded,
                     title: 'My Contracts',
                   ),
-                  const ProfileMenuTile(
+                  ProfileMenuTile(
                     icon: Icons.folder_rounded,
                     title: 'My Documents',
+                    onTap: () =>
+                        unawaited(context.push(AppRoutes.myDocuments)),
                   ),
                 ],
               ),

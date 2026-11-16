@@ -125,7 +125,9 @@ class _NotificationCard extends ConsumerWidget {
     final bookingId = n.bookingId;
     final requestId = n.hiringRequestId;
     final candidateId = n.candidateId;
-    if (bookingId != null) {
+    if (n.topic == NotificationTopic.document) {
+      await context.push(AppRoutes.myDocuments);
+    } else if (bookingId != null) {
       context.go(AppRoutes.booking(bookingId));
     } else if (requestId != null) {
       context.go(AppRoutes.hiringRequest(requestId));
@@ -141,6 +143,7 @@ class _NotificationCard extends ConsumerWidget {
       NotificationTopic.booking => Icons.calendar_today_rounded,
       NotificationTopic.hiring => Icons.assignment_ind_rounded,
       NotificationTopic.enquiry => Icons.chat_bubble_outline_rounded,
+      NotificationTopic.document => Icons.folder_rounded,
       NotificationTopic.other => Icons.notifications_none_rounded,
     };
     return Semantics(

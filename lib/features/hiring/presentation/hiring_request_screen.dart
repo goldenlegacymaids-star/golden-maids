@@ -117,6 +117,8 @@ class HiringRequestScreen extends ConsumerWidget {
                       ),
                     if (data.preferredNationality case final nationality?)
                       SummaryRow(label: 'Nationality', value: nationality),
+                    if (data.maidLocation case final location?)
+                      SummaryRow(label: 'Where she is', value: location.label),
                     // Requests sent before prices were saved show no price.
                     if (data.quotedPrice case final price?)
                       SummaryRow(

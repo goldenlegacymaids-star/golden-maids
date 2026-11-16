@@ -27,6 +27,7 @@ import '../../candidates/domain/candidate_profile.dart';
 import '../../candidates/presentation/enquiry_sheet.dart';
 import '../../candidates/presentation/widgets/candidate_cards.dart';
 import '../../candidates/presentation/widgets/nationality_flag.dart';
+import '../../documents/presentation/documents_checklist.dart';
 import '../../home/data/service_location.dart';
 import '../../profile/data/profile_repository.dart';
 import '../data/hiring_repository.dart';
@@ -131,6 +132,9 @@ class _HireFlowState extends ConsumerState<_HireFlow> {
   /// Asked for when the agency recommends a maid and the price depends on
   /// her nationality.
   String? _preferredNationality;
+
+  /// In or outside the UAE, when the agency recommends the maid.
+  MaidLocation? _preferredLocation;
   late String _emirate = ref.read(serviceLocationProvider);
   bool _children = false;
   bool _elderly = false;
@@ -205,6 +209,7 @@ class _HireFlowState extends ConsumerState<_HireFlow> {
     _months = options.length == 1 ? options.single : null;
     if (!package.requiresSponsorNationality) _sponsorNationality = null;
     _preferredNationality = null;
+    _preferredLocation = null;
     // A maid chosen for another package may not offer this one.
     if (!_maidPreselected) {
       _candidate = null;
@@ -224,6 +229,7 @@ class _HireFlowState extends ConsumerState<_HireFlow> {
     _Step.maid =>
       _candidate != null ||
           (_recommend &&
+              _preferredLocation != null &&
               (!_package!.priceByNationality ||
                   _preferredNationality != null)),
     _Step.details || _Step.review => true,
@@ -259,6 +265,7 @@ class _HireFlowState extends ConsumerState<_HireFlow> {
       candidateId: _recommend ? null : _candidate?.id,
       // A chosen maid's nationality is filled in by the database.
       preferredNationality: _recommend ? _preferredNationality : null,
+      maidLocation: _recommend ? _preferredLocation : null,
       name: _name.text.trim(),
       phone: _phone.text.trim(),
       email: email.isEmpty ? null : email,
@@ -342,8 +349,10 @@ class _HireFlowState extends ConsumerState<_HireFlow> {
                       _recommend = false;
                       _candidate = candidate;
                       _preferredNationality = null;
+                      _preferredLocation = null;
                     }),
                   ),
+                  if (_recommend) ..._locationChoice(),
                   if (_recommend && _package!.priceByNationality)
                     ..._nationalityChoice(_package!),
                 ],
@@ -591,6 +600,26 @@ class _HireFlowState extends ConsumerState<_HireFlow> {
 
   // --- Step 4: review -------------------------------------------------------
 
+  /// In or outside the UAE, when the agency recommends the maid.
+  List<Widget> _locationChoice() => [
+    const _StepHeading('Where should she be?'),
+    for (final location in MaidLocation.values) ...[
+      OptionCard(
+        icon: location == MaidLocation.inUae
+            ? Icons.home_work_rounded
+            : Icons.flight_land_rounded,
+        title: location.label,
+        subtitle: location == MaidLocation.inUae
+            ? 'Already here: she can start sooner.'
+            : 'Recruited from her country: arrival time depends on '
+                  'her nationality.',
+        selected: _preferredLocation == location,
+        onTap: () => setState(() => _preferredLocation = location),
+      ),
+      const SizedBox(height: AppSpacing.sm),
+    ],
+  ];
+
   /// The maid's nationality and its price, when the agency recommends the
   /// maid and the package is priced by nationality.
   List<Widget> _nationalityChoice(RecruitmentPackage package) {
@@ -647,6 +676,8 @@ class _HireFlowState extends ConsumerState<_HireFlow> {
     final nationality = _recommend
         ? _preferredNationality
         : candidate?.nationality;
+    final location = _recommend ? _preferredLocation : candidate?.location;
+    final arrival = nationality == null ? null : arrivalFor(ref, nationality);
     return [
       const _StepHeading('Review your request'),
       if (candidate != null && !_recommend) ...[
@@ -672,6 +703,15 @@ class _HireFlowState extends ConsumerState<_HireFlow> {
             ),
             if (nationality != null)
               SummaryRow(label: 'Nationality', value: nationality),
+            if (location != null)
+              SummaryRow(label: 'Where she is', value: location.label),
+            if (location == MaidLocation.outsideUae)
+              SummaryRow(
+                label: 'Expected arrival',
+                value: arrival == null
+                    ? 'On request'
+                    : '$arrival after confirmation',
+              ),
             SummaryRow(
               label: 'Price',
               value: packagePriceLabel(package, nationality: nationality),
@@ -691,6 +731,10 @@ class _HireFlowState extends ConsumerState<_HireFlow> {
           ],
         ),
       ),
+      if (package.visaType == VisaRoute.sponsor.value) ...[
+        const SizedBox(height: AppSpacing.sm),
+        const DocumentsChecklist(),
+      ],
       const SizedBox(height: AppSpacing.md),
       const Text(
         'No payment is taken now. Our recruitment team will confirm '

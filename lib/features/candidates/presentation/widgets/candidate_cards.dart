@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
@@ -7,6 +9,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_network_image.dart';
+import '../../data/candidate_repository.dart';
 import '../../domain/candidate.dart';
 import 'favourite_button.dart';
 import 'nationality_flag.dart';
@@ -47,6 +50,80 @@ String packagePriceLabel(RecruitmentPackage package, {String? nationality}) {
   return package.priceUnit == 'per_month'
       ? '${Formatters.aed(price)} / month'
       : Formatters.aed(price);
+}
+
+final _dayMonth = DateFormat('d MMM');
+
+/// "In the UAE · Available now", "In the UAE · From 24 Nov",
+/// "Outside the UAE · Arrives in 10–20 days" or
+/// "Outside the UAE · Arrival on request". [arrival] is the nationality's
+/// arrival time ("10–20 days"); [now] is for tests.
+String locationLabel(
+  Candidate candidate, {
+  String? arrival,
+  DateTime? now,
+}) {
+  switch (candidate.location) {
+    case MaidLocation.outsideUae:
+      return arrival == null
+          ? 'Outside the UAE · Arrival on request'
+          : 'Outside the UAE · Arrives in $arrival';
+    case MaidLocation.inUae:
+      if (candidate.availability != CandidateAvailability.available) {
+        return 'In the UAE';
+      }
+      final from = candidate.availableFrom;
+      final today = now ?? DateTime.now();
+      if (from != null &&
+          from.isAfter(DateTime(today.year, today.month, today.day))) {
+        return 'In the UAE · From ${_dayMonth.format(from)}';
+      }
+      return 'In the UAE · Available now';
+  }
+}
+
+/// The nationality's arrival time ("10–20 days"), or null.
+String? arrivalFor(WidgetRef ref, String nationality) {
+  for (final item
+      in ref.watch(maidNationalitiesProvider).value ??
+          const <MaidNationality>[]) {
+    if (item.name == nationality) return item.arrivalLabel;
+  }
+  return null;
+}
+
+/// Small label: where the maid is and when she can start.
+class LocationBadge extends ConsumerWidget {
+  const LocationBadge({super.key, required this.candidate});
+
+  final Candidate candidate;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final inUae = candidate.location == MaidLocation.inUae;
+    final label = locationLabel(
+      candidate,
+      arrival: arrivalFor(ref, candidate.nationality),
+    );
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.xs,
+        vertical: 3,
+      ),
+      decoration: BoxDecoration(
+        color: inUae ? AppColors.successSoft : AppColors.lightBlue,
+        borderRadius: AppRadius.pillAll,
+      ),
+      child: Text(
+        label,
+        style: AppTypography.labelSmall.copyWith(
+          color: inUae ? AppColors.successText : AppColors.infoText,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
 }
 
 /// Candidate photo, or a person icon when none has been uploaded.
@@ -345,6 +422,9 @@ class CandidateListTile extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 _NationalityLine(nationality: candidate.nationality),
+                const SizedBox(height: AppSpacing.xxs),
+                LocationBadge(candidate: candidate),
+                const SizedBox(height: AppSpacing.xxs),
                 Text(
                   experienceLabel(candidate.yearsExperience),
                   style: AppTypography.bodySmall,

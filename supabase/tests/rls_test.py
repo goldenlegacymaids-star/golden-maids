@@ -1355,6 +1355,146 @@ def main():
             reset(c)
     check("Customer notifications: agency updates notify the customer (own actions and internal notes never); customers read only theirs and can only mark them read", customer_notifications)
 
+    # --- recruitment routes and customer documents --------------------------------
+    class _Undo(Exception):
+        pass
+
+    def recruitment_routes():
+        assert one(c, "select location from public.candidates where id=%s", (kenya,)) == "in_uae"
+        as_user(c, None)
+        try:
+            assert one(c, "select count(location) from public.candidates") >= 0  # guests may read it
+        finally:
+            reset(c)
+        # Arrival days: both or neither, From <= To, admins only.
+        as_user(c, sam)
+        try:
+            expect_violation(c, "update public.maid_nationalities set arrival_days_min=20, arrival_days_max=10 where name='Kenya'")
+            expect_violation(c, "update public.maid_nationalities set arrival_days_min=10 where name='Kenya'")
+            expect_violation(c, "update public.maid_nationalities set arrival_days_min=0, arrival_days_max=10 where name='Kenya'")
+            c.execute("update public.maid_nationalities set arrival_days_min=10, arrival_days_max=20 where name='Kenya'")
+        finally:
+            reset(c)
+        assert c.execute("select arrival_days_min, arrival_days_max from public.maid_nationalities where name='Kenya'").fetchone() == (10, 20)
+        as_user(c, rita)
+        try:
+            n = c.execute("update public.maid_nationalities set arrival_days_min=1, arrival_days_max=2 where name='Kenya' returning name").fetchall()
+            assert n == [], "recruitment officers changed arrival times"
+        finally:
+            reset(c)
+        # Requests keep the chosen maid's location; a recommendation keeps the customer's choice.
+        try:
+            with c.transaction():
+                c.execute("update public.candidates set location='outside_uae', availability_status='available', is_published=true, archived_at=null where id=%s", (kenya,))
+                as_user(c, alice)
+                try:
+                    picked = one(c, "insert into public.hiring_requests (package_id, duration_months, candidate_id, maid_location, customer_name, customer_phone, emirate) "
+                                    "values (%s, 3, %s, 'in_uae', 'Alice Customer', '+971501234567', 'Dubai') returning maid_location", (monthly, kenya))
+                    assert picked == "outside_uae", picked
+                    chosen = one(c, "insert into public.hiring_requests (package_id, duration_months, maid_location, customer_name, customer_phone, emirate) "
+                                    "values (%s, 3, 'outside_uae', 'Alice Customer', '+971501234567', 'Dubai') returning maid_location", (monthly,))
+                    assert chosen == "outside_uae", chosen
+                    expect_violation(c, "insert into public.hiring_requests (package_id, duration_months, maid_location, customer_name, customer_phone, emirate) "
+                                        "values (%s, 3, 'mars', 'Alice Customer', '+971501234567', 'Dubai')", (monthly,))
+                finally:
+                    reset(c)
+                raise _Undo()
+        except _Undo:
+            pass
+    check("Recruitment routes: maid location (default in the UAE), arrival days per nationality (admins), requests keep the location", recruitment_routes)
+
+    def customer_documents():
+        path = alice + "/passport-1.pdf"
+        as_user(c, alice)
+        try:
+            c.execute("insert into storage.objects (bucket_id, name) values ('customer-documents', %s)", (path,))
+            expect_denied(c, "insert into storage.objects (bucket_id, name) values ('customer-documents', %s)", (bob + "/x.pdf",))
+            expect_denied(c, "insert into public.customer_documents (customer_id, document_type, storage_path, file_name, mime_type, size_bytes) values (%s, 'passport', %s, 'p.pdf', 'application/pdf', 1000)", (bob, path))
+            expect_denied(c, "insert into public.customer_documents (document_type, storage_path, file_name, mime_type, size_bytes, status) values ('passport', %s, 'p.pdf', 'application/pdf', 1000, 'approved')", (path,))
+            expect_denied(c, "insert into public.customer_documents (document_type, storage_path, file_name, mime_type, size_bytes) values ('passport', %s, 'p.pdf', 'application/pdf', 1000)", (bob + "/x.pdf",))
+            expect_violation(c, "insert into public.customer_documents (document_type, storage_path, file_name, mime_type, size_bytes) values ('passport', %s, 'p.exe', 'application/x-msdownload', 1000)", (path,))
+            expect_violation(c, "insert into public.customer_documents (document_type, storage_path, file_name, mime_type, size_bytes) values ('passport', %s, 'p.pdf', 'application/pdf', 20000000)", (path,))
+            doc = one(c, "insert into public.customer_documents (document_type, storage_path, file_name, mime_type, size_bytes) values ('passport', %s, 'passport.pdf', 'application/pdf', 1000) returning id::text", (path,))
+            row = c.execute("select customer_id::text, status from public.customer_documents where id=%s", (doc,)).fetchone()
+            assert row == (alice, "submitted"), row
+            expect_denied(c, "update public.customer_documents set status='approved' where id=%s", (doc,))
+        finally:
+            reset(c)
+        assert one(c, "select count(*) from public.staff_notifications where kind='document.uploaded'") == 1
+        # Other customers and booking staff see nothing.
+        for other in (bob, ben):
+            as_user(c, other)
+            try:
+                assert one(c, "select count(*) from public.customer_documents") == 0
+                assert one(c, "select count(*) from storage.objects where bucket_id='customer-documents'") == 0
+                c.execute("delete from public.customer_documents")
+                c.execute("delete from storage.objects where bucket_id='customer-documents'")
+            finally:
+                reset(c)
+        assert one(c, "select count(*) from public.customer_documents where id=%s", (doc,)) == 1
+        as_user(c, None)
+        try:
+            expect_denied(c, "select * from public.customer_documents")
+        finally:
+            reset(c)
+        # Recruitment staff review: a reason is required to ask for a new copy.
+        as_user(c, rita)
+        try:
+            assert one(c, "select count(*) from storage.objects where name=%s", (path,)) == 1
+            expect_violation(c, "update public.customer_documents set status='needs_new_copy' where id=%s", (doc,))
+            expect_denied(c, "update public.customer_documents set storage_path=%s where id=%s", (rita + "/x.pdf", doc))
+            c.execute("update public.customer_documents set status='needs_new_copy', staff_note='The photo page is blurred.' where id=%s", (doc,))
+        finally:
+            reset(c)
+        row = c.execute("select status, reviewed_by::text, reviewed_at is not null from public.customer_documents where id=%s", (doc,)).fetchone()
+        assert row == ("needs_new_copy", rita, True), row
+        note = c.execute("select kind, body from public.customer_notifications where customer_id=%s and kind like 'document.%%' order by id desc limit 1", (alice,)).fetchone()
+        assert note == ("document.needs_new_copy", "Your Passport copy needs a new copy: The photo page is blurred."), note
+        # The customer replaces the file: back to review, note cleared, staff told again.
+        as_user(c, alice)
+        try:
+            new_path = alice + "/passport-2.pdf"
+            c.execute("insert into storage.objects (bucket_id, name) values ('customer-documents', %s)", (new_path,))
+            c.execute("update public.customer_documents set storage_path=%s, file_name='passport-new.pdf', size_bytes=2000 where id=%s", (new_path, doc))
+            c.execute("delete from storage.objects where bucket_id='customer-documents' and name=%s", (path,))
+            row = c.execute("select status, staff_note, reviewed_by from public.customer_documents where id=%s", (doc,)).fetchone()
+            assert row == ("submitted", "", None), row
+        finally:
+            reset(c)
+        assert one(c, "select count(*) from public.staff_notifications where kind='document.uploaded'") == 2
+        as_user(c, rita)
+        try:
+            c.execute("update public.customer_documents set status='approved', staff_note='' where id=%s", (doc,))
+        finally:
+            reset(c)
+        assert one(c, "select kind from public.customer_notifications where customer_id=%s order by id desc limit 1", (alice,)) == "document.approved"
+
+        # Accounts with documents are only deleted after the documents are removed.
+        erin = new_user(c, "erin@example.com", "Erin Leaving")
+        as_user(c, erin)
+        try:
+            epath = erin + "/emirates-1.png"
+            c.execute("insert into storage.objects (bucket_id, name) values ('customer-documents', %s)", (epath,))
+            c.execute("insert into public.customer_documents (document_type, storage_path, file_name, mime_type, size_bytes) values ('emirates_id', %s, 'eid.png', 'image/png', 500)", (epath,))
+            ereq = one(c, "insert into public.account_deletion_requests (reason) values ('Bye') returning id::text")
+        finally:
+            reset(c)
+        as_user(c, sam)
+        try:
+            try:
+                with c.transaction():
+                    c.execute("select public.process_account_deletion(%s)", (ereq,))
+                raise AssertionError("account deleted while documents remained")
+            except errors.CheckViolation as e:
+                assert "documents first" in str(e), e
+            c.execute("delete from storage.objects where bucket_id='customer-documents' and name like %s", (erin + "/%",))
+            c.execute("delete from public.customer_documents where customer_id=%s", (erin,))
+            c.execute("select public.process_account_deletion(%s)", (ereq,))
+        finally:
+            reset(c)
+        assert one(c, "select count(*) from auth.users where id=%s", (erin,)) == 0
+    check("Customer documents: private files in the customer's own folder; recruitment staff review (reason required) and the customer is notified; replacing sends it back; deletion waits for documents", customer_documents)
+
     # --- report ------------------------------------------------------------------
     c.close()
     print()

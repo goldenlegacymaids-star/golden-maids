@@ -12,11 +12,13 @@ import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_button.dart';
+import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_search_bar.dart';
 import '../../../core/widgets/section_error.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../../core/widgets/skeleton.dart';
 import '../../candidates/data/candidate_repository.dart';
+import '../../candidates/domain/candidate.dart';
 import '../../candidates/presentation/open_candidate.dart';
 import '../../candidates/presentation/widgets/candidate_cards.dart';
 import '../../services/data/catalog_repository.dart';
@@ -26,8 +28,9 @@ import '../../services/presentation/widgets/service_tiles.dart';
 import 'widgets/home_header.dart';
 import 'widgets/promo_carousel.dart';
 
-/// Home tab: greeting and location, search, offers, service categories,
-/// featured maids and popular services.
+/// Home tab: greeting and location, hiring a maid (GCC Sponsor or Company
+/// visa), search, offers, service categories, featured maids and popular
+/// services.
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
@@ -66,6 +69,9 @@ class HomeScreen extends ConsumerWidget {
             child: RefreshIndicator(
               onRefresh: () => _refresh(ref),
               child: ListView(
+                // Home is short: build the lower sections early so they load
+                // together with the top of the page.
+                cacheExtent: 800,
                 padding: EdgeInsets.only(
                   top: AppSpacing.md,
                   bottom: bottomInset + AppSpacing.xl,
@@ -73,6 +79,17 @@ class HomeScreen extends ConsumerWidget {
                 children: [
                   const Padding(padding: screen, child: HomeHeader()),
                   const SizedBox(height: AppSpacing.lg),
+                  Padding(
+                    padding: screen,
+                    child: SectionHeader(
+                      title: 'Hire a Maid',
+                      actionLabel: 'All maids',
+                      onAction: () => unawaited(context.push(AppRoutes.maids)),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  const Padding(padding: screen, child: _HireRoutes()),
+                  const SizedBox(height: AppSpacing.xl),
                   const Padding(
                     padding: screen,
                     child: Text(
@@ -340,6 +357,134 @@ class _FeaturedMaids extends ConsumerWidget {
         const SizedBox(height: AppSpacing.sm),
         content,
       ],
+    );
+  }
+}
+
+/// The two ways to hire: each opens the maid list on that visa.
+class _HireRoutes extends StatelessWidget {
+  const _HireRoutes();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      children: [
+        _HireRouteCard(
+          visa: VisaRoute.sponsor,
+          icon: Icons.badge_rounded,
+          subtitle: '2 years · you sponsor the maid · one-off price',
+        ),
+        SizedBox(height: AppSpacing.sm),
+        _HireRouteCard(
+          visa: VisaRoute.company,
+          icon: Icons.apartment_rounded,
+          subtitle: 'On our visa · pay monthly · flexible months',
+        ),
+      ],
+    );
+  }
+}
+
+class _HireRouteCard extends StatelessWidget {
+  const _HireRouteCard({
+    required this.visa,
+    required this.icon,
+    required this.subtitle,
+  });
+
+  final VisaRoute visa;
+  final IconData icon;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      onTap: () =>
+          unawaited(context.push(AppRoutes.maidsFor(visa: visa.value))),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: const BoxDecoration(
+                  color: AppColors.lightBlue,
+                  borderRadius: AppRadius.mdAll,
+                ),
+                child: Icon(icon, color: AppColors.primary),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(visa.label, style: AppTypography.titleMedium),
+                    Text(subtitle, style: AppTypography.bodySmall),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.textSecondary,
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Wrap(
+            spacing: AppSpacing.xs,
+            runSpacing: AppSpacing.xs,
+            children: [
+              for (final location in MaidLocation.values)
+                _RouteLocationLink(visa: visa, location: location),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// "In the UAE" / "Outside the UAE": opens the list on that visa and place.
+class _RouteLocationLink extends StatelessWidget {
+  const _RouteLocationLink({required this.visa, required this.location});
+
+  final VisaRoute visa;
+  final MaidLocation location;
+
+  @override
+  Widget build(BuildContext context) {
+    final inUae = location == MaidLocation.inUae;
+    return Semantics(
+      button: true,
+      label: '${visa.label}, ${location.label}',
+      excludeSemantics: true,
+      child: InkWell(
+        borderRadius: AppRadius.pillAll,
+        onTap: () => unawaited(
+          context.push(
+            AppRoutes.maidsFor(visa: visa.value, location: location.value),
+          ),
+        ),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 32),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.sm,
+            vertical: AppSpacing.xxs + 2,
+          ),
+          decoration: BoxDecoration(
+            color: inUae ? AppColors.successSoft : AppColors.lightBlue,
+            borderRadius: AppRadius.pillAll,
+          ),
+          child: Text(
+            location.label,
+            style: AppTypography.labelSmall.copyWith(
+              color: inUae ? AppColors.successText : AppColors.infoText,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

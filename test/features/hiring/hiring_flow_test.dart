@@ -198,8 +198,12 @@ void main() {
       await tapAndSettle(tester, find.text('Continue'));
       await tapAndSettle(tester, find.text('Let the agency recommend someone'));
 
-      // The price depends on the nationality, which must be chosen.
+      // Where she should be, and her nationality (the price depends on
+      // it), must both be chosen.
+      expect(find.text('Where should she be?'), findsOneWidget);
       expect(find.text("Maid's nationality"), findsOneWidget);
+      expect(_continueEnabled(tester), isFalse, reason: 'location needed');
+      await tapAndSettle(tester, find.text('Outside the UAE'));
       expect(_continueEnabled(tester), isFalse, reason: 'nationality needed');
       await tester.ensureVisible(find.text('Madagascar'));
       expect(find.text('Price on request'), findsWidgets);
@@ -210,12 +214,15 @@ void main() {
       await tapAndSettle(tester, find.text('Continue'));
       expect(find.text('Agency recommendation'), findsOneWidget);
       expect(find.text('Kenya'), findsOneWidget);
+      expect(find.text('Outside the UAE'), findsOneWidget);
+      expect(find.text('10–20 days after confirmation'), findsOneWidget);
       expect(find.text('AED 15,000'), findsOneWidget);
 
       await tapAndSettle(tester, find.text('Submit request'));
       final draft = hiring.submitted.single;
       expect(draft.candidateId, isNull);
       expect(draft.preferredNationality, 'Kenya');
+      expect(draft.maidLocation, MaidLocation.outsideUae);
     });
 
     testWidgets('the agency can be asked to recommend a maid', (tester) async {
@@ -226,14 +233,17 @@ void main() {
       await tapAndSettle(tester, find.byTooltip('More months'));
       await tapAndSettle(tester, find.text('Continue'));
       await tapAndSettle(tester, find.text('Let the agency recommend someone'));
+      await tapAndSettle(tester, find.text('In the UAE'));
       await tapAndSettle(tester, find.text('Continue'));
       await tapAndSettle(tester, find.text('Continue'));
 
       expect(find.text('Agency recommendation'), findsOneWidget);
+      expect(find.text('In the UAE'), findsOneWidget);
       await tapAndSettle(tester, find.text('Submit request'));
       final draft = hiring.submitted.single;
       expect(draft.candidateId, isNull);
       expect(draft.durationMonths, 1);
+      expect(draft.maidLocation, MaidLocation.inUae);
     });
 
     testWidgets('guests are asked to sign in', (tester) async {

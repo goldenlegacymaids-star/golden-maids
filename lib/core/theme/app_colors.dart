@@ -22,6 +22,13 @@ abstract final class AppColors {
   static const Color warning = Color(0xFFF3B642);
   static const Color error = Color(0xFFE65353);
 
+  /// Soft badge backgrounds with readable text (4.5:1 or better):
+  /// green for "In the UAE", blue for "Outside the UAE" and information.
+  static const Color successSoft = Color(0xFFE3F6EC);
+  static const Color successText = Color(0xFF17734A);
+  static const Color infoText = Color(0xFF1F5FB0);
+  static const Color errorText = Color(0xFFB42318);
+
   /// Golden accent. Only for the logo sparkle and small highlights such as
   /// rating stars. Never use it as a background.
   static const Color gold = warning;

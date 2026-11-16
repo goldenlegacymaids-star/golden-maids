@@ -37,6 +37,7 @@ class FakeCandidateRepository implements CandidateRepository {
       availability: CandidateAvailability.reserved,
       isFeatured: true,
       isTest: true,
+      location: MaidLocation.outsideUae,
     ),
     Candidate(
       id: 'p1',
@@ -95,7 +96,12 @@ class FakeCandidateRepository implements CandidateRepository {
 
   /// The nationality list, in the database's order.
   static const defaultNationalities = [
-    MaidNationality(name: 'Kenya', code: 'KE'),
+    MaidNationality(
+      name: 'Kenya',
+      code: 'KE',
+      arrivalDaysMin: 10,
+      arrivalDaysMax: 20,
+    ),
     MaidNationality(name: 'Ethiopia', code: 'ET'),
     MaidNationality(name: 'Myanmar', code: 'MM'),
     MaidNationality(name: 'Indonesia', code: 'ID'),
@@ -157,6 +163,20 @@ class FakeCandidateRepository implements CandidateRepository {
         filter.skills,
       )) {
         return false;
+      }
+      final location = filter.location;
+      if (location != null && c.location != location) return false;
+      final visa = filter.visa;
+      if (visa != null) {
+        final onVisa = defaultPackages
+            .where((p) => p.visaType == visa.value)
+            .map((p) => p.id)
+            .toSet();
+        if ((packagesByCandidate[c.id] ?? const <String>{})
+            .intersection(onVisa)
+            .isEmpty) {
+          return false;
+        }
       }
       return term.isEmpty ||
           c.code.toLowerCase().contains(term) ||

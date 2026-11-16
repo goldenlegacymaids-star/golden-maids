@@ -8,6 +8,7 @@ import '../../../core/errors/app_failure.dart';
 import '../../../core/routing/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
+import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_button.dart';
@@ -27,7 +28,18 @@ import 'widgets/nationality_flag.dart';
 ///
 /// Guests can browse the cards; opening a full profile needs an account.
 class CandidateDirectoryScreen extends ConsumerStatefulWidget {
-  const CandidateDirectoryScreen({super.key});
+  const CandidateDirectoryScreen({
+    super.key,
+    this.initialVisa,
+    this.initialLocation,
+  });
+
+  /// The row of nationality chips (for tests).
+  static const nationalityRowKey = Key('nationality-chips');
+
+  /// Opened from Home's "Hire a Maid" cards: that visa route is selected.
+  final VisaRoute? initialVisa;
+  final MaidLocation? initialLocation;
 
   @override
   ConsumerState<CandidateDirectoryScreen> createState() =>
@@ -38,7 +50,10 @@ class _CandidateDirectoryScreenState
     extends ConsumerState<CandidateDirectoryScreen> {
   final _controller = TextEditingController();
   Timer? _debounce;
-  CandidateFilter _filter = const CandidateFilter();
+  late CandidateFilter _filter = CandidateFilter(
+    visa: widget.initialVisa,
+    location: widget.initialLocation,
+  );
 
   @override
   void dispose() {
@@ -107,6 +122,48 @@ class _CandidateDirectoryScreenState
           ),
           const SizedBox(height: AppSpacing.sm),
           SizedBox(
+            height: 40,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.screenPadding,
+              ),
+              children: [
+                AppChip(
+                  label: 'Any visa',
+                  selected: _filter.visa == null,
+                  onTap: () => setState(
+                    () => _filter = _filter.copyWith(visa: () => null),
+                  ),
+                ),
+                for (final visa in VisaRoute.values) ...[
+                  const SizedBox(width: AppSpacing.xs),
+                  AppChip(
+                    label: visa.label,
+                    selected: _filter.visa == visa,
+                    onTap: () => setState(
+                      () => _filter = _filter.copyWith(visa: () => visa),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.screenPadding,
+            ),
+            child: LocationSwitch(
+              value: _filter.location,
+              onChanged: (location) => setState(
+                () => _filter = _filter.copyWith(location: () => location),
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          SizedBox(
+            key: CandidateDirectoryScreen.nationalityRowKey,
             height: 40,
             child: ListView(
               scrollDirection: Axis.horizontal,
@@ -451,6 +508,75 @@ class _SheetHeading extends StatelessWidget {
         bottom: AppSpacing.xs,
       ),
       child: Text(text, style: AppTypography.titleSmall),
+    );
+  }
+}
+
+/// "All · In the UAE · Outside the UAE" switch above the maid list.
+class LocationSwitch extends StatelessWidget {
+  const LocationSwitch({
+    super.key,
+    required this.value,
+    required this.onChanged,
+  });
+
+  /// Null = all maids.
+  final MaidLocation? value;
+  final ValueChanged<MaidLocation?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final options = <(MaidLocation?, String)>[
+      (null, 'All'),
+      for (final location in MaidLocation.values) (location, location.label),
+    ];
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: AppColors.white.withValues(alpha: 0.6),
+        borderRadius: AppRadius.mdAll,
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          for (final (location, label) in options)
+            Expanded(
+              child: Semantics(
+                button: true,
+                selected: value == location,
+                child: InkWell(
+                  borderRadius: AppRadius.smAll,
+                  onTap: () => onChanged(location),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    constraints: const BoxConstraints(minHeight: 40),
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.xxs,
+                      vertical: AppSpacing.xs,
+                    ),
+                    decoration: BoxDecoration(
+                      color: value == location ? AppColors.white : null,
+                      borderRadius: AppRadius.smAll,
+                      boxShadow: value == location ? AppShadows.soft : null,
+                    ),
+                    child: Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: value == location
+                          ? AppTypography.labelMedium.copyWith(
+                              color: AppColors.infoText,
+                            )
+                          : AppTypography.bodySmall,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

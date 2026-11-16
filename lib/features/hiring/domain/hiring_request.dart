@@ -63,6 +63,7 @@ class HiringRequest {
     this.preferredNationality,
     this.quotedPrice,
     this.quotedPriceUnit,
+    this.maidLocation,
   });
 
   factory HiringRequest.fromJson(Map<String, dynamic> json) {
@@ -97,6 +98,7 @@ class HiringRequest {
       preferredNationality: json['preferred_nationality'] as String?,
       quotedPrice: (json['quoted_price'] as num?)?.toDouble(),
       quotedPriceUnit: json['quoted_price_unit'] as String?,
+      maidLocation: MaidLocation.fromValue(json['maid_location'] as String?),
       contactMethod: ContactMethod.values.firstWhere(
         (m) => m.value == json['contact_method'],
         orElse: () => ContactMethod.phone,
@@ -111,7 +113,7 @@ class HiringRequest {
       'candidate_id, status, created_at, customer_name, customer_phone, '
       'customer_email, emirate, household_size, has_children, has_elderly, '
       'has_pets, preferred_start_date, requirements, contact_method, '
-      'preferred_nationality, quoted_price, quoted_price_unit, '
+      'preferred_nationality, quoted_price, quoted_price_unit, maid_location, '
       'recruitment_packages(name), candidates(${Candidate.cardColumns})';
 
   final String id;
@@ -127,6 +129,9 @@ class HiringRequest {
 
   /// Null when the customer asked the agency to recommend someone.
   final String? candidateId;
+
+  /// Where the maid is (the chosen maid's, or the customer's choice).
+  final MaidLocation? maidLocation;
   final Candidate? candidate;
   final HiringStatus status;
   final DateTime createdAt;
@@ -217,6 +222,7 @@ class HiringDraft {
     this.sponsorNationality,
     this.candidateId,
     this.preferredNationality,
+    this.maidLocation,
     this.email,
     this.householdSize,
     this.hasChildren = false,
@@ -234,6 +240,10 @@ class HiringDraft {
 
   /// The maid nationality asked for when the agency recommends the maid.
   final String? preferredNationality;
+
+  /// In or outside the UAE, asked for when the agency recommends the maid
+  /// (for a chosen maid the database uses hers).
+  final MaidLocation? maidLocation;
   final String name;
   final String phone;
   final String? email;
@@ -254,6 +264,7 @@ class HiringDraft {
       'sponsor_nationality': sponsorNationality,
       'candidate_id': candidateId,
       'preferred_nationality': preferredNationality,
+      'maid_location': maidLocation?.value,
       'customer_name': name,
       'customer_phone': phone,
       'customer_email': email,

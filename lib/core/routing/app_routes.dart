@@ -25,6 +25,18 @@ abstract final class AppRoutes {
   static const String search = '/home/search';
   static const String notifications = '/home/notifications';
   static const String maids = '/home/maids';
+
+  /// The maid list opened on a visa route (`sponsor` / `company`) and/or a
+  /// location (`in_uae` / `outside_uae`).
+  static String maidsFor({String? visa, String? location}) {
+    final query = {
+      if (visa != null) 'visa': visa,
+      if (location != null) 'location': location,
+    };
+    return query.isEmpty
+        ? maids
+        : Uri(path: maids, queryParameters: query).toString();
+  }
   static String category(String slug) => '/home/category/$slug';
   static String service(String slug) => '/home/service/$slug';
 
@@ -46,6 +58,7 @@ abstract final class AppRoutes {
   // Profile
   static const String editProfile = '/profile/edit';
   static const String savedMaids = '/profile/saved-maids';
+  static const String myDocuments = '/profile/documents';
   static const String savedAddresses = '/profile/addresses';
   static const String helpCentre = '/profile/help';
   static const String privacyPolicy = '/profile/privacy';

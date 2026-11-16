@@ -2,19 +2,77 @@
 /// Administrators manage the list; [code] is the ISO country code (KE) used
 /// for the flag.
 class MaidNationality {
-  const MaidNationality({required this.name, required this.code});
+  const MaidNationality({
+    required this.name,
+    required this.code,
+    this.arrivalDaysMin,
+    this.arrivalDaysMax,
+  });
 
   factory MaidNationality.fromJson(Map<String, dynamic> json) {
     return MaidNationality(
       name: json['name'] as String,
       code: json['code'] as String,
+      arrivalDaysMin: json['arrival_days_min'] as int?,
+      arrivalDaysMax: json['arrival_days_max'] as int?,
     );
   }
 
-  static const String columns = 'name, code';
+  static const String columns =
+      'name, code, arrival_days_min, arrival_days_max';
 
   final String name;
   final String code;
+
+  /// Time for a maid of this nationality to arrive from abroad, in days
+  /// (set by administrators; null = on request).
+  final int? arrivalDaysMin;
+  final int? arrivalDaysMax;
+
+  /// "10–20 days", "14 days", or null when not set.
+  String? get arrivalLabel {
+    final from = arrivalDaysMin;
+    final to = arrivalDaysMax;
+    if (from == null || to == null) return null;
+    if (from == to) return from == 1 ? '1 day' : '$from days';
+    return '$from–$to days';
+  }
+}
+
+/// Where a maid is now (`candidates.location`).
+enum MaidLocation {
+  inUae('in_uae', 'In the UAE'),
+  outsideUae('outside_uae', 'Outside the UAE');
+
+  const MaidLocation(this.value, this.label);
+
+  final String value;
+  final String label;
+
+  static MaidLocation? fromValue(String? value) {
+    for (final location in values) {
+      if (location.value == value) return location;
+    }
+    return null;
+  }
+}
+
+/// Visa routes for hiring (`recruitment_packages.visa_type`).
+enum VisaRoute {
+  sponsor('sponsor', 'GCC Sponsor Visa'),
+  company('company', 'Company Visa');
+
+  const VisaRoute(this.value, this.label);
+
+  final String value;
+  final String label;
+
+  static VisaRoute? fromValue(String? value) {
+    for (final route in values) {
+      if (route.value == value) return route;
+    }
+    return null;
+  }
 }
 
 /// Skills a candidate can have (`public.candidate_skills.skill`).
@@ -82,6 +140,7 @@ class Candidate {
     this.availableFrom,
     this.isFeatured = false,
     this.isTest = false,
+    this.location = MaidLocation.inUae,
   });
 
   factory Candidate.fromJson(Map<String, dynamic> json) {
@@ -105,6 +164,9 @@ class Candidate {
           : DateTime.tryParse(availableFrom),
       isFeatured: json['is_featured'] as bool? ?? false,
       isTest: json['is_test'] as bool? ?? false,
+      location:
+          MaidLocation.fromValue(json['location'] as String?) ??
+          MaidLocation.inUae,
     );
   }
 
@@ -112,7 +174,7 @@ class Candidate {
   static const String cardColumns =
       'id, code, display_name, photo_path, nationality, age, designation, '
       'accommodation, years_experience, expected_salary, availability_status, '
-      'available_from, is_featured, is_test, created_at';
+      'available_from, is_featured, is_test, location, created_at';
 
   final String id;
 
@@ -140,6 +202,9 @@ class Candidate {
 
   /// Test record (deleted before launch).
   final bool isTest;
+
+  /// In the UAE now, or coming from abroad.
+  final MaidLocation location;
 
   /// The name when allowed, otherwise the candidate code.
   String get title => displayName ?? code;
@@ -259,6 +324,8 @@ class CandidateFilter {
     this.skills = const {},
     this.availableOnly = false,
     this.sort = CandidateSort.newest,
+    this.visa,
+    this.location,
   });
 
   /// Name or candidate code.
@@ -273,6 +340,12 @@ class CandidateFilter {
   /// Hide reserved candidates.
   final bool availableOnly;
   final CandidateSort sort;
+
+  /// Only maids offered on this visa route (any of its packages).
+  final VisaRoute? visa;
+
+  /// Only maids in / outside the UAE.
+  final MaidLocation? location;
 
   /// Number of filters set in the filter sheet (not search or sort).
   int get activeCount =>
@@ -290,6 +363,8 @@ class CandidateFilter {
     Set<CandidateSkill>? skills,
     bool? availableOnly,
     CandidateSort? sort,
+    VisaRoute? Function()? visa,
+    MaidLocation? Function()? location,
   }) {
     return CandidateFilter(
       query: query ?? this.query,
@@ -299,11 +374,18 @@ class CandidateFilter {
       skills: skills ?? this.skills,
       availableOnly: availableOnly ?? this.availableOnly,
       sort: sort ?? this.sort,
+      visa: visa == null ? this.visa : visa(),
+      location: location == null ? this.location : location(),
     );
   }
 
-  /// The same filters with the search text and sort kept.
-  CandidateFilter cleared() => CandidateFilter(query: query, sort: sort);
+  /// The sheet's filters cleared; search text, sort, visa and location kept.
+  CandidateFilter cleared() => CandidateFilter(
+    query: query,
+    sort: sort,
+    visa: visa,
+    location: location,
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -314,7 +396,9 @@ class CandidateFilter {
       other.packageId == packageId &&
       _sameSet(other.skills, skills) &&
       other.availableOnly == availableOnly &&
-      other.sort == sort;
+      other.sort == sort &&
+      other.visa == visa &&
+      other.location == location;
 
   @override
   int get hashCode => Object.hash(
@@ -325,6 +409,8 @@ class CandidateFilter {
     Object.hashAllUnordered(skills),
     availableOnly,
     sort,
+    visa,
+    location,
   );
 
   static bool _sameSet<T>(Set<T> a, Set<T> b) =>

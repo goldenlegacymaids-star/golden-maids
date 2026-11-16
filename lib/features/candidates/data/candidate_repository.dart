@@ -96,6 +96,23 @@ class SupabaseCandidateRepository implements CandidateRepository {
       ids = rows.map((r) => r['candidate_id'] as String).toSet();
     }
 
+    final visa = filter.visa;
+    if (visa != null) {
+      final packages = await _client
+          .from('recruitment_packages')
+          .select('id')
+          .eq('visa_type', visa.value);
+      final packageIds = packages.map((r) => r['id'] as String).toList();
+      final rows = packageIds.isEmpty
+          ? const <Map<String, dynamic>>[]
+          : await _client
+                .from('candidate_packages')
+                .select('candidate_id')
+                .inFilter('package_id', packageIds);
+      final onVisa = rows.map((r) => r['candidate_id'] as String).toSet();
+      ids = ids == null ? onVisa : ids.intersection(onVisa);
+    }
+
     for (final skill in filter.skills) {
       if (ids != null && ids.isEmpty) break;
       final rows = await _client
@@ -122,6 +139,8 @@ class SupabaseCandidateRepository implements CandidateRepository {
     }
     final designation = filter.designation;
     if (designation != null) query = query.eq('designation', designation);
+    final location = filter.location;
+    if (location != null) query = query.eq('location', location.value);
 
     // Characters with a meaning in PostgREST filters are removed.
     final term = filter.query.replaceAll(RegExp(r'[,()*%\\]'), ' ').trim();

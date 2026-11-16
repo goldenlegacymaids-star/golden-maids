@@ -4,6 +4,7 @@ import 'package:golden_maids/core/errors/app_failure.dart';
 import 'package:golden_maids/core/widgets/app_chip.dart';
 import 'package:golden_maids/features/authentication/domain/auth_repository.dart';
 import 'package:golden_maids/features/candidates/domain/candidate.dart';
+import 'package:golden_maids/features/candidates/presentation/candidate_directory_screen.dart';
 
 import '../../helpers/fake_auth_repository.dart';
 import '../../helpers/fake_candidate_repository.dart';
@@ -15,9 +16,10 @@ Finder _chip(String label) => find.widgetWithText(AppChip, label);
 /// is wider than a phone screen).
 Future<void> _tapNationality(WidgetTester tester, String label) async {
   // Found through whichever chips are visible (the row scrolls).
-  final row = find
-      .ancestor(of: find.byType(AppChip), matching: find.byType(Scrollable))
-      .first;
+  final row = find.descendant(
+    of: find.byKey(CandidateDirectoryScreen.nationalityRowKey),
+    matching: find.byType(Scrollable),
+  );
   final index = [
     'All',
     for (final n in FakeCandidateRepository.defaultNationalities) n.name,
@@ -108,6 +110,34 @@ void main() {
       await _tapNationality(tester, 'All');
       expect(find.text('4 candidates'), findsOneWidget);
       expect(candidates.searches.last.nationalities, isEmpty);
+    });
+
+    testWidgets('Home opens a visa route; the In / Outside the UAE switch '
+        'filters', (tester) async {
+      await pumpTestApp(tester, auth: auth, candidates: candidates);
+
+      expect(find.text('Hire a Maid'), findsOneWidget);
+      await tapAndSettle(tester, find.text('Company Visa'));
+      expect(find.text('Find a Maid'), findsOneWidget);
+      expect(candidates.searches.last.visa, VisaRoute.company);
+      expect(find.text('4 candidates'), findsOneWidget);
+      expect(find.text('In the UAE · Available now'), findsWidgets);
+
+      await tapAndSettle(tester, find.text('Outside the UAE'));
+      expect(find.text('1 candidate'), findsOneWidget);
+      expect(find.text('Thandar Aung'), findsOneWidget);
+      expect(
+        find.text('Outside the UAE · Arrival on request'),
+        findsOneWidget,
+      );
+      expect(candidates.searches.last.location, MaidLocation.outsideUae);
+
+      await tapAndSettle(tester, _chip('GCC Sponsor Visa'));
+      expect(find.text('No candidates found'), findsOneWidget);
+
+      await tapAndSettle(tester, find.text('In the UAE'));
+      expect(find.text('2 candidates'), findsOneWidget);
+      expect(find.text('Thandar Aung'), findsNothing);
     });
 
     testWidgets('an empty result explains what to do', (tester) async {

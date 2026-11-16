@@ -131,6 +131,8 @@ class _ProfileBody extends ConsumerWidget {
                 ),
               const SizedBox(height: AppSpacing.md),
               _Facts(candidate: candidate),
+              const SizedBox(height: AppSpacing.sm),
+              _WhereSheIs(candidate: candidate),
               if (profile.bio.isNotEmpty) ...[
                 const _Heading('About'),
                 Text(profile.bio, style: AppTypography.bodyMedium),
@@ -648,6 +650,61 @@ class _ContactBar extends ConsumerWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Where the maid is now and when she can start.
+class _WhereSheIs extends ConsumerWidget {
+  const _WhereSheIs({required this.candidate});
+
+  final Candidate candidate;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final inUae = candidate.location == MaidLocation.inUae;
+    final arrival = arrivalFor(ref, candidate.nationality);
+    final status = locationLabel(candidate, arrival: arrival);
+    final detail = inUae
+        ? switch (status) {
+            'In the UAE · Available now' => 'Available now.',
+            'In the UAE' => 'Ask the agency when she can start.',
+            _ => 'Can start ${status.replaceFirst('In the UAE · From ', 'from ')}.',
+          }
+        : arrival == null
+        ? 'Arrival time on request. The agency will confirm it with you.'
+        : 'Expected to arrive in $arrival after you confirm.';
+    final color = inUae ? AppColors.successText : AppColors.infoText;
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: inUae ? AppColors.successSoft : AppColors.lightBlue,
+        borderRadius: AppRadius.mdAll,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            inUae ? Icons.home_work_rounded : Icons.flight_land_rounded,
+            color: color,
+            size: 22,
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  candidate.location.label,
+                  style: AppTypography.titleSmall.copyWith(color: color),
+                ),
+                const SizedBox(height: 2),
+                Text(detail, style: AppTypography.bodySmall),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
