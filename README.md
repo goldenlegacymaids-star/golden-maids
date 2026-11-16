@@ -201,5 +201,5 @@ Each feature is split into `presentation/`, `domain/` and `data/` folders as it 
 | 2.3 | Candidate profile, favourites (Saved Maids), Contact Agency (call, WhatsApp, email), Request Info | ✅ Done |
 | 2.4 | Hiring workflow (company visa monthly/yearly, 2-year GCC sponsor with nationality, maid choice or agency recommendation, review, reference) + My Hiring Requests (status timeline, cancel before shortlisting) | ✅ Done |
 | A.1 | **Staff website** (separate Next.js project, delivered as a zip): staff sign-in with role check, dashboard | ✅ Done |
-| A.2–A.4 | Staff website: requests & enquiries, candidates, prices & offers | ⏳ Next |
+| A.2–A.4 | Staff website: requests & enquiries, candidates, prices & offers | ✅ Done |
 | **Phase 3** | Home services by the agency's own staff, pay on completion | Planned |
