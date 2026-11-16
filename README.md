@@ -73,6 +73,9 @@ Schema changes are made **only** through SQL migrations in `supabase/migrations/
 | `candidate_documents` | Documents in the private bucket. Passport, visa and medical documents can **never** be shown to customers |
 | `candidate_favourites` | Each customer's saved candidates (private) |
 | `candidate_enquiries` | "Request Info" messages about a candidate (reference `EQ-2026-000001`); customers send and see their own (no edits), recruitment staff manage status; max 5 per customer per hour |
+| `bookings` / `booking_history` | Home-service bookings (reference `BK-2026-000001`), price estimate, address snapshot, status timeline; customers cancel/reschedule until 24 h before, booking staff manage all |
+| `service_staff` (+ `_private`, `_categories`) | The agency's staff who do home services; customers see only the staff assigned to their booking |
+| `booking_settings` | Working hours, slot length, min/max hours, notice, window, cancellation limit (admins) |
 | `hiring_requests` | Customer hiring requests (reference `HR-2026-000001`), validated against the package; customers can only cancel before processing |
 | `hiring_request_history` | Status timeline; internal notes hidden from customers |
 | Storage `candidate-photos` / `candidate-documents` | Public candidate photos / **private** documents; recruitment staff upload only |
@@ -202,4 +205,7 @@ Each feature is split into `presentation/`, `domain/` and `data/` folders as it 
 | 2.4 | Hiring workflow (company visa monthly/yearly, 2-year GCC sponsor with nationality, maid choice or agency recommendation, review, reference) + My Hiring Requests (status timeline, cancel before shortlisting) | ✅ Done |
 | A.1 | **Staff website** (separate Next.js project, delivered as a zip): staff sign-in with role check, dashboard | ✅ Done |
 | A.2–A.4 | Staff website: requests & enquiries, candidates, prices & offers | ✅ Done |
-| **Phase 3** | Home services by the agency's own staff, pay on completion | Planned |
+| 3.1 | **Bookings database**: booking types (hourly / visit / request), slots 8 am–8 pm daily, 2–8 h, exact staff capacity (no double-booking), free cancel/reschedule until 24 h before, timeline, pay on completion | ✅ Done |
+| 3.2 | Booking flow in the app | ⏳ Next |
+| 3.3 | My Bookings (list, details, cancel, reschedule) | Planned |
+| 3.4 | Staff website A.5: bookings, staff, working hours | Planned |
