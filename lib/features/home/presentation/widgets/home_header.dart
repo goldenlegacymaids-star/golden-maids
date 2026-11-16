@@ -4,17 +4,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/uae.dart';
 import '../../../../core/routing/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/app_icon_button.dart';
+import '../../../../core/widgets/app_logo.dart';
 import '../../../authentication/data/auth_providers.dart';
 import '../../../profile/data/profile_repository.dart';
 import '../../data/service_location.dart';
 
-/// Avatar, greeting, notifications and service location.
+/// App title and notifications, then avatar, greeting and service location.
 class HomeHeader extends ConsumerWidget {
   const HomeHeader({super.key});
 
@@ -83,6 +85,17 @@ class HomeHeader extends ConsumerWidget {
       children: [
         Row(
           children: [
+            const Expanded(child: _BrandTitle()),
+            AppIconButton(
+              icon: Icons.notifications_none_rounded,
+              tooltip: 'Notifications',
+              onPressed: () => unawaited(context.push(AppRoutes.notifications)),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Row(
+          children: [
             Semantics(
               button: true,
               label: 'Profile',
@@ -126,11 +139,6 @@ class HomeHeader extends ConsumerWidget {
                 ],
               ),
             ),
-            AppIconButton(
-              icon: Icons.notifications_none_rounded,
-              tooltip: 'Notifications',
-              onPressed: () => unawaited(context.push(AppRoutes.notifications)),
-            ),
           ],
         ),
         const SizedBox(height: AppSpacing.md),
@@ -170,6 +178,42 @@ class HomeHeader extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// The app icon and "Golden Maids", in the logo's colours.
+class _BrandTitle extends StatelessWidget {
+  const _BrandTitle();
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      header: true,
+      label: AppConstants.appName,
+      excludeSemantics: true,
+      child: Row(
+        children: [
+          const AppLogo.icon(size: 32),
+          const SizedBox(width: AppSpacing.xs),
+          Flexible(
+            child: Text.rich(
+              const TextSpan(
+                children: [
+                  TextSpan(text: 'Golden '),
+                  TextSpan(
+                    text: 'Maids',
+                    style: TextStyle(color: AppColors.primary),
+                  ),
+                ],
+              ),
+              style: AppTypography.titleLarge,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
