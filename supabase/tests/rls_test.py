@@ -80,7 +80,7 @@ def expect_violation(c, sql, params=()):
             c.execute(sql, params)
     except (errors.CheckViolation, errors.InsufficientPrivilege) as e:
         return
-    raise AssertionError(f"expected rejection, but it succeeded: {sql}")
+    raise AssertionError(f"expected rejection, but it succeeded: {sql} {params}")
 
 
 def one(c, sql, params=()):
@@ -805,6 +805,169 @@ def main():
             reset(c)
         assert one(c, "select count(*) from storage.objects where name='k/photo-2.jpg'") == 1, "customer removed a photo"
     check("Staff can see and remove candidate photo files; customers cannot", photo_records_for_staff)
+
+    # --- bookings (Phase 3) ------------------------------------------------------
+    from datetime import datetime, timedelta
+    from zoneinfo import ZoneInfo
+
+    dubai = ZoneInfo("Asia/Dubai")
+    day = (datetime.now(dubai) + timedelta(days=3)).date()
+
+    def at(hour, minute=0, days=0):
+        d = day + timedelta(days=days)
+        return datetime(d.year, d.month, d.day, hour, minute, tzinfo=dubai)
+
+    svc = {slug: one(c, "select id::text from public.services where slug=%s", (slug,))
+           for slug in ["home-cleaning", "babysitting", "deep-cleaning", "nurse-at-home", "pet-care"]}
+    c.execute("update public.services set base_price=45, price_unit='per_hour' where slug='home-cleaning'")
+    c.execute("update public.services set base_price=350, price_unit='per_visit' where slug='deep-cleaning'")
+    cleaner = one(c, "insert into public.service_staff (display_name, years_experience) values ('Grace K.', 5) returning id::text")
+    nanny = one(c, "insert into public.service_staff (display_name) values ('Mary N.') returning id::text")
+    c.execute("insert into public.service_staff_private (staff_id, full_name, phone) values (%s, 'Grace Kamau', '+971500000001')", (cleaner,))
+    c.execute("insert into public.service_staff_categories (staff_id, category_id) select %s, id from public.service_categories where slug in ('general-cleaning', 'deep-cleaning')", (cleaner,))
+    c.execute("insert into public.service_staff_categories (staff_id, category_id) select %s, id from public.service_categories where slug='nanny-baby-care'", (nanny,))
+
+    book_sql = ("insert into public.bookings (service_id, hours, starts_at, emirate, area, building, customer_name, customer_phone) "
+                "values (%s, %s, %s, 'Dubai', 'JLT', 'Cluster X, Tower 1', 'Alice Customer', '+971501234567') returning id::text")
+    bk = {}
+
+    def booking_rules():
+        as_user(c, alice)
+        try:
+            bk["a10"] = one(c, book_sql, (svc["home-cleaning"], 3, at(10)))
+            row = c.execute("select reference, status, booking_type, service_name, price_estimate, ends_at from public.bookings where id=%s", (bk["a10"],)).fetchone()
+            assert row[0].startswith("BK-") and len(row[0]) == 14 and row[1] == "pending" and row[2] == "hourly", row
+            assert row[3] == "Home Cleaning" and float(row[4]) == 135.0 and row[5] == at(13), row
+            # Rules: hours 2-8, aligned slots, inside 8 am - 8 pm, notice and window.
+            for hours, start in [(1, at(14)), (9, at(8)), (2, at(14, 30)), (2, at(19)), (2, at(7)),
+                                 (2, datetime.now(dubai) + timedelta(hours=1)), (2, at(10, days=40))]:
+                expect_violation(c, book_sql, (svc["home-cleaning"], hours, start))
+            # Visits last 4 h by default; requests need no free staff.
+            v = one(c, book_sql, (svc["deep-cleaning"], None, at(14)))
+            assert one(c, "select ends_at from public.bookings where id=%s", (v,)) == at(18)
+            assert one(c, "select price_estimate from public.bookings where id=%s", (v,)) == 350
+            one(c, book_sql, (svc["nurse-at-home"], 5, at(9)))
+            # No staff at all for pet care.
+            expect_violation(c, book_sql, (svc["pet-care"], 2, at(9)))
+            # Customers cannot set prices, references or staff.
+            expect_denied(c, "insert into public.bookings (service_id, hours, starts_at, emirate, area, building, customer_name, customer_phone, price_estimate) values (%s, 2, %s, 'Dubai', 'JLT', 'B', 'Alice', '+971501234567', 1)", (svc["home-cleaning"], at(8, days=1)))
+        finally:
+            reset(c)
+        as_user(c, bob)
+        try:
+            # Only one cleaner (she also does deep cleaning 14-18): overlapping slots are taken.
+            expect_violation(c, book_sql, (svc["home-cleaning"], 2, at(11)))
+            expect_violation(c, book_sql, (svc["home-cleaning"], 2, at(17)))
+            # The nanny is free.
+            bk["b11"] = one(c, book_sql, (svc["babysitting"], 2, at(11)))
+            # Back-to-back is fine (10-13 then 13-14... 2 h ends 15 overlaps visit at 14) -> 18:00 works.
+            bk["b18"] = one(c, book_sql, (svc["home-cleaning"], 2, at(18)))
+            assert one(c, "select count(*) from public.bookings") == 2, "customers see only their own bookings"
+        finally:
+            reset(c)
+    check("Bookings: reference and price; hours, slot, working-hours, notice and window rules; capacity per staff category", booking_rules)
+
+    def slots_for_guests():
+        as_user(c, None)
+        try:
+            rows = c.execute("select starts_at, is_available from public.available_slots(%s, %s, 2)", (svc["home-cleaning"], day)).fetchall()
+            free = {r[0].astimezone(dubai).hour: r[1] for r in rows}
+            assert min(free) == 8 and max(free) == 18, free  # last 2 h slot starts 6 pm
+            assert free[8] is True and free[10] is False and free[12] is False and free[15] is False and free[17] is False and free[18] is False, free
+            expect_denied(c, "select * from public.bookings")
+        finally:
+            reset(c)
+    check("Available slots: guests see free/taken times only, never bookings", slots_for_guests)
+
+    def staff_assignment():
+        as_user(c, ben)
+        try:
+            c.execute("update public.bookings set assigned_staff_id=%s where id=%s", (cleaner, bk["a10"]))
+            c.execute("select public.update_booking_status(%s, 'provider_assigned', 'Grace will arrive at 10 am.', true)", (bk["a10"],))
+            c.execute("select public.update_booking_status(%s, 'provider_assigned', 'Gate code 1234.', false)", (bk["a10"],))
+            try:
+                with c.transaction():
+                    c.execute("update public.bookings set assigned_staff_id=%s where id=%s", (cleaner, bk["b11"]))
+                raise AssertionError("staff double-booked")
+            except errors.ExclusionViolation:
+                pass
+        finally:
+            reset(c)
+        as_user(c, alice)
+        try:
+            assert one(c, "select display_name from public.service_staff") == "Grace K."
+            assert one(c, "select count(*) from public.service_staff_private") == 0
+            notes = [r[0] for r in c.execute("select note from public.booking_history where booking_id=%s order by id", (bk["a10"],)).fetchall()]
+            assert notes == ["", "Grace will arrive at 10 am."], notes
+            expect_violation(c, "update public.bookings set status='completed' where id=%s", (bk["a10"],))
+            expect_violation(c, "update public.bookings set assigned_staff_id=null where id=%s", (bk["a10"],))
+            expect_denied(c, "select public.update_booking_status(%s, 'completed')", (bk["a10"],))
+        finally:
+            reset(c)
+        as_user(c, bob)
+        try:
+            assert one(c, "select count(*) from public.service_staff") == 0
+        finally:
+            reset(c)
+        as_user(c, rita)
+        try:
+            assert one(c, "select count(*) from public.bookings") == 0, "recruitment staff do not manage bookings"
+        finally:
+            reset(c)
+    check("Booking staff assign staff and add notes; no staff double-booking; customers see only their assigned staff and visible notes", staff_assignment)
+
+    def cancel_and_reschedule():
+        as_user(c, alice)
+        try:
+            # Reschedule 10-13 -> next day 10-13: back to pending, staff released.
+            c.execute("update public.bookings set starts_at=%s where id=%s", (at(10, days=1), bk["a10"]))
+            row = c.execute("select status, assigned_staff_id, ends_at from public.bookings where id=%s", (bk["a10"],)).fetchone()
+            assert row == ("pending", None, at(13, days=1)), row
+            last = one(c, "select note from public.booking_history where booking_id=%s order by id desc limit 1", (bk["a10"],))
+            assert last.startswith("Rescheduled to"), last
+            # Moving onto a taken slot is refused.
+            expect_violation(c, "update public.bookings set starts_at=%s where id=%s", (at(14), bk["a10"]))
+            c.execute("update public.bookings set status='cancelled', cancel_reason='Plans changed' where id=%s", (bk["a10"],))
+            assert one(c, "select note from public.booking_history where booking_id=%s order by id desc limit 1", (bk["a10"],)) == "Plans changed"
+            expect_violation(c, "update public.bookings set status='pending' where id=%s", (bk["a10"],))
+        finally:
+            reset(c)
+        # Within the cancellation limit, customers must call.
+        c.execute("update public.booking_settings set cancel_hours=168")
+        as_user(c, bob)
+        try:
+            expect_violation(c, "update public.bookings set status='cancelled' where id=%s", (bk["b18"],))
+        finally:
+            reset(c)
+        c.execute("update public.booking_settings set cancel_hours=24")
+        as_user(c, ben)
+        try:
+            c.execute("select public.update_booking_status(%s, 'cancelled', 'Customer called to cancel.', true)", (bk["b18"],))
+        finally:
+            reset(c)
+        assert one(c, "select status from public.bookings where id=%s", (bk["b18"],)) == "cancelled"
+    check("Customers reschedule (re-checked) and cancel until 24 h before; later only staff can", cancel_and_reschedule)
+
+    def booking_settings_rules():
+        as_user(c, None)
+        try:
+            assert one(c, "select cancel_hours from public.booking_settings") == 24
+        finally:
+            reset(c)
+        as_user(c, alice)
+        try:
+            c.execute("update public.booking_settings set min_hours=1")
+        finally:
+            reset(c)
+        assert one(c, "select min_hours from public.booking_settings") == 2, "customer changed settings"
+        as_user(c, ada)
+        try:
+            c.execute("update public.booking_settings set close_time='21:00'")
+        finally:
+            reset(c)
+        assert str(one(c, "select close_time from public.booking_settings")) == "21:00:00"
+        c.execute("update public.booking_settings set close_time='20:00'")
+    check("Booking settings: everyone reads; only administrators change", booking_settings_rules)
 
     # --- report ------------------------------------------------------------------
     c.close()

@@ -16,6 +16,10 @@ begin
 end
 $$;
 
+-- Supabase installs extensions such as btree_gist into this schema.
+create schema if not exists extensions;
+grant usage on schema extensions to anon, authenticated, service_role;
+
 create schema auth;
 grant usage on schema auth to anon, authenticated, service_role;
 
