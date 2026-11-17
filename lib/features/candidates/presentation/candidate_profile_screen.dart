@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -212,16 +213,44 @@ class _Photo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final photo = url;
     return Stack(
       children: [
-        CandidatePhoto(
-          url: url,
-          label: 'Photo of ${candidate.title}',
-          width: double.infinity,
-          height: 300,
-          iconSize: 96,
-          borderRadius: AppRadius.xlAll,
-        ),
+        if (photo == null)
+          CandidatePhoto(
+            url: null,
+            label: 'Photo of ${candidate.title}',
+            width: double.infinity,
+            height: 300,
+            iconSize: 96,
+            borderRadius: AppRadius.xlAll,
+          )
+        else
+          // The whole photo, never cropped, over a soft blurred copy of it.
+          ClipRRect(
+            borderRadius: AppRadius.xlAll,
+            child: SizedBox(
+              width: double.infinity,
+              height: 300,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  ExcludeSemantics(
+                    child: ImageFiltered(
+                      imageFilter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                      child: CandidatePhoto(url: photo, label: ''),
+                    ),
+                  ),
+                  const ColoredBox(color: Color(0x14000000)),
+                  CandidatePhoto(
+                    url: photo,
+                    label: 'Photo of ${candidate.title}',
+                    fit: BoxFit.contain,
+                  ),
+                ],
+              ),
+            ),
+          ),
         Positioned(
           left: AppSpacing.sm,
           top: AppSpacing.sm,

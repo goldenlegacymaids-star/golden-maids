@@ -137,6 +137,7 @@ class CandidatePhoto extends StatelessWidget {
     this.height,
     this.borderRadius = BorderRadius.zero,
     this.iconSize = 48,
+    this.fit = BoxFit.cover,
   });
 
   final String? url;
@@ -147,6 +148,7 @@ class CandidatePhoto extends StatelessWidget {
   final double? height;
   final BorderRadius borderRadius;
   final double iconSize;
+  final BoxFit fit;
 
   @override
   Widget build(BuildContext context) {
@@ -171,6 +173,10 @@ class CandidatePhoto extends StatelessWidget {
       url: url,
       width: width,
       height: height,
+      fit: fit,
+      // Maid photos are portrait: when cropped, keep the top (her face)
+      // in view rather than the middle.
+      alignment: Alignment.topCenter,
       borderRadius: borderRadius,
       semanticLabel: label,
     );
@@ -276,7 +282,8 @@ class CandidateCard extends StatelessWidget {
   });
 
   static const double width = 170;
-  static const double photoHeight = 140;
+  /// Tall enough for a portrait photo to show the maid, not only her face.
+  static const double photoHeight = 190;
 
   final Candidate candidate;
   final String? photoUrl;

@@ -15,6 +15,7 @@ class AppNetworkImage extends StatelessWidget {
     this.width,
     this.height,
     this.fit = BoxFit.cover,
+    this.alignment = Alignment.center,
     this.borderRadius = BorderRadius.zero,
     this.semanticLabel,
   });
@@ -23,6 +24,9 @@ class AppNetworkImage extends StatelessWidget {
   final double? width;
   final double? height;
   final BoxFit fit;
+
+  /// Which part stays in view when [fit] crops the image.
+  final Alignment alignment;
   final BorderRadius borderRadius;
 
   /// Describes the image for screen readers.
@@ -56,6 +60,7 @@ class AppNetworkImage extends StatelessWidget {
                 width: width,
                 height: height,
                 fit: fit,
+                alignment: alignment,
                 memCacheWidth: cacheWidth,
                 fadeInDuration: const Duration(milliseconds: 200),
                 placeholder: (_, _) => const Skeleton(
