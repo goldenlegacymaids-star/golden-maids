@@ -20,10 +20,11 @@ class AppNavItem {
   final IconData activeIcon;
 }
 
-/// Floating, pill-shaped bottom navigation with a frosted-glass look:
-/// translucent background, backdrop blur, a fine light border and a soft
-/// shadow. Every tab shows its icon and label; the active tab sits in a
-/// light translucent capsule that slides between tabs, the others are grey.
+/// Floating, pill-shaped bottom navigation with a frosted-glass look: a
+/// neutral, see-through grey background with backdrop blur, a fine light
+/// border and a soft shadow. Every tab shows a line icon and its label; the
+/// active tab sits in a light translucent capsule (sliding between tabs) and
+/// is drawn darker, the others are grey.
 class AppBottomNavBar extends StatelessWidget {
   const AppBottomNavBar({
     super.key,
@@ -32,10 +33,13 @@ class AppBottomNavBar extends StatelessWidget {
     required this.onTap,
   });
 
-  static const double barHeight = 68;
+  static const double barHeight = 64;
 
   /// Inactive tabs: grey, still readable on the frosted background.
-  static const Color inactiveColor = Color(0xFF5F6875);
+  static const Color inactiveColor = Color(0xFF5F6670);
+
+  /// The active tab: near-black ink.
+  static const Color activeColor = Color(0xFF22262E);
 
   final List<AppNavItem> items;
   final int currentIndex;
@@ -49,9 +53,9 @@ class AppBottomNavBar extends StatelessWidget {
       minimum: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
-          AppSpacing.lg,
+          AppSpacing.sm,
           0,
-          AppSpacing.lg,
+          AppSpacing.sm,
           AppSpacing.xxs,
         ),
         child: Center(
@@ -65,36 +69,29 @@ class AppBottomNavBar extends StatelessWidget {
                 borderRadius: AppRadius.pillAll,
                 boxShadow: [
                   BoxShadow(
-                    color: Color(0x1A1B2A44),
-                    blurRadius: 30,
-                    offset: Offset(0, 12),
-                  ),
-                  BoxShadow(
-                    color: Color(0x0D1B2A44),
-                    blurRadius: 6,
-                    offset: Offset(0, 2),
+                    color: Color(0x24000000),
+                    blurRadius: 24,
+                    offset: Offset(0, 8),
                   ),
                 ],
               ),
               child: ClipRRect(
                 borderRadius: AppRadius.pillAll,
                 child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+                  filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
                   child: Container(
                     height: barHeight,
-                    padding: const EdgeInsets.all(6),
+                    padding: const EdgeInsets.all(5),
                     decoration: BoxDecoration(
                       borderRadius: AppRadius.pillAll,
                       border: Border.all(
-                        color: AppColors.white.withValues(alpha: 0.75),
+                        color: AppColors.white.withValues(alpha: 0.55),
                       ),
-                      gradient: LinearGradient(
+                      // Neutral smoky glass: the page shows through.
+                      gradient: const LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                        colors: [
-                          AppColors.white.withValues(alpha: 0.78),
-                          AppColors.white.withValues(alpha: 0.6),
-                        ],
+                        colors: [Color(0x8CE4E6EA), Color(0x99D6D9DE)],
                       ),
                     ),
                     child: LayoutBuilder(
@@ -156,13 +153,13 @@ class _ActiveCapsule extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           borderRadius: AppRadius.pillAll,
-          color: AppColors.primary.withValues(alpha: 0.12),
+          color: AppColors.white.withValues(alpha: 0.72),
           border: Border.all(color: AppColors.white.withValues(alpha: 0.9)),
-          boxShadow: [
+          boxShadow: const [
             BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.12),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
+              color: Color(0x14000000),
+              blurRadius: 8,
+              offset: Offset(0, 2),
             ),
           ],
         ),
@@ -184,11 +181,8 @@ class _NavButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final iconColor = selected
-        ? AppColors.primary
-        : AppBottomNavBar.inactiveColor;
-    final labelColor = selected
-        ? AppColors.infoText
+    final color = selected
+        ? AppBottomNavBar.activeColor
         : AppBottomNavBar.inactiveColor;
 
     return Semantics(
@@ -199,24 +193,21 @@ class _NavButton extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         customBorder: const StadiumBorder(),
-        splashColor: AppColors.primary.withValues(alpha: 0.08),
+        splashColor: AppColors.white.withValues(alpha: 0.3),
         highlightColor: Colors.transparent,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              selected ? item.activeIcon : item.icon,
-              color: iconColor,
-              size: 23,
-            ),
+            // Line icons on every tab; the active one is darker.
+            Icon(item.icon, color: color, size: 24),
             const SizedBox(height: 2),
             Text(
               item.label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: AppTypography.labelSmall.copyWith(
-                color: labelColor,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                color: color,
+                fontWeight: selected ? FontWeight.w500 : FontWeight.w400,
               ),
             ),
           ],
