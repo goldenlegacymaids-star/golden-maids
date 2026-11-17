@@ -108,9 +108,10 @@ class ProfileScreen extends ConsumerWidget {
                     onTap: () =>
                         unawaited(context.push(AppRoutes.hiringRequests)),
                   ),
-                  const ProfileMenuTile(
+                  ProfileMenuTile(
                     icon: Icons.flight_rounded,
                     title: 'My Visa Applications',
+                    onTap: () => unawaited(context.push(AppRoutes.visas)),
                   ),
                   const ProfileMenuTile(
                     icon: Icons.description_rounded,

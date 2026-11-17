@@ -15,6 +15,7 @@ import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/page_scaffold.dart';
 import '../../authentication/data/auth_providers.dart';
 import '../../authentication/presentation/widgets/sign_in_prompt.dart';
+import '../../visas/data/visa_repository.dart';
 import '../../wallet/data/wallet_repository.dart';
 import '../data/notification_repository.dart';
 import '../domain/customer_notification.dart';
@@ -128,6 +129,10 @@ class _NotificationCard extends ConsumerWidget {
     final candidateId = n.candidateId;
     if (n.topic == NotificationTopic.document) {
       await context.push(AppRoutes.myDocuments);
+    } else if (n.topic == NotificationTopic.visa && requestId != null) {
+      // The visa page finds its application by the hiring request.
+      ref.invalidate(myVisaApplicationsProvider);
+      await context.push(AppRoutes.visa(requestId));
     } else if (n.topic == NotificationTopic.wallet) {
       ref.invalidate(walletOverviewProvider);
       context.go(AppRoutes.wallet);
@@ -149,6 +154,7 @@ class _NotificationCard extends ConsumerWidget {
       NotificationTopic.enquiry => Icons.chat_bubble_outline_rounded,
       NotificationTopic.document => Icons.folder_rounded,
       NotificationTopic.wallet => Icons.account_balance_wallet_rounded,
+      NotificationTopic.visa => Icons.flight_rounded,
       NotificationTopic.other => Icons.notifications_none_rounded,
     };
     return Semantics(

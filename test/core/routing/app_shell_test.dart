@@ -91,10 +91,10 @@ void main() {
     await pumpTestApp(tester, auth: auth, profiles: profiles);
     await openTab(tester, _profileIcon);
 
-    // Visa applications and contracts are not built yet.
-    expect(find.text('Coming soon'), findsNWidgets(2));
+    // Contracts are not built yet.
+    expect(find.text('Coming soon'), findsOneWidget);
 
-    await tapAndSettle(tester, find.text('My Visa Applications'));
+    await tapAndSettle(tester, find.text('My Contracts'));
     expect(find.text('Sarah Khan'), findsOneWidget); // still on Profile
 
     await tapAndSettle(tester, find.text('My Bookings'));

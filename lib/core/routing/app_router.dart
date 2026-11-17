@@ -38,6 +38,7 @@ import '../../features/services/presentation/service_details_screen.dart';
 import '../../features/support/domain/legal_texts.dart';
 import '../../features/support/presentation/help_centre_screen.dart';
 import '../../features/support/presentation/legal_screen.dart';
+import '../../features/visas/presentation/visa_screens.dart';
 import '../../features/wallet/presentation/payment_methods_screen.dart';
 import '../../features/wallet/presentation/wallet_screen.dart';
 import '../config/env.dart';
@@ -60,6 +61,7 @@ const Set<String> _signedInOnly = {
   AppRoutes.savedAddresses,
   AppRoutes.hirePath,
   AppRoutes.hiringRequests,
+  AppRoutes.visas,
 };
 
 bool _needsSignIn(String location) =>
@@ -68,7 +70,8 @@ bool _needsSignIn(String location) =>
     location.startsWith(AppRoutes.candidatePrefix) ||
     location.startsWith(AppRoutes.bookPrefix) ||
     location.startsWith('${AppRoutes.bookings}/') ||
-    location.startsWith('${AppRoutes.hiringRequests}/');
+    location.startsWith('${AppRoutes.hiringRequests}/') ||
+    location.startsWith('${AppRoutes.visas}/');
 
 /// Session-aware redirects:
 /// - signed-in users never see the welcome / sign-in / sign-up screens;
@@ -291,6 +294,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     path: 'documents',
                     name: 'my-documents',
                     builder: (context, state) => const MyDocumentsScreen(),
+                  ),
+                  GoRoute(
+                    path: 'visas',
+                    name: 'visas',
+                    builder: (context, state) =>
+                        const MyVisaApplicationsScreen(),
+                    routes: [
+                      GoRoute(
+                        path: ':id',
+                        name: 'visa',
+                        builder: (context, state) => VisaApplicationScreen(
+                          id: state.pathParameters['id']!,
+                        ),
+                      ),
+                    ],
                   ),
                   GoRoute(
                     path: 'payment-methods',

@@ -19,6 +19,7 @@ import 'package:golden_maids/features/onboarding/presentation/splash_screen.dart
 import 'package:golden_maids/features/profile/data/account_deletion_repository.dart';
 import 'package:golden_maids/features/profile/data/profile_repository.dart';
 import 'package:golden_maids/features/services/data/catalog_repository.dart';
+import 'package:golden_maids/features/visas/data/visa_repository.dart';
 import 'package:golden_maids/features/wallet/data/wallet_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -31,6 +32,7 @@ import 'fake_document_repository.dart';
 import 'fake_hiring_repository.dart';
 import 'fake_notification_repository.dart';
 import 'fake_profile_repository.dart';
+import 'fake_visa_repository.dart';
 import 'fake_wallet_repository.dart';
 
 /// Starts the app as a returning user (onboarding already seen) on a
@@ -48,6 +50,7 @@ Future<void> pumpTestApp(
   FakeNotificationRepository? notifications,
   FakeDocumentRepository? documents,
   FakeWalletRepository? wallet,
+  FakeVisaRepository? visas,
   Future<PickedDocument?> Function()? pickDocument,
   Map<String, Object> preferences = const {},
   /// Records the app's vibrations instead of playing them.
@@ -98,6 +101,9 @@ Future<void> pumpTestApp(
         ),
         walletRepositoryProvider.overrideWithValue(
           wallet ?? FakeWalletRepository(),
+        ),
+        visaRepositoryProvider.overrideWithValue(
+          visas ?? FakeVisaRepository(),
         ),
         documentPickerProvider.overrideWithValue(
           pickDocument ?? () async => null,

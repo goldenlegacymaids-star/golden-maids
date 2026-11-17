@@ -63,6 +63,8 @@ abstract final class AppRoutes {
   static const String terms = '/profile/terms';
   static const String hiringRequests = '/profile/hiring-requests';
   static String hiringRequest(String id) => '$hiringRequests/$id';
+  static const String visas = '/profile/visas';
+  static String visa(String id) => '$visas/$id';
 
   /// Development screen showing every design-system component
   /// (not available in production builds).

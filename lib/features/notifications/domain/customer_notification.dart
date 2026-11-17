@@ -1,7 +1,15 @@
 import 'package:intl/intl.dart';
 
 /// What a notification is about (from the `kind` prefix).
-enum NotificationTopic { booking, hiring, enquiry, document, wallet, other }
+enum NotificationTopic {
+  booking,
+  hiring,
+  enquiry,
+  document,
+  wallet,
+  visa,
+  other,
+}
 
 /// An update from the agency (`public.customer_notifications`), written by
 /// the database when staff change a booking, hiring request or enquiry.
@@ -53,6 +61,7 @@ class CustomerNotification {
     'enquiry' => NotificationTopic.enquiry,
     'document' => NotificationTopic.document,
     'wallet' => NotificationTopic.wallet,
+    'visa' => NotificationTopic.visa,
     _ => NotificationTopic.other,
   };
 

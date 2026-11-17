@@ -28,6 +28,8 @@ abstract final class AppColors {
   static const Color successText = Color(0xFF17734A);
   static const Color infoText = Color(0xFF1F5FB0);
   static const Color errorText = Color(0xFFB42318);
+  static const Color warningSoft = Color(0xFFFDF1D6);
+  static const Color warningText = Color(0xFF7A4B00);
 
   /// Golden accent. Only for the logo sparkle and small highlights such as
   /// rating stars. Never use it as a background.
