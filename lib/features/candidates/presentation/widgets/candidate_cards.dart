@@ -11,9 +11,9 @@ import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_network_image.dart';
 import '../../data/candidate_repository.dart';
 import '../../domain/candidate.dart';
-import 'video_interview.dart';
 import 'favourite_button.dart';
 import 'nationality_flag.dart';
+import 'video_interview.dart';
 
 /// "Housemaid · 34 yrs"
 String candidateSubtitle(Candidate candidate) {
