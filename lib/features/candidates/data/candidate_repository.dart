@@ -264,6 +264,7 @@ class SupabaseCandidateRepository implements CandidateRepository {
       highestQualification: row['highest_qualification'] as String?,
       religion: row['religion'] as String?,
       maritalStatus: row['marital_status'] as String?,
+      videoId: row['video_id'] as String?,
       skills: [
         for (final r in skills)
           ?CandidateSkill.fromValue(r['skill'] as String?),

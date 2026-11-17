@@ -28,6 +28,8 @@ dependencies:
   url_launcher: ^6.3.0
   # Choose a PDF or image for My Documents
   file_picker: ^13.0.0
+  # Plays maids' video interviews (YouTube's official embedded player)
+  youtube_player_iframe: ^6.0.0
 
   cupertino_icons: ^1.0.8
 

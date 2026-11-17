@@ -1495,6 +1495,43 @@ def main():
         assert one(c, "select count(*) from auth.users where id=%s", (erin,)) == 0
     check("Customer documents: private files in the customer's own folder; recruitment staff review (reason required) and the customer is notified; replacing sends it back; deletion waits for documents", customer_documents)
 
+    # --- video interview ----------------------------------------------------------
+    def video_interview():
+        as_user(c, sam)
+        try:
+            expect_violation(c, "update public.candidates set video_id='https://youtu.be/abc' where id=%s", (kenya,))
+            expect_violation(c, "update public.candidates set video_id='short' where id=%s", (kenya,))
+            c.execute("update public.candidates set video_id='dQw4w9WgXcQ' where id=%s", (kenya,))
+            try:
+                with c.transaction():
+                    c.execute("update public.candidates set has_video=false where id=%s", (kenya,))
+                raise AssertionError("has_video was changed by hand")
+            except errors.GeneratedAlways:
+                pass
+        finally:
+            reset(c)
+        assert one(c, "select has_video from public.candidates where id=%s", (kenya,)) is True
+        as_user(c, None)
+        try:
+            assert one(c, "select count(*) from public.candidates where has_video") >= 0
+            expect_denied(c, "select video_id from public.candidates")
+        finally:
+            reset(c)
+        as_user(c, alice)
+        try:
+            assert one(c, "select video_id from public.candidates where id=%s", (kenya,)) == "dQw4w9WgXcQ"
+            n = c.execute("update public.candidates set video_id=null where id=%s returning id", (kenya,)).fetchall()
+            assert n == [], "a customer changed a maid's video"
+        finally:
+            reset(c)
+        as_user(c, sam)
+        try:
+            c.execute("update public.candidates set video_id=null where id=%s", (kenya,))
+        finally:
+            reset(c)
+        assert one(c, "select has_video from public.candidates where id=%s", (kenya,)) is False
+    check("Video interview: only a YouTube video ID can be saved, by staff; guests see only whether there is a video", video_interview)
+
     # --- report ------------------------------------------------------------------
     c.close()
     print()

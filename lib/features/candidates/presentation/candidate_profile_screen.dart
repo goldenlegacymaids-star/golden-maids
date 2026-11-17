@@ -29,6 +29,7 @@ import 'enquiry_sheet.dart';
 import 'widgets/candidate_cards.dart';
 import 'widgets/favourite_button.dart';
 import 'widgets/nationality_flag.dart';
+import 'widgets/video_interview.dart';
 
 /// Opens [uri] in another app, or explains that it could not.
 Future<void> openExternal(
@@ -133,6 +134,12 @@ class _ProfileBody extends ConsumerWidget {
               _Facts(candidate: candidate),
               const SizedBox(height: AppSpacing.sm),
               _WhereSheIs(candidate: candidate),
+              if (profile.videoId case final videoId?) ...[
+                const SizedBox(height: AppSpacing.lg),
+                const Text('Video interview', style: AppTypography.titleMedium),
+                const SizedBox(height: AppSpacing.sm),
+                VideoInterview(videoId: videoId),
+              ],
               if (profile.bio.isNotEmpty) ...[
                 const _Heading('About'),
                 Text(profile.bio, style: AppTypography.bodyMedium),

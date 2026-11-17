@@ -97,12 +97,13 @@ class CandidateProfile {
     this.experience = const [],
     this.packages = const [],
     this.documents = const [],
+    this.videoId,
   });
 
   /// Columns read for the profile, in addition to the card columns.
   static const String profileColumns =
       '${Candidate.cardColumns}, bio, highest_qualification, religion, '
-      'marital_status';
+      'marital_status, video_id';
 
   final Candidate candidate;
   final String bio;
@@ -118,6 +119,9 @@ class CandidateProfile {
   /// Packages the candidate can be hired under.
   final List<RecruitmentPackage> packages;
   final List<CandidateDocument> documents;
+
+  /// YouTube video ID of her interview (null = none).
+  final String? videoId;
 }
 
 /// How the customer would like the agency to reply to an enquiry.

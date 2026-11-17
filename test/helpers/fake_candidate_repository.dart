@@ -9,9 +9,14 @@ class FakeCandidateRepository implements CandidateRepository {
     List<Candidate>? candidates,
     Map<String, Set<CandidateSkill>>? skills,
     Map<String, Set<String>>? packagesByCandidate,
-  }) : candidates = candidates ?? defaultCandidates,
+    Map<String, String>? videos,
+  }) : videos = videos ?? const {},
+       candidates = candidates ?? defaultCandidates,
        skills = skills ?? defaultSkills,
        packagesByCandidate = packagesByCandidate ?? defaultPackagesByCandidate;
+
+  /// YouTube video IDs of video interviews, by candidate.
+  final Map<String, String> videos;
 
   static const defaultCandidates = [
     Candidate(
@@ -245,6 +250,7 @@ class FakeCandidateRepository implements CandidateRepository {
       religion: isWanjiru ? wanjiruDetails.religion : null,
       maritalStatus: isWanjiru ? wanjiruDetails.maritalStatus : null,
       highestQualification: isWanjiru ? wanjiruDetails.qualification : null,
+      videoId: videos[candidateId],
       skills: (skills[candidateId] ?? const <CandidateSkill>{}).toList(),
       languages: isWanjiru
           ? const [

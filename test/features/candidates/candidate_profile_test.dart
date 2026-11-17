@@ -100,6 +100,23 @@ void main() {
       expect(find.text('Hire Wanjiru Kamau'), findsOneWidget);
     });
 
+    testWidgets('a video interview shows when the maid has one', (
+      tester,
+    ) async {
+      final withVideo = FakeCandidateRepository(videos: {'k1': 'dQw4w9WgXcQ'});
+      await _openWanjiru(tester, auth: auth, candidates: withVideo);
+
+      expect(find.text('Video interview'), findsWidgets);
+      expect(find.bySemanticsLabel('Play video interview'), findsOneWidget);
+      expect(find.text('Open in YouTube'), findsOneWidget);
+    });
+
+    testWidgets('no video section without a video', (tester) async {
+      await _openWanjiru(tester, auth: auth, candidates: candidates);
+
+      expect(find.text('Open in YouTube'), findsNothing);
+    });
+
     testWidgets('a shared document opens through a short-lived link', (
       tester,
     ) async {

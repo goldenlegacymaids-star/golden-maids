@@ -11,6 +11,7 @@ import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_network_image.dart';
 import '../../data/candidate_repository.dart';
 import '../../domain/candidate.dart';
+import 'video_interview.dart';
 import 'favourite_button.dart';
 import 'nationality_flag.dart';
 
@@ -423,7 +424,14 @@ class CandidateListTile extends StatelessWidget {
                 ),
                 _NationalityLine(nationality: candidate.nationality),
                 const SizedBox(height: AppSpacing.xxs),
-                LocationBadge(candidate: candidate),
+                Wrap(
+                  spacing: AppSpacing.xxs,
+                  runSpacing: AppSpacing.xxs,
+                  children: [
+                    LocationBadge(candidate: candidate),
+                    if (candidate.hasVideo) const VideoBadge(),
+                  ],
+                ),
                 const SizedBox(height: AppSpacing.xxs),
                 Text(
                   experienceLabel(candidate.yearsExperience),
