@@ -13,7 +13,7 @@ import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_button.dart';
-import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/app_network_image.dart';
 import '../../../core/widgets/app_search_bar.dart';
 import '../../../core/widgets/section_error.dart';
 import '../../../core/widgets/section_header.dart';
@@ -40,6 +40,7 @@ class HomeScreen extends ConsumerWidget {
       ..invalidate(categoriesProvider)
       ..invalidate(popularServicesProvider)
       ..invalidate(promotionsProvider)
+      ..invalidate(hireCardPhotosProvider)
       ..invalidate(featuredCandidatesProvider);
     try {
       await Future.wait<Object>([
@@ -362,24 +363,32 @@ class _FeaturedMaids extends ConsumerWidget {
   }
 }
 
-/// The two ways to hire: each opens the maid list on that visa.
-class _HireRoutes extends StatelessWidget {
+/// The two ways to hire, as photo cards (photos set by administrators on
+/// the staff website; without one, the card shows its brand colour). Each
+/// opens the maid list on that visa; the buttons pick the location too.
+class _HireRoutes extends ConsumerWidget {
   const _HireRoutes();
 
   @override
-  Widget build(BuildContext context) {
-    return const Column(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final photos = ref.watch(hireCardPhotosProvider).value ?? const {};
+    final catalog = ref.watch(catalogRepositoryProvider);
+    return Column(
       children: [
         _HireRouteCard(
           visa: VisaRoute.sponsor,
-          icon: Icons.badge_rounded,
-          subtitle: '2 years · you sponsor the maid · one-off price',
+          subtitle: '2 years · you sponsor · one-off price',
+          photoUrl: catalog.imageUrl(photos[VisaRoute.sponsor.value]),
+          colors: const [Color(0xFF8A5A00), Color(0xFFC98B12)],
+          fade: const Color(0xD95A3C00),
         ),
-        SizedBox(height: AppSpacing.sm),
+        const SizedBox(height: AppSpacing.sm),
         _HireRouteCard(
           visa: VisaRoute.company,
-          icon: Icons.apartment_rounded,
-          subtitle: 'On our visa · pay monthly · flexible months',
+          subtitle: 'On our visa · pay monthly · flexible',
+          photoUrl: catalog.imageUrl(photos[VisaRoute.company.value]),
+          colors: const [Color(0xFF123E82), Color(0xFF2F7FE0)],
+          fade: const Color(0xE0123E82),
         ),
       ],
     );
@@ -389,99 +398,163 @@ class _HireRoutes extends StatelessWidget {
 class _HireRouteCard extends StatelessWidget {
   const _HireRouteCard({
     required this.visa,
-    required this.icon,
     required this.subtitle,
+    required this.photoUrl,
+    required this.colors,
+    required this.fade,
   });
 
   final VisaRoute visa;
-  final IconData icon;
   final String subtitle;
+  final String? photoUrl;
+
+  /// Brand colours used when there is no photo.
+  final List<Color> colors;
+
+  /// Dark tint behind the text, so it stays readable on any photo.
+  final Color fade;
 
   @override
   Widget build(BuildContext context) {
-    return AppCard(
-      onTap: () =>
-          unawaited(context.push(AppRoutes.maidsFor(visa: visa.value))),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    final url = photoUrl;
+    return Semantics(
+      container: true,
+      child: ClipRRect(
+        borderRadius: AppRadius.lgAll,
+        child: SizedBox(
+          height: 156,
+          child: Stack(
+            fit: StackFit.expand,
             children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: const BoxDecoration(
-                  color: AppColors.lightBlue,
-                  borderRadius: AppRadius.mdAll,
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: colors,
+                  ),
                 ),
-                child: Icon(icon, color: AppColors.primary),
               ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
+              if (url != null) AppNetworkImage(url: url),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      fade,
+                      fade.withValues(alpha: 0.35),
+                      fade.withValues(alpha: 0),
+                    ],
+                    stops: const [0, 0.7, 1],
+                  ),
+                ),
+              ),
+              Material(
+                type: MaterialType.transparency,
+                child: InkWell(
+                  onTap: () => unawaited(
+                    context.push(AppRoutes.maidsFor(visa: visa.value)),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: AppSpacing.md,
+                right: AppSpacing.md,
+                bottom: AppSpacing.sm + 2,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(visa.label, style: AppTypography.titleMedium),
-                    Text(subtitle, style: AppTypography.bodySmall),
+                    IgnorePointer(
+                      child: Text(
+                        visa.label,
+                        style: AppTypography.headlineSmall.copyWith(
+                          color: AppColors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    IgnorePointer(
+                      child: Text(
+                        subtitle,
+                        style: AppTypography.bodySmall.copyWith(
+                          color: AppColors.white,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    Wrap(
+                      spacing: AppSpacing.xs,
+                      runSpacing: AppSpacing.xs,
+                      children: [
+                        _RouteLocationButton(
+                          visa: visa,
+                          location: MaidLocation.inUae,
+                          label: 'In the UAE',
+                          filled: true,
+                        ),
+                        _RouteLocationButton(
+                          visa: visa,
+                          location: MaidLocation.outsideUae,
+                          label: 'From abroad',
+                          filled: false,
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: AppColors.textSecondary,
-              ),
             ],
           ),
-          const SizedBox(height: AppSpacing.sm),
-          Wrap(
-            spacing: AppSpacing.xs,
-            runSpacing: AppSpacing.xs,
-            children: [
-              for (final location in MaidLocation.values)
-                _RouteLocationLink(visa: visa, location: location),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }
 }
 
-/// "In the UAE" / "Outside the UAE": opens the list on that visa and place.
-class _RouteLocationLink extends StatelessWidget {
-  const _RouteLocationLink({required this.visa, required this.location});
+/// "In the UAE" / "From abroad": opens the list on that visa and place.
+class _RouteLocationButton extends StatelessWidget {
+  const _RouteLocationButton({
+    required this.visa,
+    required this.location,
+    required this.label,
+    required this.filled,
+  });
 
   final VisaRoute visa;
   final MaidLocation location;
+  final String label;
+  final bool filled;
 
   @override
   Widget build(BuildContext context) {
-    final inUae = location == MaidLocation.inUae;
     return Semantics(
       button: true,
       label: '${visa.label}, ${location.label}',
       excludeSemantics: true,
-      child: InkWell(
-        borderRadius: AppRadius.pillAll,
-        onTap: () => unawaited(
-          context.push(
-            AppRoutes.maidsFor(visa: visa.value, location: location.value),
-          ),
+      child: Material(
+        color: filled
+            ? AppColors.white
+            : AppColors.white.withValues(alpha: 0.18),
+        shape: StadiumBorder(
+          side: filled
+              ? BorderSide.none
+              : BorderSide(color: AppColors.white.withValues(alpha: 0.8)),
         ),
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 32),
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.sm,
-            vertical: AppSpacing.xxs + 2,
+        child: InkWell(
+          customBorder: const StadiumBorder(),
+          onTap: () => unawaited(
+            context.push(
+              AppRoutes.maidsFor(visa: visa.value, location: location.value),
+            ),
           ),
-          decoration: BoxDecoration(
-            color: inUae ? AppColors.successSoft : AppColors.lightBlue,
-            borderRadius: AppRadius.pillAll,
-          ),
-          child: Text(
-            location.label,
-            style: AppTypography.labelSmall.copyWith(
-              color: inUae ? AppColors.successText : AppColors.infoText,
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 36),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+            alignment: Alignment.center,
+            child: Text(
+              label,
+              style: AppTypography.labelMedium.copyWith(
+                color: filled ? const Color(0xFF1F3A66) : AppColors.white,
+              ),
             ),
           ),
         ),

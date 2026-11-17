@@ -1532,6 +1532,33 @@ def main():
         assert one(c, "select has_video from public.candidates where id=%s", (kenya,)) is False
     check("Video interview: only a YouTube video ID can be saved, by staff; guests see only whether there is a video", video_interview)
 
+    # --- hire cards ------------------------------------------------------------------
+    def hire_route_cards():
+        as_user(c, None)
+        try:
+            assert one(c, "select count(*) from public.hire_route_cards") == 2
+            expect_denied(c, "update public.hire_route_cards set image_path='x.jpg'")
+        finally:
+            reset(c)
+        for who in (alice, rita):
+            as_user(c, who)
+            try:
+                n = c.execute("update public.hire_route_cards set image_path='hire/x.jpg' returning id").fetchall()
+                assert n == [], "a non-admin changed a hire card photo"
+                expect_denied(c, "insert into public.hire_route_cards (visa_type) values ('sponsor')")
+                expect_denied(c, "delete from public.hire_route_cards")
+            finally:
+                reset(c)
+        as_user(c, sam)
+        try:
+            c.execute("update public.hire_route_cards set image_path='hire/sponsor-1.jpg' where visa_type='sponsor'")
+            expect_denied(c, "update public.hire_route_cards set visa_type='company' where visa_type='sponsor'")
+        finally:
+            reset(c)
+        assert one(c, "select image_path from public.hire_route_cards where visa_type='sponsor'") == "hire/sponsor-1.jpg"
+        assert one(c, "select count(*) from public.admin_audit_logs where action='hire_route_cards.updated'") >= 1
+    check("Hire a Maid card photos: everyone reads them; only administrators change the photo", hire_route_cards)
+
     # --- report ------------------------------------------------------------------
     c.close()
     print()

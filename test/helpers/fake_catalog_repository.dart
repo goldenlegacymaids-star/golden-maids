@@ -8,6 +8,7 @@ class FakeCatalogRepository implements CatalogRepository {
     List<ServiceCategory>? categories,
     List<HomeService>? services,
     List<Promotion>? promotions,
+    this.hireCardPhotos = const {},
   }) : categories = categories ?? defaultCategories,
        services = services ?? defaultServices,
        promotions = promotions ?? defaultPromotions;
@@ -140,6 +141,15 @@ class FakeCatalogRepository implements CatalogRepository {
   Future<List<Promotion>> getPromotions() async {
     _check();
     return promotions;
+  }
+
+  /// Visa route → photo path of the Home "Hire a Maid" cards.
+  final Map<String, String> hireCardPhotos;
+
+  @override
+  Future<Map<String, String>> getHireCardPhotos() async {
+    _check();
+    return hireCardPhotos;
   }
 
   @override

@@ -136,6 +136,20 @@ void main() {
     expect(find.text('Search'), findsNothing); // the maid's profile opened
   });
 
+  testWidgets('Hire a Maid cards open the maid list on their visa and place', (
+    tester,
+  ) async {
+    await pumpTestApp(tester, auth: auth, catalog: catalog);
+
+    expect(find.text('GCC Sponsor Visa'), findsOneWidget);
+    expect(find.text('Company Visa'), findsOneWidget);
+    await tapAndSettle(
+      tester,
+      find.bySemanticsLabel('GCC Sponsor Visa, Outside the UAE'),
+    );
+    expect(find.text('Find a Maid'), findsOneWidget);
+  });
+
   testWidgets('choosing a service location is remembered', (tester) async {
     await pumpTestApp(tester, auth: auth, catalog: catalog);
 

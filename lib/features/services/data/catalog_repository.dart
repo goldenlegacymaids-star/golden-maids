@@ -23,6 +23,10 @@ abstract interface class CatalogRepository {
 
   Future<List<Promotion>> getPromotions();
 
+  /// Photo paths of the Home "Hire a Maid" cards, by visa route
+  /// (`sponsor`, `company`); a route without a photo is left out.
+  Future<Map<String, String>> getHireCardPhotos();
+
   /// Public URL of an image in the `app-media` bucket, or null.
   String? imageUrl(String? path);
 }
@@ -126,6 +130,18 @@ class SupabaseCatalogRepository implements CatalogRepository {
   });
 
   @override
+  Future<Map<String, String>> getHireCardPhotos() => _guard(() async {
+    final rows = await _client
+        .from('hire_route_cards')
+        .select('visa_type, image_path');
+    return {
+      for (final row in rows)
+        if (row['image_path'] case final String path when path.isNotEmpty)
+          row['visa_type'] as String: path,
+    };
+  });
+
+  @override
   String? imageUrl(String? path) {
     if (path == null || path.isEmpty) return null;
     return _client.storage.from(_mediaBucket).getPublicUrl(path);
@@ -165,6 +181,9 @@ class UnavailableCatalogRepository implements CatalogRepository {
   Future<List<Promotion>> getPromotions() => Future.error(_failure);
 
   @override
+  Future<Map<String, String>> getHireCardPhotos() => Future.error(_failure);
+
+  @override
   String? imageUrl(String? path) => null;
 }
 
@@ -185,6 +204,11 @@ final popularServicesProvider = FutureProvider<List<HomeService>>(
 
 final promotionsProvider = FutureProvider<List<Promotion>>(
   (ref) => ref.watch(catalogRepositoryProvider).getPromotions(),
+);
+
+/// Photos of the Home "Hire a Maid" cards (visa route → photo path).
+final hireCardPhotosProvider = FutureProvider<Map<String, String>>(
+  (ref) => ref.watch(catalogRepositoryProvider).getHireCardPhotos(),
 );
 
 final categoryProvider = FutureProvider.family<ServiceCategory, String>(
