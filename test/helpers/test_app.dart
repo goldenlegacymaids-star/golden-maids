@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -113,34 +115,57 @@ Future<void> settle(WidgetTester tester) async {
   }
 }
 
-/// Scrolls the screen's vertical lists until [finder] is built and on
-/// screen. Long pages (Home, Profile) only build what is near the screen.
+/// Whether [finder] finds something on screen (false, not an error, for
+/// `.first` / `.last` finders that find nothing).
+bool _onScreen(Finder finder) {
+  try {
+    return finder.evaluate().isNotEmpty;
+  } on StateError {
+    return false;
+  }
+}
+
+bool _tappable(Finder finder) {
+  try {
+    return finder.hitTestable().evaluate().isNotEmpty;
+  } on StateError {
+    return false;
+  }
+}
+
+/// Scrolls the screen's vertical lists, from the top down, until [finder]
+/// is on screen. Long pages (Home, Profile, Help Centre) only build what is
+/// near the screen.
 Future<void> scrollTo(WidgetTester tester, Finder finder) async {
-  if (finder.evaluate().isNotEmpty) return;
+  if (_onScreen(finder)) return;
   final lists = find.byWidgetPredicate(
     (widget) =>
         widget is Scrollable &&
         axisDirectionToAxis(widget.axisDirection) == Axis.vertical,
   );
-  for (final list in lists.evaluate().toList()) {
-    try {
-      await tester.scrollUntilVisible(
-        finder,
-        200,
-        scrollable: find.byElementPredicate((e) => identical(e, list)),
-        maxScrolls: 40,
-      );
-      return;
-    } on StateError {
-      // Not in this list: try the next one.
+  for (final element in lists.evaluate().toList()) {
+    if (!element.mounted || element is! StatefulElement) continue;
+    final state = element.state;
+    if (state is! ScrollableState) continue;
+    final position = state.position;
+    position.jumpTo(position.minScrollExtent);
+    await tester.pump();
+    while (!_onScreen(finder) && position.pixels < position.maxScrollExtent) {
+      position.jumpTo(math.min(position.pixels + 300, position.maxScrollExtent));
+      await tester.pump();
     }
+    if (_onScreen(finder)) return;
   }
 }
 
 Future<void> tapAndSettle(WidgetTester tester, Finder finder) async {
   await scrollTo(tester, finder);
-  await tester.ensureVisible(finder);
-  await tester.pump();
+  // Only scroll when needed: scrolling a row of chips to put one at its
+  // start would push the earlier chips out of view.
+  if (!_tappable(finder)) {
+    await tester.ensureVisible(finder);
+    await tester.pump();
+  }
   await tester.tap(finder);
   await settle(tester);
 }
@@ -151,10 +176,8 @@ Future<void> openTab(WidgetTester tester, IconData icon) =>
 
 /// Scrolls the Home screen until [finder] is on screen.
 Future<void> scrollHomeTo(WidgetTester tester, Finder finder) async {
-  final homeList = find
-      .ancestor(of: find.text('Categories'), matching: find.byType(Scrollable))
-      .first;
-  await tester.scrollUntilVisible(finder, 200, scrollable: homeList);
+  await scrollTo(tester, finder);
+  if (!_tappable(finder)) await tester.ensureVisible(finder);
   await settle(tester);
 }
 

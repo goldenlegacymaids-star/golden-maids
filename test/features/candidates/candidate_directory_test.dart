@@ -58,6 +58,7 @@ void main() {
     ) async {
       await pumpTestApp(tester, auth: auth, candidates: candidates);
 
+      await scrollHomeTo(tester, find.text('Wanjiru Kamau'));
       expect(find.text('Featured Maids'), findsOneWidget);
       expect(find.text('Wanjiru Kamau'), findsOneWidget);
       expect(find.text('Housemaid · 34 yrs'), findsOneWidget);

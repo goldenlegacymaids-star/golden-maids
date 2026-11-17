@@ -112,6 +112,8 @@ void main() {
 
   testWidgets('guests are asked to sign in', (tester) async {
     await pumpTestApp(tester, auth: FakeAuthRepository());
+    // Guests start on the welcome screen.
+    await tapAndSettle(tester, find.text('Continue as guest'));
     await tapAndSettle(tester, find.byTooltip('Notifications'));
 
     expect(find.text('Sign in to see updates'), findsOneWidget);
