@@ -20,7 +20,11 @@ Finder _inSheet(String text) =>
 Future<void> _tapNationality(WidgetTester tester, String label) async {
   await tapAndSettle(
     tester,
-    find.byKey(CandidateDirectoryScreen.nationalityChipKey),
+    // The chip row scrolls sideways: the chip may be just off screen.
+    find.byKey(
+      CandidateDirectoryScreen.nationalityChipKey,
+      skipOffstage: false,
+    ),
   );
   final target = _inSheet(label == 'All' ? 'All nationalities' : label);
   await tester.ensureVisible(target);
@@ -30,7 +34,7 @@ Future<void> _tapNationality(WidgetTester tester, String label) async {
 
 /// Chooses an option in the Location or Visa sheet.
 Future<void> _choose(WidgetTester tester, Key chip, String option) async {
-  await tapAndSettle(tester, find.byKey(chip));
+  await tapAndSettle(tester, find.byKey(chip, skipOffstage: false));
   await tapAndSettle(tester, _inSheet(option));
 }
 

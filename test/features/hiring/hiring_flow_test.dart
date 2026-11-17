@@ -205,7 +205,7 @@ void main() {
       expect(_continueEnabled(tester), isFalse, reason: 'location needed');
       await tapAndSettle(tester, find.text('Outside the UAE'));
       expect(_continueEnabled(tester), isFalse, reason: 'nationality needed');
-      await tester.ensureVisible(find.text('Madagascar'));
+      await scrollTo(tester, find.text('Madagascar'));
       expect(find.text('Price on request'), findsWidgets);
       await tapAndSettle(tester, find.text('Kenya'));
       expect(_continueEnabled(tester), isTrue);

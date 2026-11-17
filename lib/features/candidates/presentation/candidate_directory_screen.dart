@@ -235,6 +235,19 @@ class _CandidateDirectoryScreenState
               horizontal: AppSpacing.screenPadding,
             ),
             children: [
+              // First, so it is never off screen: job type, package, skills
+              // and availability. Shows how many are set.
+              Tooltip(
+                message: 'Filters',
+                child: _DropdownChip(
+                  label: sheetFilters > 0 ? '$sheetFilters' : '',
+                  active: sheetFilters > 0,
+                  icon: Icons.tune_rounded,
+                  showArrow: false,
+                  onTap: () => unawaited(_openFilters()),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.xs),
               _DropdownChip(
                 key: CandidateDirectoryScreen.locationChipKey,
                 label: _filter.location?.label ?? 'Location',
@@ -257,18 +270,6 @@ class _CandidateDirectoryScreenState
                     ? _flagFor(nationalities, chosen.first)
                     : null,
                 onTap: () => unawaited(_pickNationalities(nationalities)),
-              ),
-              const SizedBox(width: AppSpacing.xs),
-              Tooltip(
-                message: 'Filters',
-                child: _DropdownChip(
-                  label: sheetFilters > 0
-                      ? 'More filters · $sheetFilters'
-                      : 'More filters',
-                  active: sheetFilters > 0,
-                  icon: Icons.tune_rounded,
-                  onTap: () => unawaited(_openFilters()),
-                ),
               ),
             ],
           ),
@@ -611,13 +612,16 @@ class _DropdownChip extends StatelessWidget {
     required this.onTap,
     this.leading,
     this.icon,
+    this.showArrow = true,
   });
 
+  /// Empty for an icon-only chip.
   final String label;
   final bool active;
   final VoidCallback onTap;
   final Widget? leading;
   final IconData? icon;
+  final bool showArrow;
 
   @override
   Widget build(BuildContext context) {
@@ -648,22 +652,28 @@ class _DropdownChip extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (chipIcon != null) ...[
-                  Icon(chipIcon, size: 16, color: foreground),
-                  const SizedBox(width: AppSpacing.xxs),
+                  Icon(chipIcon, size: 18, color: foreground),
+                  if (label.isNotEmpty) const SizedBox(width: AppSpacing.xxs),
                 ],
                 if (chipLeading != null) ...[
                   chipLeading,
                   const SizedBox(width: AppSpacing.xxs),
                 ],
-                Text(
-                  label,
-                  style: AppTypography.labelMedium.copyWith(color: foreground),
-                ),
-                Icon(
-                  Icons.keyboard_arrow_down_rounded,
-                  size: 18,
-                  color: foreground,
-                ),
+                if (label.isNotEmpty)
+                  Text(
+                    label,
+                    style: AppTypography.labelMedium.copyWith(
+                      color: foreground,
+                    ),
+                  ),
+                if (showArrow)
+                  Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    size: 18,
+                    color: foreground,
+                  )
+                else
+                  const SizedBox(width: AppSpacing.xxs),
               ],
             ),
           ),
