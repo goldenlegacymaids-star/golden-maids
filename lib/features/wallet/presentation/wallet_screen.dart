@@ -12,6 +12,7 @@ import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/app_refresh_indicator.dart';
 import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/tab_screen.dart';
 import '../../authentication/data/auth_providers.dart';
@@ -77,7 +78,7 @@ class WalletScreen extends ConsumerWidget {
             onRetry: () => unawaited(_refresh(ref)),
           ),
         ),
-        data: (data) => RefreshIndicator(
+        data: (data) => AppRefreshIndicator(
           onRefresh: () => _refresh(ref),
           child: ListView(
             padding: const EdgeInsets.fromLTRB(

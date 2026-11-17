@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/errors/app_failure.dart';
+import '../../../core/haptics/haptics.dart';
 import '../../../core/routing/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
@@ -12,6 +13,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_chip.dart';
+import '../../../core/widgets/app_refresh_indicator.dart';
 import '../../../core/widgets/app_search_bar.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/error_state.dart';
@@ -400,7 +402,7 @@ class _Results extends ConsumerWidget {
             ),
           );
         }
-        return RefreshIndicator(
+        return AppRefreshIndicator(
           onRefresh: () async {
             ref.invalidate(candidateSearchProvider(filter));
             try {
@@ -642,7 +644,10 @@ class _DropdownChip extends StatelessWidget {
         ),
         child: InkWell(
           customBorder: const StadiumBorder(),
-          onTap: onTap,
+          onTap: () {
+            haptic(context, HapticKind.selection);
+            onTap();
+          },
           child: Padding(
             padding: const EdgeInsets.only(
               left: AppSpacing.sm,
@@ -723,7 +728,10 @@ Future<(T?,)?> _pickOne<T>(
                       )
                     : null,
                 selected: value == selected,
-                onTap: () => Navigator.of(context).pop((value,)),
+                onTap: () {
+                  haptic(context, HapticKind.selection);
+                  Navigator.of(context).pop((value,));
+                },
               ),
           ],
         ),
@@ -801,6 +809,7 @@ class _NationalitySheetState extends State<_NationalitySheet> {
                       ),
                       value: _draft.contains(nationality.name),
                       onChanged: (on) => setState(() {
+                        haptic(context, HapticKind.selection);
                         _draft = {..._draft};
                         if (on ?? false) {
                           _draft.add(nationality.name);

@@ -14,6 +14,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_network_image.dart';
+import '../../../core/widgets/app_refresh_indicator.dart';
 import '../../../core/widgets/app_search_bar.dart';
 import '../../../core/widgets/section_error.dart';
 import '../../../core/widgets/section_header.dart';
@@ -68,7 +69,7 @@ class HomeScreen extends ConsumerWidget {
           decoration: const BoxDecoration(gradient: AppColors.backgroundWash),
           child: SafeArea(
             bottom: false,
-            child: RefreshIndicator(
+            child: AppRefreshIndicator(
               onRefresh: () => _refresh(ref),
               child: ListView(
                 // Home is short: build the lower sections early so they load

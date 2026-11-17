@@ -2,6 +2,7 @@ import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 
+import '../haptics/haptics.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_radius.dart';
 import '../theme/app_spacing.dart';
@@ -121,7 +122,15 @@ class AppBottomNavBar extends StatelessWidget {
                                       child: _NavButton(
                                         item: items[i],
                                         selected: i == currentIndex,
-                                        onTap: () => onTap(i),
+                                        onTap: () {
+                                          if (i != currentIndex) {
+                                            haptic(
+                                              context,
+                                              HapticKind.selection,
+                                            );
+                                          }
+                                          onTap(i);
+                                        },
                                       ),
                                     ),
                                 ],

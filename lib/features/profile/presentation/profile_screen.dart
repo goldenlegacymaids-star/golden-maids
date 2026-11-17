@@ -22,6 +22,7 @@ import '../data/profile_repository.dart';
 import '../domain/profile.dart';
 import 'widgets/account_deletion.dart';
 import 'widgets/profile_menu_tile.dart';
+import 'widgets/vibration_tile.dart';
 
 /// Profile tab: account details, shortcuts to the customer's records,
 /// help and legal pages, and log out.
@@ -148,6 +149,11 @@ class ProfileScreen extends ConsumerWidget {
                 ],
               ),
             ],
+            const SizedBox(height: AppSpacing.lg),
+            const _MenuSection(
+              title: 'Preferences',
+              tiles: [VibrationTile()],
+            ),
             const SizedBox(height: AppSpacing.lg),
             _MenuSection(
               title: 'Support',

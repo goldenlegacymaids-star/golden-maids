@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/uae.dart';
 import '../../../core/errors/app_failure.dart';
+import '../../../core/haptics/haptics.dart';
 import '../../../core/routing/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
@@ -288,9 +289,12 @@ class _HireFlowState extends ConsumerState<_HireFlow> {
           .submit(_draft());
       if (!mounted) return;
       ref.invalidate(myHiringRequestsProvider);
+      haptic(context, HapticKind.success);
       setState(() => _reference = reference);
     } on Object catch (error) {
-      if (mounted) setState(() => _error = AppFailure.from(error).message);
+      if (!mounted) return;
+      haptic(context, HapticKind.error);
+      setState(() => _error = AppFailure.from(error).message);
     }
   }
 

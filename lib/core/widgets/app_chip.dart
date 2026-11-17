@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../haptics/haptics.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
 
@@ -25,6 +26,7 @@ class AppChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final foreground = selected ? AppColors.white : AppColors.textPrimary;
+    final tap = onTap;
     final shape = StadiumBorder(
       side: BorderSide(color: selected ? AppColors.primary : AppColors.border),
     );
@@ -39,7 +41,12 @@ class AppChip extends StatelessWidget {
         shape: shape,
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: onTap,
+          onTap: tap == null
+              ? null
+              : () {
+                  haptic(context, HapticKind.selection);
+                  tap();
+                },
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
             child: Row(

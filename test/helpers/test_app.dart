@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_maids/app.dart';
+import 'package:golden_maids/core/haptics/haptics.dart';
 import 'package:golden_maids/core/services/external_launcher.dart';
 import 'package:golden_maids/core/services/shared_preferences_provider.dart';
 import 'package:golden_maids/features/authentication/data/auth_providers.dart';
@@ -49,6 +50,8 @@ Future<void> pumpTestApp(
   FakeWalletRepository? wallet,
   Future<PickedDocument?> Function()? pickDocument,
   Map<String, Object> preferences = const {},
+  /// Records the app's vibrations instead of playing them.
+  List<HapticKind>? haptics,
 }) async {
   tester.view.physicalSize = const Size(430, 932);
   tester.view.devicePixelRatio = 1;
@@ -65,6 +68,9 @@ Future<void> pumpTestApp(
       retry: (retryCount, error) => null,
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
+        hapticPlayerProvider.overrideWithValue((kind) async {
+          haptics?.add(kind);
+        }),
         authRepositoryProvider.overrideWithValue(auth),
         profileRepositoryProvider.overrideWithValue(
           profiles ?? FakeProfileRepository(),

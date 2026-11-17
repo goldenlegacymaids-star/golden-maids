@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/uae.dart';
 import '../../../core/errors/app_failure.dart';
+import '../../../core/haptics/haptics.dart';
 import '../../../core/routing/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
@@ -262,12 +263,14 @@ class _BookFlowState extends ConsumerState<_BookFlow> {
       );
       if (!mounted) return;
       ref.invalidate(myBookingsProvider);
+      haptic(context, HapticKind.success);
       setState(() {
         _submitting = false;
         _reference = reference;
       });
     } on Object catch (error) {
       if (!mounted) return;
+      haptic(context, HapticKind.error);
       // The slot may have just been taken: refresh the times.
       ref.invalidate(timeSlotsProvider(_slotsKey));
       setState(() {

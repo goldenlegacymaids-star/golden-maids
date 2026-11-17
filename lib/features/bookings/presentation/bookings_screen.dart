@@ -10,6 +10,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/app_refresh_indicator.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/tab_screen.dart';
@@ -118,7 +119,7 @@ class _BookingList extends ConsumerWidget {
     if (bookings.isEmpty) {
       final name = tab.label.toLowerCase();
       final isUpcoming = tab == BookingTab.upcoming;
-      return RefreshIndicator(
+      return AppRefreshIndicator(
         onRefresh: refresh,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -135,7 +136,7 @@ class _BookingList extends ConsumerWidget {
       );
     }
 
-    return RefreshIndicator(
+    return AppRefreshIndicator(
       onRefresh: refresh,
       child: ListView.separated(
         physics: const AlwaysScrollableScrollPhysics(),

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/haptics/haptics.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../data/candidate_repository.dart';
@@ -29,6 +30,7 @@ class FavouriteButton extends ConsumerWidget {
       showSignInSheet(context, title: 'Sign in to save maids');
       return;
     }
+    haptic(context, HapticKind.light);
     try {
       await ref.read(favouriteIdsProvider.notifier).toggle(candidateId);
     } on Object catch (error) {

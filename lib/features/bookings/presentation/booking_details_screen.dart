@@ -13,6 +13,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/app_refresh_indicator.dart';
 import '../../../core/widgets/app_snackbar.dart';
 import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/page_scaffold.dart';
@@ -81,7 +82,7 @@ class BookingDetailsScreen extends ConsumerWidget {
           final staff = data.staffName;
           final years = data.staffYearsExperience;
 
-          return RefreshIndicator(
+          return AppRefreshIndicator(
             onRefresh: () async {
               refreshBooking(ref, bookingId);
               try {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/errors/app_failure.dart';
+import '../../../core/haptics/haptics.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
@@ -129,9 +130,13 @@ class _EnquirySheetState extends ConsumerState<EnquirySheet> {
       final reference = await ref
           .read(candidateRepositoryProvider)
           .sendEnquiry(enquiry);
-      if (mounted) Navigator.of(context).pop(reference);
+      if (!mounted) return;
+      haptic(context, HapticKind.success);
+      Navigator.of(context).pop(reference);
     } on Object catch (error) {
-      if (mounted) setState(() => _error = AppFailure.from(error).message);
+      if (!mounted) return;
+      haptic(context, HapticKind.error);
+      setState(() => _error = AppFailure.from(error).message);
     }
   }
 

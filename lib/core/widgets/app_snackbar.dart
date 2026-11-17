@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../errors/app_failure.dart';
+import '../haptics/haptics.dart';
 import '../theme/app_colors.dart';
 
 /// Shows a short message at the bottom of the screen.
@@ -9,6 +10,7 @@ void showAppSnackBar(
   String message, {
   bool isError = false,
 }) {
+  if (isError) haptic(context, HapticKind.error);
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
     ..showSnackBar(

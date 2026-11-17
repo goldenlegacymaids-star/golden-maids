@@ -5,12 +5,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/errors/app_failure.dart';
+import '../../../core/haptics/haptics.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/app_refresh_indicator.dart';
 import '../../../core/widgets/app_snackbar.dart';
 import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/page_scaffold.dart';
@@ -43,7 +45,7 @@ class MyDocumentsScreen extends ConsumerWidget {
             onRetry: () => ref.invalidate(myDocumentsProvider),
           ),
         ),
-        data: (list) => RefreshIndicator(
+        data: (list) => AppRefreshIndicator(
           onRefresh: () async {
             ref.invalidate(myDocumentsProvider);
             try {
@@ -164,6 +166,7 @@ class _DocumentCardState extends ConsumerState<DocumentCard> {
           );
       if (!mounted) return;
       ref.invalidate(myDocumentsProvider);
+      haptic(context, HapticKind.success);
       showAppSnackBar(
         context,
         '${widget.type.label} sent. The agency will review it.',
