@@ -38,6 +38,7 @@ import '../../features/services/presentation/service_details_screen.dart';
 import '../../features/support/domain/legal_texts.dart';
 import '../../features/support/presentation/help_centre_screen.dart';
 import '../../features/support/presentation/legal_screen.dart';
+import '../../features/wallet/presentation/payment_methods_screen.dart';
 import '../../features/wallet/presentation/wallet_screen.dart';
 import '../config/env.dart';
 import 'app_routes.dart';
@@ -55,6 +56,7 @@ const Set<String> _signedInOnly = {
   AppRoutes.editProfile,
   AppRoutes.savedMaids,
   AppRoutes.myDocuments,
+  AppRoutes.paymentMethods,
   AppRoutes.savedAddresses,
   AppRoutes.hirePath,
   AppRoutes.hiringRequests,
@@ -289,6 +291,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     path: 'documents',
                     name: 'my-documents',
                     builder: (context, state) => const MyDocumentsScreen(),
+                  ),
+                  GoRoute(
+                    path: 'payment-methods',
+                    name: 'payment-methods',
+                    builder: (context, state) => const PaymentMethodsScreen(),
                   ),
                   GoRoute(
                     path: 'addresses',

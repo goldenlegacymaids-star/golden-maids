@@ -56,6 +56,7 @@ abstract final class AppRoutes {
   static const String editProfile = '/profile/edit';
   static const String savedMaids = '/profile/saved-maids';
   static const String myDocuments = '/profile/documents';
+  static const String paymentMethods = '/profile/payment-methods';
   static const String savedAddresses = '/profile/addresses';
   static const String helpCentre = '/profile/help';
   static const String privacyPolicy = '/profile/privacy';

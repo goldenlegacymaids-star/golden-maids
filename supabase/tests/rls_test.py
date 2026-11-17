@@ -1559,6 +1559,138 @@ def main():
         assert one(c, "select count(*) from public.admin_audit_logs where action='hire_route_cards.updated'") >= 1
     check("Hire a Maid card photos: everyone reads them; only administrators change the photo", hire_route_cards)
 
+    # --- wallet -------------------------------------------------------------------------
+    def wallet():
+        def balance(uid):
+            as_user(c, uid)
+            try:
+                return one(c, "select public.my_wallet_balance()")
+            finally:
+                reset(c)
+
+        assert balance(bob) == 0
+        # Customers cannot write anything to their wallet.
+        as_user(c, bob)
+        try:
+            expect_denied(c, "insert into public.wallet_transactions (customer_id, kind, method, amount, balance_effect) values (%s, 'credit', 'agency', 100, 100)", (bob,))
+            expect_denied(c, "insert into public.wallet_transactions (customer_id, kind, method, amount, balance_effect) values (%s, 'top_up', 'card', 100, 100)", (bob,))
+        finally:
+            reset(c)
+        # Recruitment staff are not administrators.
+        as_user(c, rita)
+        try:
+            expect_denied(c, "insert into public.wallet_transactions (customer_id, kind, method, amount, balance_effect) values (%s, 'credit', 'agency', 50, 50)", (bob,))
+        finally:
+            reset(c)
+        # An administrator adds a credit; the effect must match the amount.
+        as_user(c, sam)
+        try:
+            expect_violation(c, "insert into public.wallet_transactions (customer_id, kind, method, amount, balance_effect) values (%s, 'credit', 'agency', 50, 500)", (bob,))
+            expect_denied(c, "insert into public.wallet_transactions (customer_id, kind, method, amount, balance_effect) values (%s, 'top_up', 'card', 50, 50)", (bob,))
+            expect_denied(c, "insert into public.wallet_transactions (customer_id, kind, method, amount, balance_effect) values (%s, 'credit', 'agency', 50, 50)", (sam,))
+            ref = one(c, "insert into public.wallet_transactions (customer_id, kind, method, amount, balance_effect, description) values (%s, 'credit', 'agency', 50, 50, 'Sorry for the delay') returning reference", (bob,))
+            assert ref.startswith("WT-"), ref
+            # A correction cannot take the balance below zero.
+            expect_violation(c, "insert into public.wallet_transactions (customer_id, kind, method, amount, balance_effect) values (%s, 'adjustment', 'agency', 80, -80)", (bob,))
+            c.execute("insert into public.wallet_transactions (customer_id, kind, method, amount, balance_effect, description) values (%s, 'adjustment', 'agency', 20, -20, 'Correction')", (bob,))
+            expect_denied(c, "update public.wallet_transactions set amount=1")
+            expect_denied(c, "delete from public.wallet_transactions")
+        finally:
+            reset(c)
+        assert balance(bob) == 30
+        assert balance(alice) == 0
+        note = c.execute("select kind, body from public.customer_notifications where customer_id=%s and kind like 'wallet.%%' order by id", (bob,)).fetchall()
+        assert note[0] == ("wallet.credit", "AED 50.00 was added to your wallet: Sorry for the delay"), note
+        assert note[1][0] == "wallet.adjustment", note
+        # The server (payment gateway handler) records card payments.
+        c.execute("insert into public.wallet_transactions (customer_id, kind, method, amount, balance_effect, card_brand, card_last4, gateway_reference, description) values (%s, 'payment', 'card', 120, 0, 'visa', '4242', 'gw_1', 'Home Cleaning')", (bob,))
+        assert balance(bob) == 30
+        try:
+            with c.transaction():
+                c.execute("insert into public.wallet_transactions (customer_id, kind, method, amount, balance_effect) values (%s, 'payment', 'wallet', 31, -31)", (bob,))
+            raise AssertionError("paid more than the balance")
+        except errors.CheckViolation:
+            pass
+        # Each customer sees only their own history; the gateway reference is hidden.
+        as_user(c, alice)
+        try:
+            assert one(c, "select count(*) from public.wallet_transactions") == 0
+            expect_denied(c, "select gateway_reference from public.wallet_transactions")
+        finally:
+            reset(c)
+        as_user(c, bob)
+        try:
+            assert one(c, "select count(*) from public.wallet_transactions") == 3
+        finally:
+            reset(c)
+        as_user(c, None)
+        try:
+            expect_denied(c, "select * from public.wallet_transactions")
+            expect_denied(c, "select public.my_wallet_balance()")
+            assert one(c, "select value::text from public.app_settings where key='wallet.top_up_enabled'") == "false"
+            assert one(c, "select value::text from public.app_settings where key='payments.cards_enabled'") == "false"
+        finally:
+            reset(c)
+
+        # Saved cards: the server adds them; customers read (no token), choose a default, remove.
+        c.execute("insert into public.saved_cards (customer_id, brand, last4, exp_month, exp_year, gateway_token) values (%s, 'visa', '4242', 12, 2030, 'tok_a'), (%s, 'mastercard', '5555', 1, 2031, 'tok_b'), (%s, 'visa', '1111', 2, 2032, 'tok_c')", (bob, bob, alice))
+        as_user(c, bob)
+        try:
+            expect_denied(c, "insert into public.saved_cards (customer_id, brand, last4, exp_month, exp_year, gateway_token) values (%s, 'visa', '4242', 1, 2030, 'x')", (bob,))
+            expect_denied(c, "select gateway_token from public.saved_cards")
+            assert one(c, "select count(*) from public.saved_cards") == 2
+            card = one(c, "select id::text from public.saved_cards where last4='5555'")
+            c.execute("select public.set_default_card(%s)", (card,))
+            other = one(c, "select id::text from public.saved_cards where last4='4242'")
+            c.execute("select public.set_default_card(%s)", (other,))
+            assert one(c, "select last4 from public.saved_cards where is_default") == "4242"
+            alices = None
+        finally:
+            reset(c)
+        alices = one(c, "select id::text from public.saved_cards where customer_id=%s", (alice,))
+        as_user(c, bob)
+        try:
+            try:
+                with c.transaction():
+                    c.execute("select public.set_default_card(%s)", (alices,))
+                raise AssertionError("set another customer's card")
+            except errors.NoDataFound:
+                pass
+            c.execute("delete from public.saved_cards where id=%s", (alices,))
+            c.execute("delete from public.saved_cards where last4='5555'")
+            assert one(c, "select count(*) from public.saved_cards") == 1
+        finally:
+            reset(c)
+        assert one(c, "select count(*) from public.saved_cards where customer_id=%s", (alice,)) == 1
+
+        # An account with money in the wallet is not deleted.
+        fay = new_user(c, "fay@example.com", "Fay Credit")
+        as_user(c, sam)
+        try:
+            c.execute("insert into public.wallet_transactions (customer_id, kind, method, amount, balance_effect) values (%s, 'credit', 'agency', 30, 30)", (fay,))
+        finally:
+            reset(c)
+        as_user(c, fay)
+        try:
+            freq = one(c, "insert into public.account_deletion_requests (reason) values ('Bye') returning id::text")
+        finally:
+            reset(c)
+        as_user(c, sam)
+        try:
+            try:
+                with c.transaction():
+                    c.execute("select public.process_account_deletion(%s)", (freq,))
+                raise AssertionError("deleted an account with a balance")
+            except errors.CheckViolation as e:
+                assert "AED 30.00" in str(e), e
+            c.execute("insert into public.wallet_transactions (customer_id, kind, method, amount, balance_effect, description) values (%s, 'adjustment', 'agency', 30, -30, 'Refunded by bank transfer')", (fay,))
+            c.execute("select public.process_account_deletion(%s)", (freq,))
+        finally:
+            reset(c)
+        # Her history is kept for the accounts, without her.
+        assert one(c, "select count(*) from public.wallet_transactions where customer_id is null") == 2
+    check("Wallet: customers only read their own history and balance; admins add credits/corrections (customer notified); balance never negative; history permanent; saved cards hide the token; deletion waits for an empty wallet", wallet)
+
     # --- report ------------------------------------------------------------------
     c.close()
     print()

@@ -16,6 +16,7 @@ import 'package:golden_maids/features/onboarding/presentation/splash_screen.dart
 import 'package:golden_maids/features/profile/data/account_deletion_repository.dart';
 import 'package:golden_maids/features/profile/data/profile_repository.dart';
 import 'package:golden_maids/features/services/data/catalog_repository.dart';
+import 'package:golden_maids/features/wallet/data/wallet_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'fake_account_deletion_repository.dart';
@@ -27,6 +28,7 @@ import 'fake_document_repository.dart';
 import 'fake_hiring_repository.dart';
 import 'fake_notification_repository.dart';
 import 'fake_profile_repository.dart';
+import 'fake_wallet_repository.dart';
 
 /// Starts the app as a returning user (onboarding already seen) on a
 /// phone-sized screen, with fake backends, and waits past the splash.
@@ -42,6 +44,7 @@ Future<void> pumpTestApp(
   FakeAccountDeletionRepository? accountDeletion,
   FakeNotificationRepository? notifications,
   FakeDocumentRepository? documents,
+  FakeWalletRepository? wallet,
   Future<PickedDocument?> Function()? pickDocument,
   Map<String, Object> preferences = const {},
 }) async {
@@ -84,6 +87,9 @@ Future<void> pumpTestApp(
         ),
         documentRepositoryProvider.overrideWithValue(
           documents ?? FakeDocumentRepository(),
+        ),
+        walletRepositoryProvider.overrideWithValue(
+          wallet ?? FakeWalletRepository(),
         ),
         documentPickerProvider.overrideWithValue(
           pickDocument ?? () async => null,

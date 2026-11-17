@@ -46,7 +46,7 @@ void main() {
     expect(find.text('No upcoming bookings'), findsOneWidget);
 
     await openTab(tester, _walletIcon);
-    expect(find.text('Wallet coming soon'), findsOneWidget);
+    expect(find.text('Wallet balance'), findsOneWidget);
 
     await openTab(tester, _profileIcon);
     expect(find.text('Sarah Khan'), findsOneWidget);
@@ -91,8 +91,8 @@ void main() {
     await pumpTestApp(tester, auth: auth, profiles: profiles);
     await openTab(tester, _profileIcon);
 
-    // Visa applications, contracts and payment methods are not built yet.
-    expect(find.text('Coming soon'), findsNWidgets(3));
+    // Visa applications and contracts are not built yet.
+    expect(find.text('Coming soon'), findsNWidgets(2));
 
     await tapAndSettle(tester, find.text('My Visa Applications'));
     expect(find.text('Sarah Khan'), findsOneWidget); // still on Profile
@@ -120,7 +120,7 @@ void main() {
   testWidgets('Android back on another tab returns to Home', (tester) async {
     await pumpTestApp(tester, auth: auth, profiles: profiles);
     await openTab(tester, _walletIcon);
-    expect(find.text('Wallet coming soon'), findsOneWidget);
+    expect(find.text('Wallet balance'), findsOneWidget);
 
     await tester.binding.handlePopRoute();
     await settle(tester);
