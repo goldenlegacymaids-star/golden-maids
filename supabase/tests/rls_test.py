@@ -1691,6 +1691,127 @@ def main():
         assert one(c, "select count(*) from public.wallet_transactions where customer_id is null") == 2
     check("Wallet: customers only read their own history and balance; admins add credits/corrections (customer notified); balance never negative; history permanent; saved cards hide the token; deletion waits for an empty wallet", wallet)
 
+    # --- visa applications -------------------------------------------------------
+    def visa_applications():
+        as_user(c, alice)
+        try:
+            rid = one(c, "insert into public.hiring_requests (package_id, duration_months, candidate_id, customer_name, customer_phone, emirate) values (%s, 2, %s, 'Alice Customer', '+971501234567', 'Dubai') returning id::text", (monthly, kenya))
+            expect_denied(c, "select public.start_visa_application(%s)", (rid,))
+        finally:
+            reset(c)
+        # Moving the request to visa processing starts the application.
+        as_user(c, rita)
+        try:
+            c.execute("select public.update_hiring_status(%s, 'visa_processing')", (rid,))
+            app = one(c, "select id::text from public.visa_applications where hiring_request_id=%s", (rid,))
+            route = one(c, "select route from public.visa_applications where id=%s", (app,))
+            steps = [r[0] for r in c.execute("select step from public.visa_application_steps where application_id=%s order by position", (app,)).fetchall()]
+            assert steps == (["contract_signed", "status_change", "medical_test", "biometrics", "residence_visa", "emirates_id"]
+                             if route == "in_country" else
+                             ["contract_signed", "entry_permit", "flight_booked", "arrived", "medical_test", "biometrics", "residence_visa", "emirates_id"]), (route, steps)
+            # Starting again returns the same one; the route can change before any step starts.
+            assert one(c, "select public.start_visa_application(%s, 'abroad')::text", (rid,)) == app
+            assert one(c, "select count(*) from public.visa_application_steps where application_id=%s", (app,)) == 8
+            expect_violation(c, "select public.start_visa_application(%s, 'moon')", (rid,))
+        finally:
+            reset(c)
+        assert one(c, "select count(*) from public.customer_notifications where customer_id=%s and kind='visa.started'", (alice,)) == 1
+        # The customer reads her tracker but cannot change it.
+        as_user(c, alice)
+        try:
+            assert one(c, "select count(*) from public.visa_applications") == 1
+            assert one(c, "select count(*) from public.visa_application_steps") == 8
+            c.execute("update public.visa_application_steps set status='done' where application_id=%s", (app,))
+            c.execute("update public.visa_applications set visa_expires_on='2030-01-01' where id=%s", (app,))
+            expect_denied(c, "insert into public.visa_application_steps (application_id, step, position) values (%s, 'arrived', 9)", (app,))
+        finally:
+            reset(c)
+        assert one(c, "select count(*) from public.visa_application_steps where application_id=%s and status<>'waiting'", (app,)) == 0
+        assert one(c, "select visa_expires_on from public.visa_applications where id=%s", (app,)) is None
+        for other in (bob, ben):
+            as_user(c, other)
+            try:
+                assert one(c, "select count(*) from public.visa_applications") == 0
+                assert one(c, "select count(*) from public.visa_application_steps") == 0
+            finally:
+                reset(c)
+        as_user(c, None)
+        try:
+            expect_denied(c, "select * from public.visa_applications")
+        finally:
+            reset(c)
+        # Staff move steps; a finished step gets today's date; the customer is told.
+        as_user(c, rita)
+        try:
+            c.execute("update public.visa_application_steps set status='in_progress' where application_id=%s and step='contract_signed'", (app,))
+            c.execute("update public.visa_application_steps set status='done', note='  Signed at Tadbeer.  ' where application_id=%s and step='contract_signed'", (app,))
+            row = c.execute("select step_date is not null, note, updated_by::text from public.visa_application_steps where application_id=%s and step='contract_signed'", (app,)).fetchone()
+            assert row == (True, "Signed at Tadbeer.", rita), row
+            expect_violation(c, "update public.visa_applications set route='in_country' where id=%s", (app,))
+            expect_violation(c, "update public.visa_application_steps set status='finished' where application_id=%s and step='entry_permit'", (app,))
+        finally:
+            reset(c)
+        bodies = [r[0] for r in c.execute("select body from public.customer_notifications where customer_id=%s and kind='visa.step' order by id", (alice,)).fetchall()]
+        assert bodies == ["Contract signed: in progress.", "Contract signed: done. Signed at Tadbeer."], bodies
+        # Documents: staff upload into the application's folder; only the customer and staff read them.
+        path = app + "/visa.pdf"
+        as_user(c, rita)
+        try:
+            c.execute("insert into storage.objects (bucket_id, name) values ('visa-documents', %s)", (path,))
+            expect_denied(c, "insert into public.visa_documents (application_id, document_type, storage_path, file_name, mime_type, size_bytes) values (%s, 'visa', %s, 'v.pdf', 'application/pdf', 100)", (app, rita + "/v.pdf"))
+            expect_violation(c, "insert into public.visa_documents (application_id, document_type, storage_path, file_name, mime_type, size_bytes) values (%s, 'selfie', %s, 'v.pdf', 'application/pdf', 100)", (app, path))
+            c.execute("insert into public.visa_documents (application_id, document_type, storage_path, file_name, mime_type, size_bytes) values (%s, 'visa', %s, 'visa.pdf', 'application/pdf', 100)", (app, path))
+        finally:
+            reset(c)
+        assert one(c, "select body from public.customer_notifications where customer_id=%s and kind='visa.document'", (alice,)) == "Visa has been added to your visa application."
+        as_user(c, alice)
+        try:
+            assert one(c, "select count(*) from public.visa_documents") == 1
+            assert one(c, "select count(*) from storage.objects where bucket_id='visa-documents'") == 1
+            expect_denied(c, "insert into storage.objects (bucket_id, name) values ('visa-documents', %s)", (app + "/fake.pdf",))
+            expect_denied(c, "insert into public.visa_documents (application_id, document_type, storage_path, file_name, mime_type, size_bytes) values (%s, 'visa', %s, 'x.pdf', 'application/pdf', 100)", (app, app + "/x.pdf"))
+            c.execute("delete from public.visa_documents")
+            c.execute("delete from storage.objects where bucket_id='visa-documents'")
+        finally:
+            reset(c)
+        assert one(c, "select count(*) from public.visa_documents") == 1
+        assert one(c, "select count(*) from storage.objects where bucket_id='visa-documents'") == 1
+        as_user(c, bob)
+        try:
+            assert one(c, "select count(*) from public.visa_documents") == 0
+            assert one(c, "select count(*) from storage.objects where bucket_id='visa-documents'") == 0
+        finally:
+            reset(c)
+        # Expiry reminder: once per date, 7 days ahead; a new date gets a new reminder.
+        as_user(c, rita)
+        try:
+            c.execute("update public.visa_applications set visa_expires_on=(now() at time zone 'Asia/Dubai')::date + 20 where id=%s", (app,))
+        finally:
+            reset(c)
+        assert one(c, "select private.send_visa_expiry_reminders()") == 0
+        as_user(c, rita)
+        try:
+            c.execute("update public.visa_applications set visa_expires_on=(now() at time zone 'Asia/Dubai')::date + 7 where id=%s", (app,))
+        finally:
+            reset(c)
+        assert one(c, "select private.send_visa_expiry_reminders()") == 1
+        assert one(c, "select private.send_visa_expiry_reminders()") == 0
+        assert one(c, "select count(*) from public.customer_notifications where customer_id=%s and kind='visa.expiring'", (alice,)) == 1
+        assert one(c, "select count(*) from public.staff_notifications where kind='visa.expiring'") == 1
+        as_user(c, rita)
+        try:
+            c.execute("update public.visa_applications set visa_expires_on=(now() at time zone 'Asia/Dubai')::date + 3 where id=%s", (app,))
+        finally:
+            reset(c)
+        assert one(c, "select private.send_visa_expiry_reminders()") == 1
+        # Customers and guests cannot run the reminder job.
+        as_user(c, alice)
+        try:
+            expect_denied(c, "select private.send_visa_expiry_reminders()")
+        finally:
+            reset(c)
+    check("Visa applications: start at visa processing (route from where she is), fixed steps per route, staff move steps (customer told), route locked once started, private visa files staff upload and the customer reads, expiry reminder 7 days ahead once per date", visa_applications)
+
     # --- report ------------------------------------------------------------------
     c.close()
     print()
