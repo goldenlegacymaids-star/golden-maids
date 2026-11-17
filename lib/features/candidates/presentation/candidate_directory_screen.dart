@@ -8,7 +8,6 @@ import '../../../core/errors/app_failure.dart';
 import '../../../core/routing/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
-import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_button.dart';
@@ -34,8 +33,13 @@ class CandidateDirectoryScreen extends ConsumerStatefulWidget {
     this.initialLocation,
   });
 
-  /// The row of nationality chips (for tests).
-  static const nationalityRowKey = Key('nationality-chips');
+  /// The filter chips (for tests).
+  static const locationChipKey = Key('filter-location');
+  static const visaChipKey = Key('filter-visa');
+  static const nationalityChipKey = Key('filter-nationality');
+
+  /// The filter bar that slides away while scrolling (for tests).
+  static const filterBarKey = Key('filter-bar');
 
   /// Opened from Home's "Hire a Maid" cards: that visa route is selected.
   final VisaRoute? initialVisa;
@@ -71,10 +75,73 @@ class _CandidateDirectoryScreenState
     });
   }
 
-  void _toggleNationality(String nationality) {
-    final selected = {..._filter.nationalities};
-    if (!selected.remove(nationality)) selected.add(nationality);
-    setState(() => _filter = _filter.copyWith(nationalities: selected));
+  /// Filters slide away while scrolling down and come back on scrolling up.
+  bool _filtersVisible = true;
+
+  void _showFilters(bool visible) {
+    if (visible != _filtersVisible) setState(() => _filtersVisible = visible);
+  }
+
+  bool _onResultsScroll(ScrollNotification notification) {
+    if (notification.depth != 0 ||
+        notification.metrics.axis != Axis.vertical ||
+        notification is! ScrollUpdateNotification) {
+      return false;
+    }
+    final delta = notification.scrollDelta ?? 0;
+    if (notification.metrics.pixels <= 0) {
+      _showFilters(true);
+    } else if (delta > 4) {
+      _showFilters(false);
+    } else if (delta < -4) {
+      _showFilters(true);
+    }
+    return false;
+  }
+
+  Future<void> _pickLocation() async {
+    final picked = await _pickOne<MaidLocation>(
+      context,
+      title: 'Where is she?',
+      selected: _filter.location,
+      options: [
+        (null, 'Any location'),
+        for (final location in MaidLocation.values) (location, location.label),
+      ],
+    );
+    if (picked != null && mounted) {
+      setState(() => _filter = _filter.copyWith(location: () => picked.$1));
+    }
+  }
+
+  Future<void> _pickVisa() async {
+    final picked = await _pickOne<VisaRoute>(
+      context,
+      title: 'Visa',
+      selected: _filter.visa,
+      options: [
+        (null, 'Any visa'),
+        for (final visa in VisaRoute.values) (visa, visa.label),
+      ],
+    );
+    if (picked != null && mounted) {
+      setState(() => _filter = _filter.copyWith(visa: () => picked.$1));
+    }
+  }
+
+  Future<void> _pickNationalities(List<MaidNationality> nationalities) async {
+    final picked = await showModalBottomSheet<Set<String>>(
+      context: context,
+      useRootNavigator: true,
+      isScrollControlled: true,
+      builder: (context) => _NationalitySheet(
+        nationalities: nationalities,
+        initial: _filter.nationalities,
+      ),
+    );
+    if (picked != null && mounted) {
+      setState(() => _filter = _filter.copyWith(nationalities: picked));
+    }
   }
 
   Future<void> _openFilters() async {
@@ -117,135 +184,158 @@ class _CandidateDirectoryScreenState
               controller: _controller,
               hint: 'Search by name or code (GM-...)',
               onChanged: _onSearchChanged,
-              onFilterPressed: () => unawaited(_openFilters()),
             ),
           ),
-          const SizedBox(height: AppSpacing.sm),
-          SizedBox(
-            height: 40,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.screenPadding,
-              ),
-              children: [
-                AppChip(
-                  label: 'Any visa',
-                  selected: _filter.visa == null,
-                  onTap: () => setState(
-                    () => _filter = _filter.copyWith(visa: () => null),
-                  ),
+          // One row of filters + the count and sort. Slides away while
+          // scrolling down so the maids get the screen.
+          ClipRect(
+            child: AnimatedAlign(
+              key: CandidateDirectoryScreen.filterBarKey,
+              alignment: Alignment.topCenter,
+              heightFactor: _filtersVisible ? 1 : 0,
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              child: IgnorePointer(
+                ignoring: !_filtersVisible,
+                child: ExcludeSemantics(
+                  excluding: !_filtersVisible,
+                  child: _filterBar(nationalities, sheetFilters),
                 ),
-                for (final visa in VisaRoute.values) ...[
-                  const SizedBox(width: AppSpacing.xs),
-                  AppChip(
-                    label: visa.label,
-                    selected: _filter.visa == visa,
-                    onTap: () => setState(
-                      () => _filter = _filter.copyWith(visa: () => visa),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.screenPadding,
-            ),
-            child: LocationSwitch(
-              value: _filter.location,
-              onChanged: (location) => setState(
-                () => _filter = _filter.copyWith(location: () => location),
               ),
             ),
           ),
-          const SizedBox(height: AppSpacing.sm),
-          SizedBox(
-            key: CandidateDirectoryScreen.nationalityRowKey,
-            height: 40,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.screenPadding,
-              ),
-              children: [
-                AppChip(
-                  label: 'All',
-                  selected: _filter.nationalities.isEmpty,
-                  onTap: () => setState(
-                    () => _filter = _filter.copyWith(nationalities: const {}),
-                  ),
-                ),
-                for (final nationality in nationalities) ...[
-                  const SizedBox(width: AppSpacing.xs),
-                  AppChip(
-                    label: nationality.name,
-                    leading: FlagImage(code: nationality.code, height: 14),
-                    selected: _filter.nationalities.contains(nationality.name),
-                    onTap: () => _toggleNationality(nationality.name),
-                  ),
-                ],
-              ],
+          Expanded(
+            child: NotificationListener<ScrollNotification>(
+              onNotification: _onResultsScroll,
+              child: _Results(filter: _filter),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.screenPadding,
-              AppSpacing.xs,
-              AppSpacing.sm,
-              0,
-            ),
-            child: Row(
-              children: [
-                Expanded(child: _ResultCount(filter: _filter)),
-                if (sheetFilters > 0)
-                  TextButton(
-                    onPressed: () =>
-                        setState(() => _filter = _filter.cleared().copyWith(
-                          nationalities: _filter.nationalities,
-                        )),
-                    child: Text('Clear filters ($sheetFilters)'),
-                  ),
-                PopupMenuButton<CandidateSort>(
-                  tooltip: 'Sort',
-                  initialValue: _filter.sort,
-                  onSelected: (sort) =>
-                      setState(() => _filter = _filter.copyWith(sort: sort)),
-                  itemBuilder: (context) => [
-                    for (final sort in CandidateSort.values)
-                      PopupMenuItem(value: sort, child: Text(sort.label)),
-                  ],
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppSpacing.xs),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.sort_rounded,
-                          size: 18,
-                          color: AppColors.primary,
-                        ),
-                        const SizedBox(width: AppSpacing.xxs),
-                        Text(
-                          _filter.sort.label,
-                          style: AppTypography.labelMedium.copyWith(
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(child: _Results(filter: _filter)),
         ],
       ),
     );
   }
+
+  Widget _filterBar(List<MaidNationality> nationalities, int sheetFilters) {
+    final chosen = _filter.nationalities;
+    final nationalityLabel = switch (chosen.length) {
+      0 => 'Nationality',
+      1 => chosen.first,
+      _ => '${chosen.first} +${chosen.length - 1}',
+    };
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: AppSpacing.sm),
+        SizedBox(
+          height: 38,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.screenPadding,
+            ),
+            children: [
+              _DropdownChip(
+                key: CandidateDirectoryScreen.locationChipKey,
+                label: _filter.location?.label ?? 'Location',
+                active: _filter.location != null,
+                onTap: () => unawaited(_pickLocation()),
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              _DropdownChip(
+                key: CandidateDirectoryScreen.visaChipKey,
+                label: _filter.visa?.label ?? 'Visa',
+                active: _filter.visa != null,
+                onTap: () => unawaited(_pickVisa()),
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              _DropdownChip(
+                key: CandidateDirectoryScreen.nationalityChipKey,
+                label: nationalityLabel,
+                active: chosen.isNotEmpty,
+                leading: chosen.length == 1
+                    ? _flagFor(nationalities, chosen.first)
+                    : null,
+                onTap: () => unawaited(_pickNationalities(nationalities)),
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              Tooltip(
+                message: 'Filters',
+                child: _DropdownChip(
+                  label: sheetFilters > 0
+                      ? 'More filters · $sheetFilters'
+                      : 'More filters',
+                  active: sheetFilters > 0,
+                  icon: Icons.tune_rounded,
+                  onTap: () => unawaited(_openFilters()),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.screenPadding,
+            AppSpacing.xxs,
+            AppSpacing.sm,
+            0,
+          ),
+          child: Row(
+            children: [
+              Expanded(child: _ResultCount(filter: _filter)),
+              if (sheetFilters > 0)
+                TextButton(
+                  onPressed: () =>
+                      setState(() => _filter = _filter.cleared().copyWith(
+                        nationalities: _filter.nationalities,
+                      )),
+                  child: Text('Clear filters ($sheetFilters)'),
+                ),
+              PopupMenuButton<CandidateSort>(
+                tooltip: 'Sort',
+                initialValue: _filter.sort,
+                onSelected: (sort) =>
+                    setState(() => _filter = _filter.copyWith(sort: sort)),
+                itemBuilder: (context) => [
+                  for (final sort in CandidateSort.values)
+                    PopupMenuItem(value: sort, child: Text(sort.label)),
+                ],
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.xs),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.sort_rounded,
+                        size: 18,
+                        color: AppColors.primary,
+                      ),
+                      const SizedBox(width: AppSpacing.xxs),
+                      Text(
+                        _filter.sort.label,
+                        style: AppTypography.labelMedium.copyWith(
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+Widget? _flagFor(List<MaidNationality> nationalities, String name) {
+  for (final nationality in nationalities) {
+    if (nationality.name == name) {
+      return FlagImage(code: nationality.code, height: 12);
+    }
+  }
+  return null;
 }
 
 class _ResultCount extends ConsumerWidget {
@@ -512,70 +602,220 @@ class _SheetHeading extends StatelessWidget {
   }
 }
 
-/// "All · In the UAE · Outside the UAE" switch above the maid list.
-class LocationSwitch extends StatelessWidget {
-  const LocationSwitch({
+/// A filter chip that opens a sheet: blue when set, with a down arrow.
+class _DropdownChip extends StatelessWidget {
+  const _DropdownChip({
     super.key,
-    required this.value,
-    required this.onChanged,
+    required this.label,
+    required this.active,
+    required this.onTap,
+    this.leading,
+    this.icon,
   });
 
-  /// Null = all maids.
-  final MaidLocation? value;
-  final ValueChanged<MaidLocation?> onChanged;
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+  final Widget? leading;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
-    final options = <(MaidLocation?, String)>[
-      (null, 'All'),
-      for (final location in MaidLocation.values) (location, location.label),
-    ];
-    return Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: AppColors.white.withValues(alpha: 0.6),
-        borderRadius: AppRadius.mdAll,
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: [
-          for (final (location, label) in options)
-            Expanded(
-              child: Semantics(
-                button: true,
-                selected: value == location,
-                child: InkWell(
-                  borderRadius: AppRadius.smAll,
-                  onTap: () => onChanged(location),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    constraints: const BoxConstraints(minHeight: 40),
-                    alignment: Alignment.center,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.xxs,
-                      vertical: AppSpacing.xs,
-                    ),
-                    decoration: BoxDecoration(
-                      color: value == location ? AppColors.white : null,
-                      borderRadius: AppRadius.smAll,
-                      boxShadow: value == location ? AppShadows.soft : null,
-                    ),
-                    child: Text(
-                      label,
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: value == location
-                          ? AppTypography.labelMedium.copyWith(
-                              color: AppColors.infoText,
-                            )
-                          : AppTypography.bodySmall,
-                    ),
-                  ),
+    final foreground = active ? AppColors.infoText : AppColors.textPrimary;
+    final chipIcon = icon;
+    final chipLeading = leading;
+    return Semantics(
+      button: true,
+      selected: active,
+      child: Material(
+        color: active ? AppColors.lightBlue : AppColors.white,
+        shape: StadiumBorder(
+          side: BorderSide(
+            color: active
+                ? AppColors.primary.withValues(alpha: 0.45)
+                : AppColors.border,
+          ),
+        ),
+        child: InkWell(
+          customBorder: const StadiumBorder(),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.only(
+              left: AppSpacing.sm,
+              right: AppSpacing.xs,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (chipIcon != null) ...[
+                  Icon(chipIcon, size: 16, color: foreground),
+                  const SizedBox(width: AppSpacing.xxs),
+                ],
+                if (chipLeading != null) ...[
+                  chipLeading,
+                  const SizedBox(width: AppSpacing.xxs),
+                ],
+                Text(
+                  label,
+                  style: AppTypography.labelMedium.copyWith(color: foreground),
                 ),
+                Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  size: 18,
+                  color: foreground,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A one-choice sheet. Returns the choice in a record, so that "Any"
+/// (null) can be told apart from closing the sheet.
+Future<(T?,)?> _pickOne<T>(
+  BuildContext context, {
+  required String title,
+  required T? selected,
+  required List<(T?, String)> options,
+}) {
+  return showModalBottomSheet<(T?,)>(
+    context: context,
+    useRootNavigator: true,
+    builder: (context) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.xl,
+                0,
+                AppSpacing.xl,
+                AppSpacing.xs,
+              ),
+              child: Text(title, style: AppTypography.titleLarge),
+            ),
+            for (final (value, label) in options)
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.xl,
+                ),
+                title: Text(label, style: AppTypography.bodyMedium),
+                trailing: value == selected
+                    ? const Icon(
+                        Icons.check_rounded,
+                        color: AppColors.primary,
+                      )
+                    : null,
+                selected: value == selected,
+                onTap: () => Navigator.of(context).pop((value,)),
+              ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+/// Tick one or more nationalities (flags), then "Show results".
+class _NationalitySheet extends StatefulWidget {
+  const _NationalitySheet({
+    required this.nationalities,
+    required this.initial,
+  });
+
+  final List<MaidNationality> nationalities;
+  final Set<String> initial;
+
+  @override
+  State<_NationalitySheet> createState() => _NationalitySheetState();
+}
+
+class _NationalitySheetState extends State<_NationalitySheet> {
+  late Set<String> _draft = {...widget.initial};
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(
+                AppSpacing.xl,
+                0,
+                AppSpacing.xl,
+                AppSpacing.xs,
+              ),
+              child: Text('Nationality', style: AppTypography.titleLarge),
+            ),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.xl,
+                    ),
+                    title: const Text(
+                      'All nationalities',
+                      style: AppTypography.bodyMedium,
+                    ),
+                    trailing: _draft.isEmpty
+                        ? const Icon(
+                            Icons.check_rounded,
+                            color: AppColors.primary,
+                          )
+                        : null,
+                    onTap: () => setState(() => _draft = {}),
+                  ),
+                  for (final nationality in widget.nationalities)
+                    CheckboxListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.xl,
+                      ),
+                      secondary: FlagImage(code: nationality.code, height: 16),
+                      title: Text(
+                        nationality.name,
+                        style: AppTypography.bodyMedium,
+                      ),
+                      value: _draft.contains(nationality.name),
+                      onChanged: (on) => setState(() {
+                        _draft = {..._draft};
+                        if (on ?? false) {
+                          _draft.add(nationality.name);
+                        } else {
+                          _draft.remove(nationality.name);
+                        }
+                      }),
+                    ),
+                ],
               ),
             ),
-        ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.xl,
+                AppSpacing.xs,
+                AppSpacing.xl,
+                AppSpacing.md,
+              ),
+              child: AppButton(
+                label: 'Show results',
+                onPressed: () => Navigator.of(context).pop(_draft),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

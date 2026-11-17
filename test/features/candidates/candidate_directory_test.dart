@@ -12,23 +12,26 @@ import '../../helpers/test_app.dart';
 
 Finder _chip(String label) => find.widgetWithText(AppChip, label);
 
-/// Taps a nationality chip, scrolling the chip row to it first (the row
-/// is wider than a phone screen).
+/// Inside the open bottom sheet.
+Finder _inSheet(String text) =>
+    find.descendant(of: find.byType(BottomSheet), matching: find.text(text));
+
+/// Picks one nationality ("All" clears them) in the Nationality sheet.
 Future<void> _tapNationality(WidgetTester tester, String label) async {
-  // Found through whichever chips are visible (the row scrolls).
-  final row = find.descendant(
-    of: find.byKey(CandidateDirectoryScreen.nationalityRowKey),
-    matching: find.byType(Scrollable),
+  await tapAndSettle(
+    tester,
+    find.byKey(CandidateDirectoryScreen.nationalityChipKey),
   );
-  final index = [
-    'All',
-    for (final n in FakeCandidateRepository.defaultNationalities) n.name,
-  ].indexOf(label);
-  final current = tester.state<ScrollableState>(row).position.pixels;
-  // Scroll right for chips further along, back left for earlier ones.
-  final delta = index * 90.0 >= current ? 100.0 : -100.0;
-  await tester.scrollUntilVisible(_chip(label), delta, scrollable: row);
-  await tapAndSettle(tester, _chip(label));
+  final target = _inSheet(label == 'All' ? 'All nationalities' : label);
+  await tester.ensureVisible(target);
+  await tapAndSettle(tester, target);
+  await tapAndSettle(tester, _inSheet('Show results'));
+}
+
+/// Chooses an option in the Location or Visa sheet.
+Future<void> _choose(WidgetTester tester, Key chip, String option) async {
+  await tapAndSettle(tester, find.byKey(chip));
+  await tapAndSettle(tester, _inSheet(option));
 }
 
 /// Opens "Find a Maid" from the Featured Maids "See All" link.
@@ -104,8 +107,18 @@ void main() {
       expect(find.text('Wanjiru Kamau'), findsOneWidget);
       expect(find.text('Maria Santos'), findsNothing);
 
+      // The chip shows the choice.
+      expect(
+        find.descendant(
+          of: find.byKey(CandidateDirectoryScreen.nationalityChipKey),
+          matching: find.text('Kenya'),
+        ),
+        findsOneWidget,
+      );
+
       await _tapNationality(tester, 'Philippines');
       expect(find.text('2 candidates'), findsOneWidget);
+      expect(find.text('Kenya +1'), findsOneWidget);
 
       await _tapNationality(tester, 'All');
       expect(find.text('4 candidates'), findsOneWidget);
@@ -123,7 +136,11 @@ void main() {
       expect(find.text('4 candidates'), findsOneWidget);
       expect(find.text('In the UAE · Available now'), findsWidgets);
 
-      await tapAndSettle(tester, find.text('Outside the UAE'));
+      await _choose(
+        tester,
+        CandidateDirectoryScreen.locationChipKey,
+        'Outside the UAE',
+      );
       expect(find.text('1 candidate'), findsOneWidget);
       expect(find.text('Thandar Aung'), findsOneWidget);
       expect(
@@ -132,10 +149,18 @@ void main() {
       );
       expect(candidates.searches.last.location, MaidLocation.outsideUae);
 
-      await tapAndSettle(tester, _chip('GCC Sponsor Visa'));
+      await _choose(
+        tester,
+        CandidateDirectoryScreen.visaChipKey,
+        'GCC Sponsor Visa',
+      );
       expect(find.text('No candidates found'), findsOneWidget);
 
-      await tapAndSettle(tester, find.text('In the UAE'));
+      await _choose(
+        tester,
+        CandidateDirectoryScreen.locationChipKey,
+        'In the UAE',
+      );
       expect(find.text('2 candidates'), findsOneWidget);
       expect(find.text('Thandar Aung'), findsNothing);
     });
@@ -209,6 +234,41 @@ void main() {
       final maria = tester.getTopLeft(find.text('Maria Santos')).dy;
       final wanjiru = tester.getTopLeft(find.text('Wanjiru Kamau')).dy;
       expect(maria, lessThan(wanjiru));
+    });
+
+    testWidgets('the filter row slides away when scrolling down and comes '
+        'back when scrolling up', (tester) async {
+      candidates = FakeCandidateRepository(
+        candidates: [
+          for (var i = 1; i <= 12; i++)
+            Candidate(
+              id: 'c$i',
+              code: 'GM-${(100 + i).toString().padLeft(5, '0')}',
+              displayName: 'Maid $i',
+              nationality: 'Kenya',
+              age: 30,
+              yearsExperience: 3,
+              // Featured, so Home shows "See All".
+              isFeatured: true,
+            ),
+        ],
+      );
+      await pumpTestApp(tester, auth: auth, candidates: candidates);
+      await _openDirectory(tester);
+
+      // The bar's height shrinks to 0 when it slides away.
+      double barHeight() => tester
+          .getSize(find.byKey(CandidateDirectoryScreen.filterBarKey))
+          .height;
+      expect(barHeight(), greaterThan(40));
+
+      await tester.drag(find.text('Maid 3'), const Offset(0, -300));
+      await settle(tester);
+      expect(barHeight(), 0);
+
+      await tester.drag(find.text('Maid 4'), const Offset(0, 120));
+      await settle(tester);
+      expect(barHeight(), greaterThan(40));
     });
 
     testWidgets('loading errors show a retry that recovers', (tester) async {
