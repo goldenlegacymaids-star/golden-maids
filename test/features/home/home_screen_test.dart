@@ -5,6 +5,7 @@ import 'package:golden_maids/core/widgets/app_logo.dart';
 import 'package:golden_maids/core/widgets/app_search_bar.dart';
 import 'package:golden_maids/features/authentication/domain/auth_repository.dart';
 import 'package:golden_maids/features/home/data/service_location.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/fake_auth_repository.dart';
 import '../../helpers/fake_catalog_repository.dart';
@@ -180,6 +181,27 @@ void main() {
     await tapAndSettle(tester, find.text('Try again').first);
     await tapAndSettle(tester, find.text('Try again').first);
     expect(find.text('General Cleaning'), findsOneWidget);
+  });
+
+  testWidgets('banners saved on the phone show at once, even offline', (
+    tester,
+  ) async {
+    // First launch: the server's banners are saved.
+    await pumpTestApp(tester, auth: auth, catalog: catalog);
+    expect(find.text('Find Your Perfect Maid'), findsOneWidget);
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString('cache.home_promotions.v1');
+    expect(saved, contains('Find Your Perfect Maid'));
+
+    // Next launch without a connection: the saved banners are shown.
+    catalog.failure = const NetworkFailure();
+    await pumpTestApp(
+      tester,
+      auth: auth,
+      catalog: catalog,
+      preferences: {'cache.home_promotions.v1': saved!},
+    );
+    expect(find.text('Find Your Perfect Maid'), findsOneWidget);
   });
 
   testWidgets('the bell opens notifications', (tester) async {

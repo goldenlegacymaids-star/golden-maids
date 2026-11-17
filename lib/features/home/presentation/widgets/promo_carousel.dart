@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shimmer/shimmer.dart';
 
 import '../../../../core/routing/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -14,7 +15,6 @@ import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_network_image.dart';
 import '../../../../core/widgets/page_indicator.dart';
 import '../../../../core/widgets/section_error.dart';
-import '../../../../core/widgets/skeleton.dart';
 import '../../../services/data/catalog_repository.dart';
 import '../../../services/domain/catalog.dart';
 
@@ -30,12 +30,7 @@ class PromoCarousel extends ConsumerWidget {
     final promotions = ref.watch(promotionsProvider);
 
     return promotions.when(
-      loading: () => const Padding(
-        padding: EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
-        child: Skeleton(
-          child: SkeletonBox(height: height, borderRadius: AppRadius.xlAll),
-        ),
-      ),
+      loading: () => const _BannerPlaceholder(),
       error: (error, _) => SectionError(
         error: error,
         onRetry: () => ref.invalidate(promotionsProvider),
@@ -238,6 +233,38 @@ class _Banner extends StatelessWidget {
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Shown while the first banners load: the banner's blue shape with a soft
+/// shimmer, so the space reads as "loading", not empty.
+class _BannerPlaceholder extends StatelessWidget {
+  const _BannerPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    final box = Container(
+      height: PromoCarousel.height,
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.85),
+        borderRadius: AppRadius.xlAll,
+      ),
+    );
+    return Semantics(
+      label: 'Loading offers',
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.screenPadding,
+        ),
+        child: MediaQuery.disableAnimationsOf(context)
+            ? box
+            : Shimmer.fromColors(
+                baseColor: AppColors.primary.withValues(alpha: 0.55),
+                highlightColor: AppColors.primary.withValues(alpha: 0.3),
+                child: box,
+              ),
       ),
     );
   }

@@ -174,6 +174,18 @@ class Promotion {
 
   final String? imagePath;
 
+  /// Same shape as [Promotion.fromJson], for the copy saved on the phone.
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'title': title,
+    'subtitle': subtitle,
+    'cta_label': ctaLabel,
+    'target_type': targetType,
+    'target_value': targetValue,
+    'discount_percent': discountPercent,
+    'image_path': imagePath,
+  };
+
   bool get hasAction =>
       ctaLabel.isNotEmpty && targetType != 'none' && targetValue != null;
 }

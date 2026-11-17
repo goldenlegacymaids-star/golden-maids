@@ -1,8 +1,12 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/config/env.dart';
 import '../../../core/errors/app_failure.dart';
+import '../../../core/services/shared_preferences_provider.dart';
 import '../../../core/services/supabase_providers.dart';
 import '../domain/catalog.dart';
 
@@ -202,14 +206,74 @@ final popularServicesProvider = FutureProvider<List<HomeService>>(
   (ref) => ref.watch(catalogRepositoryProvider).getPopularServices(),
 );
 
-final promotionsProvider = FutureProvider<List<Promotion>>(
-  (ref) => ref.watch(catalogRepositoryProvider).getPromotions(),
-);
+/// Home banners. The last list is saved on the phone and shown at once on
+/// the next launch, then replaced by the server's list when it arrives.
+final promotionsProvider = StreamProvider<List<Promotion>>((ref) async* {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  final repository = ref.watch(catalogRepositoryProvider);
+  final saved = _readSaved(prefs, _promotionsKey);
+  final cached = saved is List
+      ? [
+          for (final item in saved)
+            if (item is Map<String, dynamic>) Promotion.fromJson(item),
+        ]
+      : null;
+  if (cached != null) yield cached;
+  try {
+    final fresh = await repository.getPromotions();
+    await _save(prefs, _promotionsKey, [for (final p in fresh) p.toJson()]);
+    yield fresh;
+  } catch (_) {
+    // Keep showing the saved banners when offline; without them, show
+    // the error.
+    if (cached == null) rethrow;
+  }
+});
 
-/// Photos of the Home "Hire a Maid" cards (visa route → photo path).
-final hireCardPhotosProvider = FutureProvider<Map<String, String>>(
-  (ref) => ref.watch(catalogRepositoryProvider).getHireCardPhotos(),
-);
+/// Photos of the Home "Hire a Maid" cards (visa route → photo path); saved
+/// on the phone like the banners.
+final hireCardPhotosProvider = StreamProvider<Map<String, String>>((
+  ref,
+) async* {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  final repository = ref.watch(catalogRepositoryProvider);
+  final saved = _readSaved(prefs, _hireCardsKey);
+  final cached = saved is Map<String, dynamic>
+      ? {
+          for (final entry in saved.entries)
+            if (entry.value is String) entry.key: entry.value as String,
+        }
+      : null;
+  if (cached != null) yield cached;
+  try {
+    final fresh = await repository.getHireCardPhotos();
+    await _save(prefs, _hireCardsKey, fresh);
+    yield fresh;
+  } catch (_) {
+    if (cached == null) rethrow;
+  }
+});
+
+const _promotionsKey = 'cache.home_promotions.v1';
+const _hireCardsKey = 'cache.home_hire_cards.v1';
+
+Object? _readSaved(SharedPreferences prefs, String key) {
+  final text = prefs.getString(key);
+  if (text == null) return null;
+  try {
+    return jsonDecode(text);
+  } on FormatException {
+    return null;
+  }
+}
+
+Future<void> _save(SharedPreferences prefs, String key, Object value) async {
+  try {
+    await prefs.setString(key, jsonEncode(value));
+  } on Object {
+    // Saving is only a speed-up; the app works without it.
+  }
+}
 
 final categoryProvider = FutureProvider.family<ServiceCategory, String>(
   (ref, slug) => ref.watch(catalogRepositoryProvider).getCategory(slug),

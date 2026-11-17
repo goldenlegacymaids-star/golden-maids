@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +13,8 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_logo.dart';
 import '../../authentication/data/auth_providers.dart';
+import '../../services/data/catalog_repository.dart';
+import '../../services/domain/catalog.dart';
 import '../data/onboarding_repository.dart';
 
 /// Branded splash. Shows the logo briefly, then opens onboarding on first
@@ -54,7 +57,38 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     } else {
       unawaited(_controller.forward());
     }
+    unawaited(_prefetchHome());
     unawaited(_continue(reduceMotion));
+  }
+
+  /// Starts loading Home's banners and Hire a Maid photos (and their
+  /// pictures) while the splash is showing, so Home opens ready.
+  Future<void> _prefetchHome() async {
+    final catalog = ref.read(catalogRepositoryProvider);
+    try {
+      final results = await Future.wait<Object>([
+        ref.read(promotionsProvider.future),
+        ref.read(hireCardPhotosProvider.future),
+      ]);
+      if (!mounted) return;
+      final promotions = results[0] as List<Promotion>;
+      final cards = results[1] as Map<String, String>;
+      final urls = [
+        for (final p in promotions) catalog.imageUrl(p.imagePath),
+        for (final path in cards.values) catalog.imageUrl(path),
+      ].whereType<String>();
+      for (final url in urls) {
+        unawaited(
+          precacheImage(
+            CachedNetworkImageProvider(url),
+            context,
+            onError: (_, _) {},
+          ),
+        );
+      }
+    } on Object {
+      // Home shows its own loading and error states.
+    }
   }
 
   Future<void> _continue(bool reduceMotion) async {
