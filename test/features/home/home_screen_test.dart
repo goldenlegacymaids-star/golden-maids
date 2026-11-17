@@ -46,9 +46,11 @@ void main() {
     expect(search, lessThan(hire));
     expect(hire, lessThan(services));
 
+    await scrollHomeTo(tester, find.text('General Cleaning'));
     expect(find.text('General Cleaning'), findsOneWidget);
     expect(find.text('2-Year Maid Visa'), findsOneWidget);
 
+    await scrollHomeTo(tester, find.text('Wanjiru Kamau'));
     expect(find.text('Featured Maids'), findsOneWidget);
     expect(find.text('Wanjiru Kamau'), findsOneWidget);
 

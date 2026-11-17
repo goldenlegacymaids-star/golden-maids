@@ -198,6 +198,7 @@ void main() {
     await tapAndSettle(tester, find.text('Terms and Conditions'));
 
     expect(find.textContaining('Draft: this text is being reviewed'), findsOneWidget);
+    await scrollTo(tester, find.text('Cancelling and rescheduling'));
     expect(find.text('Cancelling and rescheduling'), findsOneWidget);
   });
 

@@ -15,54 +15,58 @@ Future<void> showComingSoonSheet(
   return showModalBottomSheet<void>(
     context: context,
     showDragHandle: true,
+    // As tall as the text needs; scrolls on very small screens.
+    isScrollControlled: true,
     builder: (context) => SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.xl,
-          0,
-          AppSpacing.xl,
-          AppSpacing.lg,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const CircleAvatar(
-              radius: 28,
-              backgroundColor: AppColors.lightBlue,
-              child: Icon(
-                Icons.lock_clock_rounded,
-                color: AppColors.primary,
-                size: 28,
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.xl,
+            0,
+            AppSpacing.xl,
+            AppSpacing.lg,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircleAvatar(
+                radius: 28,
+                backgroundColor: AppColors.lightBlue,
+                child: Icon(
+                  Icons.lock_clock_rounded,
+                  color: AppColors.primary,
+                  size: 28,
+                ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              title,
-              style: AppTypography.titleLarge,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              message,
-              style: AppTypography.bodyMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              'Card details will be entered in our payment provider’s secure '
-              'form: Golden Maids never sees or stores your card number. '
-              'Until then, payments are arranged with Golden Maids as today.',
-              style: AppTypography.bodySmall.copyWith(
-                color: AppColors.textSecondary,
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                title,
+                style: AppTypography.titleLarge,
+                textAlign: TextAlign.center,
               ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            AppButton(
-              label: 'OK',
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ],
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                message,
+                style: AppTypography.bodyMedium,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                'Card details will be entered in our payment provider’s secure '
+                'form: Golden Maids never sees or stores your card number. '
+                'Until then, payments are arranged with Golden Maids as today.',
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              AppButton(
+                label: 'OK',
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
         ),
       ),
     ),

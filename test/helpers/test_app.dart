@@ -113,7 +113,32 @@ Future<void> settle(WidgetTester tester) async {
   }
 }
 
+/// Scrolls the screen's vertical lists until [finder] is built and on
+/// screen. Long pages (Home, Profile) only build what is near the screen.
+Future<void> scrollTo(WidgetTester tester, Finder finder) async {
+  if (finder.evaluate().isNotEmpty) return;
+  final lists = find.byWidgetPredicate(
+    (widget) =>
+        widget is Scrollable &&
+        axisDirectionToAxis(widget.axisDirection) == Axis.vertical,
+  );
+  for (final list in lists.evaluate().toList()) {
+    try {
+      await tester.scrollUntilVisible(
+        finder,
+        200,
+        scrollable: find.byElementPredicate((e) => identical(e, list)),
+        maxScrolls: 40,
+      );
+      return;
+    } on StateError {
+      // Not in this list: try the next one.
+    }
+  }
+}
+
 Future<void> tapAndSettle(WidgetTester tester, Finder finder) async {
+  await scrollTo(tester, finder);
   await tester.ensureVisible(finder);
   await tester.pump();
   await tester.tap(finder);
