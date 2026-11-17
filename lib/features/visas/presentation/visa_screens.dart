@@ -183,8 +183,10 @@ class _VisaCard extends StatelessWidget {
               minHeight: 6,
               backgroundColor: AppColors.border,
               color: AppColors.primary,
-              semanticsLabel: 'Visa progress',
-              semanticsValue: '${application.doneCount} of $total steps done',
+              // The value itself is read as a percentage.
+              semanticsLabel:
+                  'Visa progress: ${application.doneCount} of $total steps '
+                  'done',
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
