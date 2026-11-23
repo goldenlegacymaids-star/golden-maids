@@ -1515,7 +1515,12 @@ def main():
         as_user(c, None)
         try:
             assert one(c, "select count(*) from public.candidates where has_video") >= 0
-            expect_denied(c, "select video_id from public.candidates")
+            # The website plays interviews: guests read the video ID (published maids only)…
+            assert one(c, "select video_id from public.candidates where id=%s", (kenya,)) in ("dQw4w9WgXcQ", None)
+            # …but still never the private details.
+            for column in ("bio", "religion", "marital_status"):
+                expect_denied(c, f"select {column} from public.candidates")
+            expect_denied(c, "update public.candidates set video_id=null")
         finally:
             reset(c)
         as_user(c, alice)
@@ -1531,7 +1536,7 @@ def main():
         finally:
             reset(c)
         assert one(c, "select has_video from public.candidates where id=%s", (kenya,)) is False
-    check("Video interview: only a YouTube video ID can be saved, by staff; guests see only whether there is a video", video_interview)
+    check("Video interview: only a YouTube video ID can be saved, by staff; guests can read it (website player) but not change it, and still not the private details", video_interview)
 
     # --- hire cards ------------------------------------------------------------------
     def hire_route_cards():
