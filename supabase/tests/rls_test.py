@@ -59,7 +59,8 @@ def check(name, fn):
         fn()
         results.append((True, name, ""))
     except AssertionError as e:
-        results.append((False, name, str(e)))
+        import traceback
+        results.append((False, name, str(e) or " | ".join(l.strip() for l in traceback.format_exc().strip().splitlines()[-4:-1])))
     except Exception as e:  # noqa: BLE001
         results.append((False, name, f"{type(e).__name__}: {e}"))
 
@@ -1811,6 +1812,95 @@ def main():
         finally:
             reset(c)
     check("Visa applications: start at visa processing (route from where she is), fixed steps per route, staff move steps (customer told), route locked once started, private visa files staff upload and the customer reads, expiry reminder 7 days ahead once per date", visa_applications)
+
+    # --- website articles (Insights) ---------------------------------------------
+    def website_articles():
+        body = "A paragraph long enough to pass the length check for an article body text."
+        # Recruitment staff write a draft; the author is always the writer.
+        as_user(c, rita)
+        try:
+            art = one(c, "insert into public.website_articles (slug, title_en, summary_en, body_en, author_id) values ('documents-for-a-maid-visa', 'Documents for a maid visa', 'Everything you need to sponsor a maid in the UAE.', %s, %s) returning id::text", (body, alice))
+            assert one(c, "select author_id::text from public.website_articles where id=%s", (art,)) == rita
+            # Staff cannot publish (insert or update).
+            expect_violation(c, "insert into public.website_articles (slug, title_en, summary_en, body_en, status) values ('x-published', 'Title here', 'A summary long enough to pass.', %s, 'published')", (body,))
+            expect_violation(c, "update public.website_articles set status='published' where id=%s", (art,))
+            # Arabic is all-or-nothing.
+            expect_violation(c, "update public.website_articles set title_ar='عنوان المقال' where id=%s", (art,))
+            c.execute("update public.website_articles set title_en='Documents you need for a maid visa' where id=%s", (art,))
+            c.execute("delete from public.website_articles where id=%s", (art,))
+            assert one(c, "select count(*) from public.website_articles where id=%s", (art,)) == 1, "staff deleted an article"
+        finally:
+            reset(c)
+        # Guests and customers see no drafts.
+        for who in (None, alice):
+            as_user(c, who)
+            try:
+                assert one(c, "select count(*) from public.website_articles") == 0
+            finally:
+                reset(c)
+        # An admin publishes: the date is set; staff can no longer edit it.
+        as_user(c, ada)
+        try:
+            c.execute("update public.website_articles set status='published' where id=%s", (art,))
+            assert one(c, "select published_at is not null from public.website_articles where id=%s", (art,))
+            assert one(c, "select author_id::text from public.website_articles where id=%s", (art,)) == rita
+        finally:
+            reset(c)
+        as_user(c, rita)
+        try:
+            c.execute("update public.website_articles set title_en='Changed by staff' where id=%s", (art,))
+            assert one(c, "select title_en from public.website_articles where id=%s", (art,)) == "Documents you need for a maid visa"
+        finally:
+            reset(c)
+        # Guests read it, but not who wrote it.
+        as_user(c, None)
+        try:
+            assert one(c, "select count(*) from public.website_articles") == 1
+            assert one(c, "select slug from public.website_articles") == "documents-for-a-maid-visa"
+            expect_denied(c, "select author_id from public.website_articles")
+            expect_denied(c, "insert into public.website_articles (slug, title_en, summary_en, body_en) values ('guest-try', 'Title here', 'A summary long enough to pass.', %s)", (body,))
+        finally:
+            reset(c)
+        # A customer cannot write.
+        as_user(c, alice)
+        try:
+            assert one(c, "select count(*) from public.website_articles") == 1
+            expect_violation(c, "insert into public.website_articles (slug, title_en, summary_en, body_en) values ('cust-try', 'Title here', 'A summary long enough to pass.', %s)", (body,))
+        finally:
+            reset(c)
+        # A future publish date stays hidden until then.
+        as_user(c, ada)
+        try:
+            c.execute("insert into public.website_articles (slug, title_en, summary_en, body_en, status, published_at) values ('coming-later', 'Coming later', 'A summary long enough to pass.', %s, 'published', now() + interval '1 day')", (body,))
+        finally:
+            reset(c)
+        as_user(c, None)
+        try:
+            assert one(c, "select count(*) from public.website_articles") == 1
+        finally:
+            reset(c)
+        # Pictures: staff upload; only admins delete; customers cannot upload.
+        as_user(c, rita)
+        try:
+            c.execute("insert into storage.objects (bucket_id, name) values ('insight-images', 'covers/a.jpg')")
+            c.execute("delete from storage.objects where bucket_id='insight-images'")
+        finally:
+            reset(c)
+        assert one(c, "select count(*) from storage.objects where bucket_id='insight-images'") == 1, "staff deleted a picture"
+        as_user(c, alice)
+        try:
+            expect_denied(c, "insert into storage.objects (bucket_id, name) values ('insight-images', 'covers/b.jpg')")
+        finally:
+            reset(c)
+        as_user(c, ada)
+        try:
+            c.execute("delete from storage.objects where bucket_id='insight-images'")
+            c.execute("delete from public.website_articles where slug='coming-later'")
+        finally:
+            reset(c)
+        assert one(c, "select count(*) from storage.objects where bucket_id='insight-images'") == 0
+        assert one(c, "select count(*) from public.admin_audit_logs where entity_type='website_articles'") >= 5
+    check("Website articles: staff write drafts (author fixed), admins publish/delete, guests read published only (not the author), Arabic all-or-nothing, cover pictures staff upload / admins delete", website_articles)
 
     # --- report ------------------------------------------------------------------
     c.close()
