@@ -459,7 +459,7 @@ def main():
         as_user(c, None)
         try:
             assert one(c, f"select count(*) from (select {card} from public.candidates) x") == 3
-            for column in ["religion", "marital_status", "bio", "consent_obtained_at"]:
+            for column in ["marital_status", "bio", "consent_obtained_at"]:
                 expect_denied(c, f"select {column} from public.candidates")
             expect_denied(c, "select * from public.candidate_private_details")
             expect_denied(c, "select * from public.candidate_experience")
@@ -470,7 +470,7 @@ def main():
             expect_denied(c, "insert into public.hiring_requests (package_id, duration_months, customer_name, customer_phone, emirate) values (%s, 3, 'X', '0501234567', 'Dubai')", (monthly,))
         finally:
             reset(c)
-    check("Guest sees candidate cards only (no religion, marital status, history, private details or documents)", guest_sees_cards_only)
+    check("Guest sees candidate cards only (no marital status, bio, history, private details or documents)", guest_sees_cards_only)
 
     def customer_sees_profile_not_private():
         as_user(c, alice)
@@ -1517,8 +1517,10 @@ def main():
             assert one(c, "select count(*) from public.candidates where has_video") >= 0
             # The website plays interviews: guests read the video ID (published maids only)…
             assert one(c, "select video_id from public.candidates where id=%s", (kenya,)) in ("dQw4w9WgXcQ", None)
-            # …but still never the private details.
-            for column in ("bio", "religion", "marital_status"):
+            # Religion is shown on the website's cards (agency's decision), published maids only…
+            assert one(c, "select religion from public.candidates where id=%s", (kenya,)) == "Christian"
+            # …but never the private details.
+            for column in ("bio", "marital_status"):
                 expect_denied(c, f"select {column} from public.candidates")
             expect_denied(c, "update public.candidates set video_id=null")
         finally:
