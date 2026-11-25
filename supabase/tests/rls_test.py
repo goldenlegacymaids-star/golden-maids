@@ -1907,6 +1907,54 @@ def main():
         assert one(c, "select count(*) from public.admin_audit_logs where entity_type='website_articles'") >= 5
     check("Website articles: staff write drafts (author fixed), admins publish/delete, guests read published only (not the author), Arabic all-or-nothing, cover pictures staff upload / admins delete", website_articles)
 
+    # --- website enquiries (public enquiry form) ----------------------------------
+    def website_enquiries():
+        live_code = one(c, "select code from public.candidates where is_published and archived_at is null order by code limit 1")
+        submit = ("select public.submit_website_enquiry(p_name=>%s, p_phone=>%s, p_need=>%s, p_emirate=>%s, "
+                  "p_candidate_code=>%s, p_message=>%s, p_lang=>'en', p_page=>'/en/hire/', p_consent=>%s)")
+        # A visitor sends an enquiry and only gets its reference back.
+        as_user(c, None)
+        try:
+            ref = one(c, submit, ("  Fatima Ali ", "050 123 4567", "nanny", "dubai", live_code.lower(), " Two children ", True))
+            assert ref.startswith("WE-"), ref
+            # …but can never read, change or delete enquiries, or write to the table directly.
+            expect_denied(c, "select * from public.website_enquiries")
+            expect_denied(c, "update public.website_enquiries set status='closed'")
+            expect_denied(c, "delete from public.website_enquiries")
+            expect_denied(c, "insert into public.website_enquiries (reference, name, phone) values ('X', 'Bot', '123456789')")
+            # Checks: consent, phone, allowed values.
+            expect_violation(c, submit, ("Fatima", "0501234567", "nanny", "dubai", None, None, False))
+            expect_violation(c, submit, ("Fatima", "12", "nanny", "dubai", None, None, True))
+            expect_violation(c, submit, ("Fatima", "0509999999", "astronaut", "dubai", None, None, True))
+            expect_violation(c, submit, ("Fatima", "0509999998", "nanny", "london", None, None, True))
+            expect_violation(c, submit, ("F", "0509999997", "nanny", "dubai", None, None, True))
+            # Same phone: at most 3 an hour.
+            for _ in range(2):
+                one(c, submit, ("Fatima Ali", "+971 50 123 4567", "nanny", "dubai", None, None, True))
+            expect_violation(c, submit, ("Fatima Ali", "00971501234567", "nanny", "dubai", None, None, True))
+        finally:
+            reset(c)
+        row = c.execute("select name, phone, need, candidate_id is not null, candidate_code, message, status from public.website_enquiries where reference=%s", (ref,)).fetchone()
+        assert row == ("Fatima Ali", "+971501234567", "nanny", True, live_code.upper(), "Two children", "new"), row
+        assert one(c, "select count(*) from public.staff_notifications where kind='website_enquiry.created'") >= 1
+        # A signed-in customer can submit too, but cannot read the list.
+        as_user(c, alice)
+        try:
+            one(c, submit, ("Alice", "0521112222", "housemaid", None, None, None, True))
+            assert one(c, "select count(*) from public.website_enquiries") == 0
+        finally:
+            reset(c)
+        # Recruitment staff read all and update status and note only.
+        as_user(c, rita)
+        try:
+            assert one(c, "select count(*) from public.website_enquiries") >= 4
+            c.execute("update public.website_enquiries set status='in_progress', staff_note='Called back' where reference=%s", (ref,))
+            expect_denied(c, "update public.website_enquiries set phone='000' where reference='" + ref + "'")
+        finally:
+            reset(c)
+        assert one(c, "select status from public.website_enquiries where reference=%s", (ref,)) == "in_progress"
+    check("Website enquiries: visitors submit through one function and get only a reference; checks and limits; no reading; staff manage status and notes", website_enquiries)
+
     # --- report ------------------------------------------------------------------
     c.close()
     print()
