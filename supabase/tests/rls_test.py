@@ -1512,6 +1512,29 @@ def main():
         finally:
             reset(c)
         assert one(c, "select has_video from public.candidates where id=%s", (kenya,)) is True
+        # Any other https link goes in video_url (and also counts as a video).
+        as_user(c, sam)
+        try:
+            for bad in ("http://gldws.ae/worker/video/612", "javascript:alert(1)", "https://bad link", "https://" + "a" * 500):
+                expect_violation(c, "update public.candidates set video_url=%s where id=%s", (bad, kenya))
+            c.execute("update public.candidates set video_id=null, video_url='https://gldws.ae/worker/video/612' where id=%s", (kenya,))
+            assert one(c, "select has_video from public.candidates where id=%s", (kenya,)) is True
+            c.execute("update public.candidates set video_url=null where id=%s", (kenya,))
+            assert one(c, "select has_video from public.candidates where id=%s", (kenya,)) is False
+            c.execute("update public.candidates set video_url='https://vimeo.com/76979871' where id=%s", (kenya,))
+        finally:
+            reset(c)
+        as_user(c, None)
+        try:
+            assert one(c, "select video_url from public.candidates where id=%s", (kenya,)) in ("https://vimeo.com/76979871", None)
+            expect_denied(c, "update public.candidates set video_url=null")
+        finally:
+            reset(c)
+        as_user(c, sam)
+        try:
+            c.execute("update public.candidates set video_url=null, video_id='dQw4w9WgXcQ' where id=%s", (kenya,))
+        finally:
+            reset(c)
         as_user(c, None)
         try:
             assert one(c, "select count(*) from public.candidates where has_video") >= 0
@@ -1538,7 +1561,7 @@ def main():
         finally:
             reset(c)
         assert one(c, "select has_video from public.candidates where id=%s", (kenya,)) is False
-    check("Video interview: only a YouTube video ID can be saved, by staff; guests can read it (website player) but not change it, and still not the private details", video_interview)
+    check("Video interview: a YouTube video ID or any https video link can be saved, by staff; guests can read it (website player) but not change it, and still not the private details", video_interview)
 
     # --- hire cards ------------------------------------------------------------------
     def hire_route_cards():
