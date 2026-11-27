@@ -134,7 +134,7 @@ class _SamplePainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
     canvas.drawPoints(PointMode.points, [
       for (var i = 0; i < 18; i++)
-        Offset(62, 48) +
+        const Offset(62, 48) +
             Offset.fromDirection(i * 6.283185307 / 18, 6),
     ], stamp);
     _text(canvas, 'SAMPLE', const Offset(48, 55), 4.5, _gray600,
