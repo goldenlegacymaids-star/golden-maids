@@ -439,7 +439,7 @@ class _HireActions extends ConsumerWidget {
         ),
         if (canHire) ...[
           const SizedBox(height: AppSpacing.xs),
-          Text(
+          const Text(
             'Hire sends a request in the app: choose a package, no payment '
             'is taken now. You can follow it in Requests.',
             style: AppTypography.bodySmall,
