@@ -88,6 +88,9 @@ class _Thumbnail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
+      // Its own node, so screen readers announce it as one button even
+      // inside a card.
+      container: true,
       button: true,
       label: 'Play video interview',
       excludeSemantics: true,
