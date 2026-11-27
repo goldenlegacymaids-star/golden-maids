@@ -134,7 +134,8 @@ void main() {
       await _openWanjiru(tester, auth: auth, candidates: withVideo);
 
       expect(find.text('Video interview'), findsWidgets);
-      await _scrollTo(tester, find.text('Open in YouTube'));
+      // The video has its own card below the header (as on the website).
+      await _scrollTo(tester, find.bySemanticsLabel('Play video interview'));
       expect(find.bySemanticsLabel('Play video interview'), findsOneWidget);
       expect(find.text('Open in YouTube'), findsOneWidget);
     });
