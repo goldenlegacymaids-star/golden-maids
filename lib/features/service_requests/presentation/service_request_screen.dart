@@ -84,12 +84,13 @@ class _BodyState extends ConsumerState<_Body> {
     }
   }
 
-  Future<void> _run(Future<void> Function() action, String done) async {
+  /// Runs [action], then shows [done] (if any) and reloads the page.
+  Future<void> _run(Future<void> Function() action, [String? done]) async {
     setState(() => _busy = true);
     try {
       await action();
       if (!mounted) return;
-      showAppSnackBar(context, done);
+      if (done != null) showAppSnackBar(context, done);
       await _reload();
     } on Object catch (error) {
       if (mounted) showErrorSnackBar(context, error);
@@ -106,7 +107,7 @@ class _BodyState extends ConsumerState<_Body> {
           .read(serviceRequestRepositoryProvider)
           .sendMessage(_request.id, text);
       _reply.clear();
-    }, 'Message sent.');
+    });
   }
 
   Future<void> _addFile() async {
