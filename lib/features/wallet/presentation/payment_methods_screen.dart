@@ -75,7 +75,7 @@ class PaymentMethodsScreen extends ConsumerWidget {
                 title: 'Card payments are coming soon',
                 message:
                     "You'll be able to save a Visa or Mastercard here and "
-                    'pay for bookings, hiring fees and deposits in the app.',
+                    'pay hiring fees and monthly maid payments in the app.',
               ),
             ),
             const SizedBox(height: AppSpacing.md),

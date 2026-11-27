@@ -46,7 +46,7 @@ class WelcomeScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: AppSpacing.xs),
                         Text(
-                          'Trusted domestic workers and home services, '
+                          'Trusted domestic workers for your family, '
                           'all in one place.',
                           style: AppTypography.bodyLarge.copyWith(
                             color: AppColors.textSecondary,

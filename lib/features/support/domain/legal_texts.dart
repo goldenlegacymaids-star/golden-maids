@@ -38,36 +38,31 @@ abstract final class LegalTexts {
 
   static const LegalDocument privacy = LegalDocument(
     title: 'Privacy Policy',
-    updated: '16 November 2026',
+    updated: '27 November 2026',
     sections: [
       LegalSection('Who we are', [
         '$_company ("Golden Maids", "we") provides domestic-worker '
-            'recruitment and home services in the United Arab Emirates and '
+            'recruitment in the United Arab Emirates and '
             'runs this app. This policy explains what personal data we '
             'collect through the app, why, and your choices.',
       ]),
       LegalSection('What we collect', [
         'Account details: your name, email address and phone number, and '
             'how you sign in.',
-        'Addresses you save or enter for a booking, with any directions.',
-        'Bookings: the service, date and time, hours, address, instructions '
-            'for our team and the payment method you choose.',
         'Hiring requests and questions about maids: the package and maid '
             'you choose, your contact details and messages, and, for the GCC '
             'sponsor package, your nationality.',
         'Maids you save, and the requests to delete your account.',
-        'We do not take card details in the app: you pay on completion, by '
-            'cash or card.',
+        'We do not take card details in the app.',
       ]),
       LegalSection('How we use it', [
-        'To create and secure your account, handle your bookings and hiring '
-            'requests, assign our staff, contact you about your requests, '
+        'To create and secure your account, handle your hiring requests, '
+            'contact you about your requests, '
             'answer your questions, keep records we are required to keep, '
             'and improve our services.',
       ]),
       LegalSection('Who sees it', [
-        'Our staff who handle your requests, and the professional assigned '
-            'to your booking, who receives the details needed to do the job.',
+        'Our staff who handle your requests.',
         'Service providers who host our systems or send sign-in codes and '
             'emails for us, under agreements to protect your data.',
         'Government authorities when the law requires it, for example for '
@@ -82,8 +77,8 @@ abstract final class LegalTexts {
       LegalSection('How long we keep it', [
         'We keep your data while your account is open. When you delete your '
             'account, we delete your sign-in and personal details and keep '
-            'only the records we must keep by law, such as past bookings and '
-            'hiring requests, without your name and contact details.',
+            'only the records we must keep by law, such as past hiring '
+            'requests, without your name and contact details.',
       ]),
       LegalSection('Your rights', [
         'Under UAE data protection law you may ask to see, correct or '
@@ -106,7 +101,7 @@ abstract final class LegalTexts {
 
   static const LegalDocument terms = LegalDocument(
     title: 'Terms and Conditions',
-    updated: '16 November 2026',
+    updated: '27 November 2026',
     sections: [
       LegalSection('About these terms', [
         'These terms apply when you use the Golden Maids app, run by '
@@ -116,22 +111,6 @@ abstract final class LegalTexts {
       LegalSection('Your account', [
         'Please give accurate details and keep your sign-in secure. You are '
             'responsible for requests made from your account.',
-      ]),
-      LegalSection('Home-service bookings', [
-        'A booking is a request until our team confirms it. The agency '
-            'assigns one of its own professionals.',
-        'Prices shown in the app are estimates; for some services our team '
-            'confirms the price with you. You pay on completion, by cash or '
-            'card.',
-        'Please make sure someone can let our professional in at the '
-            'booked time, and that the home is safe to work in.',
-      ]),
-      LegalSection('Cancelling and rescheduling', [
-        'You can cancel or reschedule free of charge in the app until the '
-            'time shown in your booking (24 hours before the start). After '
-            'that, please call us.',
-        'If we need to change or cancel a booking, we will tell you as '
-            'soon as possible.',
       ]),
       LegalSection('Hiring a domestic worker', [
         'A hiring request is not a contract. Hiring depends on the '

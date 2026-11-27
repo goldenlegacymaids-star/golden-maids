@@ -215,7 +215,7 @@ void main() {
 
       expect(find.text('Ref. GM-00001'), findsNothing);
       expect(
-        find.text('Sign in to manage your bookings and hiring requests.'),
+        find.text('Sign in to manage your hiring requests.'),
         findsOneWidget,
       );
     });

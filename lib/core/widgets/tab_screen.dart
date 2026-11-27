@@ -13,10 +13,14 @@ class TabScreen extends StatelessWidget {
     required this.title,
     required this.child,
     this.scrollable = true,
+    this.trailing,
   });
 
   final String title;
   final Widget child;
+
+  /// Optional widget at the right of the title (e.g. a "New" button).
+  final Widget? trailing;
 
   /// Set false when [child] scrolls by itself (e.g. contains a TabBarView).
   final bool scrollable;
@@ -33,9 +37,16 @@ class TabScreen extends StatelessWidget {
         AppSpacing.screenPadding,
         AppSpacing.md,
       ),
-      child: Semantics(
-        header: true,
-        child: Text(title, style: AppTypography.headlineMedium),
+      child: Row(
+        children: [
+          Expanded(
+            child: Semantics(
+              header: true,
+              child: Text(title, style: AppTypography.headlineMedium),
+            ),
+          ),
+          ?trailing,
+        ],
       ),
     );
 

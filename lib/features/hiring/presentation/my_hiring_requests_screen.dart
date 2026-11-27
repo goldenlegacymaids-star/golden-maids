@@ -13,28 +13,48 @@ import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_refresh_indicator.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/error_state.dart';
-import '../../../core/widgets/page_scaffold.dart';
+import '../../../core/widgets/tab_screen.dart';
+import '../../authentication/data/auth_providers.dart';
+import '../../authentication/presentation/widgets/sign_in_prompt.dart';
+import '../../visas/data/visa_repository.dart';
+import '../../visas/domain/visa_application.dart';
 import '../data/hiring_repository.dart';
 import '../domain/hiring_request.dart';
 import 'widgets/hiring_widgets.dart';
 
-/// Profile → My Hiring Requests.
+/// Requests tab: the customer's hiring requests, newest first.
 class MyHiringRequestsScreen extends ConsumerWidget {
   const MyHiringRequestsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final requests = ref.watch(myHiringRequestsProvider);
-    final bottomInset = MediaQuery.paddingOf(context).bottom;
+    final user =
+        ref.watch(authStateProvider).value ??
+        ref.watch(authRepositoryProvider).currentUser;
 
-    return PageScaffold(
-      title: 'My Hiring Requests',
+    if (user == null) {
+      return const TabScreen(
+        title: 'Requests',
+        child: SignInPrompt(
+          icon: Icons.assignment_rounded,
+          title: 'Sign in to see your requests',
+          message: 'Follow your hiring requests and their visa progress in '
+              'one place.',
+        ),
+      );
+    }
+
+    final requests = ref.watch(myHiringRequestsProvider);
+
+    return TabScreen(
+      title: 'Requests',
+      scrollable: false,
       trailing: TextButton.icon(
         onPressed: () => unawaited(context.push(AppRoutes.hire())),
         icon: const Icon(Icons.add_rounded),
         label: const Text('New'),
       ),
-      body: requests.when(
+      child: requests.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => SingleChildScrollView(
           child: ErrorState(
@@ -58,7 +78,9 @@ class MyHiringRequestsScreen extends ConsumerWidget {
           }
           return AppRefreshIndicator(
             onRefresh: () async {
-              ref.invalidate(myHiringRequestsProvider);
+              ref
+                ..invalidate(myHiringRequestsProvider)
+                ..invalidate(myVisaApplicationsProvider);
               try {
                 await ref.read(myHiringRequestsProvider.future);
               } on Object {
@@ -66,11 +88,11 @@ class MyHiringRequestsScreen extends ConsumerWidget {
               }
             },
             child: ListView.separated(
-              padding: EdgeInsets.fromLTRB(
+              padding: const EdgeInsets.fromLTRB(
                 AppSpacing.screenPadding,
                 AppSpacing.xs,
                 AppSpacing.screenPadding,
-                bottomInset + AppSpacing.xl,
+                AppSpacing.xl,
               ),
               itemCount: list.length,
               separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
@@ -84,13 +106,24 @@ class MyHiringRequestsScreen extends ConsumerWidget {
   }
 }
 
-class _RequestCard extends StatelessWidget {
+/// The visa application started for [request], if any.
+VisaApplication? _visaFor(List<VisaApplication> visas, HiringRequest request) {
+  for (final visa in visas) {
+    if (visa.hiringRequestId == request.id) return visa;
+  }
+  return null;
+}
+
+class _RequestCard extends ConsumerWidget {
   const _RequestCard({required this.request});
 
   final HiringRequest request;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final visas = ref.watch(myVisaApplicationsProvider).value ?? const [];
+    final visa = _visaFor(visas, request);
+
     return AppCard(
       onTap: () =>
           unawaited(context.push(AppRoutes.hiringRequest(request.id))),
@@ -121,6 +154,18 @@ class _RequestCard extends StatelessWidget {
               color: AppColors.textSecondary,
             ),
           ),
+          if (visa != null) ...[
+            const SizedBox(height: AppSpacing.xs),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: () =>
+                    unawaited(context.push(AppRoutes.visa(visa.id))),
+                icon: const Icon(Icons.flight_takeoff_rounded, size: 18),
+                label: const Text('Visa progress'),
+              ),
+            ),
+          ],
         ],
       ),
     );

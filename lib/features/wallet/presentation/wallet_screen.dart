@@ -210,7 +210,7 @@ class _BalanceCard extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            'Use it for bookings and hiring fees.',
+            'Use it for hiring fees and monthly maid payments.',
             style: AppTypography.bodySmall.copyWith(color: AppColors.white),
           ),
           const SizedBox(height: AppSpacing.md),
@@ -229,8 +229,8 @@ class _BalanceCard extends StatelessWidget {
                           : 'Top-ups are coming soon',
                       message:
                           "You'll be able to add money to your wallet by "
-                          'card (Visa, Mastercard) and use it for bookings '
-                          'and hiring fees.',
+                          'card (Visa, Mastercard) and use it for hiring '
+                          'fees and monthly maid payments.',
                     ),
                   ),
                 ),

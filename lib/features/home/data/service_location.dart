@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/uae.dart';
 import '../../../core/services/shared_preferences_provider.dart';
 
-/// The emirate the customer wants services in. Stored on the device.
+/// The emirate the customer needs a maid in. Stored on the device.
 /// (Saved addresses replace this in Phase 3.)
 class ServiceLocationNotifier extends Notifier<String> {
   static const String storageKey = 'service_location_emirate';

@@ -55,7 +55,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   Widget build(BuildContext context) {
     return AuthScaffold(
       title: 'Edit profile',
-      subtitle: 'This is the name we use on your bookings and contracts.',
+      subtitle: 'This is the name we use on your requests and contracts.',
       children: [
         Form(
           key: _formKey,

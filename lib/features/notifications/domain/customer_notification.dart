@@ -12,7 +12,8 @@ enum NotificationTopic {
 }
 
 /// An update from the agency (`public.customer_notifications`), written by
-/// the database when staff change a booking, hiring request or enquiry.
+/// the database when staff change a hiring request or enquiry (older
+/// notifications may be about home-service bookings).
 class CustomerNotification {
   const CustomerNotification({
     required this.id,

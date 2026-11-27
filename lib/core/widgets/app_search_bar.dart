@@ -14,7 +14,7 @@ class AppSearchBar extends StatelessWidget {
   const AppSearchBar({
     super.key,
     this.controller,
-    this.hint = 'Search for services or domestic workers...',
+    this.hint = 'Search maids by name, code or nationality...',
     this.onChanged,
     this.onSubmitted,
     this.onTap,

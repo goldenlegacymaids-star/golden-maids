@@ -113,7 +113,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
   Widget build(BuildContext context) {
     return AuthScaffold(
       title: 'Welcome back',
-      subtitle: 'Sign in to manage your bookings and hiring requests.',
+      subtitle: 'Sign in to manage your hiring requests.',
       children: [
         AuthMethodSwitch(
           value: _method,

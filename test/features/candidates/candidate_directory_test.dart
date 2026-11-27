@@ -83,7 +83,7 @@ void main() {
       await pumpTestApp(tester, auth: auth, candidates: candidates);
 
       expect(find.text('Featured Maids'), findsNothing);
-      expect(find.text('Categories'), findsOneWidget);
+      expect(find.text('Hire a Maid'), findsWidgets);
     });
   });
 
@@ -308,7 +308,7 @@ void main() {
       );
       expect(find.text('Sign in to view Wanjiru Kamau'), findsNothing);
       expect(
-        find.text('Sign in to manage your bookings and hiring requests.'),
+        find.text('Sign in to manage your hiring requests.'),
         findsOneWidget,
       );
     });

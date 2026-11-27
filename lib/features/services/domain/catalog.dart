@@ -186,6 +186,6 @@ class Promotion {
     'image_path': imagePath,
   };
 
-  bool get hasAction =>
-      ctaLabel.isNotEmpty && targetType != 'none' && targetValue != null;
+  /// Whether the banner shows its button (every offer opens the hire page).
+  bool get hasAction => ctaLabel.isNotEmpty;
 }

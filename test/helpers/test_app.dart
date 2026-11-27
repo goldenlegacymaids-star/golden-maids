@@ -8,7 +8,6 @@ import 'package:golden_maids/core/haptics/haptics.dart';
 import 'package:golden_maids/core/services/external_launcher.dart';
 import 'package:golden_maids/core/services/shared_preferences_provider.dart';
 import 'package:golden_maids/features/authentication/data/auth_providers.dart';
-import 'package:golden_maids/features/bookings/data/booking_repository.dart';
 import 'package:golden_maids/features/candidates/data/candidate_repository.dart';
 import 'package:golden_maids/features/documents/data/document_repository.dart';
 import 'package:golden_maids/features/documents/domain/customer_document.dart';
@@ -25,7 +24,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'fake_account_deletion_repository.dart';
 import 'fake_auth_repository.dart';
-import 'fake_booking_repository.dart';
 import 'fake_candidate_repository.dart';
 import 'fake_catalog_repository.dart';
 import 'fake_document_repository.dart';
@@ -45,7 +43,6 @@ Future<void> pumpTestApp(
   FakeCandidateRepository? candidates,
   FakeLauncher? launcher,
   FakeHiringRepository? hiring,
-  FakeBookingRepository? bookings,
   FakeAccountDeletionRepository? accountDeletion,
   FakeNotificationRepository? notifications,
   FakeDocumentRepository? documents,
@@ -89,9 +86,6 @@ Future<void> pumpTestApp(
         ),
         accountDeletionRepositoryProvider.overrideWithValue(
           accountDeletion ?? FakeAccountDeletionRepository(),
-        ),
-        bookingRepositoryProvider.overrideWithValue(
-          bookings ?? FakeBookingRepository(),
         ),
         notificationRepositoryProvider.overrideWithValue(
           notifications ?? FakeNotificationRepository(),

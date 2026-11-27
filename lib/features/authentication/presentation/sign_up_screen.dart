@@ -120,7 +120,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   Widget build(BuildContext context) {
     return AuthScaffold(
       title: 'Create your account',
-      subtitle: 'Book home services and hire trusted domestic workers.',
+      subtitle: 'Hire trusted domestic workers in the UAE.',
       children: [
         AuthMethodSwitch(
           value: _method,

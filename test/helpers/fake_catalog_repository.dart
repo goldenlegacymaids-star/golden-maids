@@ -68,11 +68,9 @@ class FakeCatalogRepository implements CatalogRepository {
     ),
     Promotion(
       id: 'p2',
-      title: 'Best Cleaning Service',
+      title: 'National Day Offer',
       discountPercent: 20,
-      ctaLabel: 'Book Now',
-      targetType: 'category',
-      targetValue: 'general-cleaning',
+      ctaLabel: 'Hire now',
     ),
   ];
 

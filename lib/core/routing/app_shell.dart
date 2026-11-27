@@ -16,9 +16,9 @@ class AppShell extends StatelessWidget {
       activeIcon: Icons.home_rounded,
     ),
     AppNavItem(
-      label: 'Bookings',
-      icon: Icons.calendar_today_outlined,
-      activeIcon: Icons.calendar_today_rounded,
+      label: 'Requests',
+      icon: Icons.assignment_outlined,
+      activeIcon: Icons.assignment_rounded,
     ),
     AppNavItem(
       label: 'Wallet',

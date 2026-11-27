@@ -20,7 +20,7 @@ import '../../wallet/data/wallet_repository.dart';
 import '../data/notification_repository.dart';
 import '../domain/customer_notification.dart';
 
-/// Home → bell: updates from the agency about the customer's bookings,
+/// Home → bell: updates from the agency about the customer's
 /// hiring requests and enquiries. Tapping one marks it read and opens it.
 class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
@@ -54,7 +54,7 @@ class NotificationsScreen extends ConsumerWidget {
             icon: Icons.notifications_none_rounded,
             title: 'Sign in to see updates',
             message:
-                "We'll let you know here when your bookings and hiring "
+                "We'll let you know here when your hiring "
                 'requests are updated.',
           ),
         ),
@@ -84,7 +84,7 @@ class NotificationsScreen extends ConsumerWidget {
                 icon: Icons.notifications_none_rounded,
                 title: 'No notifications yet',
                 message:
-                    "We'll let you know here when your bookings and hiring "
+                    "We'll let you know here when your hiring "
                     'requests are updated.',
               ),
             );
@@ -124,7 +124,6 @@ class _NotificationCard extends ConsumerWidget {
             .onError((_, _) {}),
       );
     }
-    final bookingId = n.bookingId;
     final requestId = n.hiringRequestId;
     final candidateId = n.candidateId;
     if (n.topic == NotificationTopic.document) {
@@ -136,8 +135,9 @@ class _NotificationCard extends ConsumerWidget {
     } else if (n.topic == NotificationTopic.wallet) {
       ref.invalidate(walletOverviewProvider);
       context.go(AppRoutes.wallet);
-    } else if (bookingId != null) {
-      context.go(AppRoutes.booking(bookingId));
+    } else if (n.topic == NotificationTopic.booking) {
+      // Home-service bookings are no longer offered: nothing to open.
+      return;
     } else if (requestId != null) {
       context.go(AppRoutes.hiringRequest(requestId));
     } else if (candidateId != null) {

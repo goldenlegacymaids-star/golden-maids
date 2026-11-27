@@ -39,7 +39,7 @@ class HomeHeader extends ConsumerWidget {
                   AppSpacing.xs,
                 ),
                 child: Text(
-                  'Where do you need services?',
+                  'Where do you need your maid?',
                   style: AppTypography.titleMedium,
                 ),
               ),

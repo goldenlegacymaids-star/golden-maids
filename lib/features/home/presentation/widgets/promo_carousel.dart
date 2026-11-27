@@ -92,15 +92,10 @@ class _CarouselState extends State<_Carousel> {
     super.dispose();
   }
 
+  /// Every offer opens the hire page: all maids, unfiltered (as on the
+  /// website).
   void _open(Promotion promotion) {
-    final slug = promotion.targetValue;
-    if (slug == null) return;
-    final route = switch (promotion.targetType) {
-      'category' => AppRoutes.category(slug),
-      'service' => AppRoutes.service(slug),
-      _ => null,
-    };
-    if (route != null) unawaited(context.push(route));
+    unawaited(context.push(AppRoutes.maids));
   }
 
   @override

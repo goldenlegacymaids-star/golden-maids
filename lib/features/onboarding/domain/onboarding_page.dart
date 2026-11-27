@@ -16,10 +16,10 @@ class OnboardingPage {
 const List<OnboardingPage> onboardingPages = [
   OnboardingPage(
     image: AppAssets.onboarding1,
-    title: 'Clean Space, Clear Mind, Peaceful Life Always.',
+    title: 'Hire a Trusted Maid in the UAE.',
     description:
-        'Professional cleaners, maids and caregivers for every part of your '
-        'home.',
+        'Full-time, live-in housemaids, nannies, cooks, drivers and '
+        'caregivers for your family.',
   ),
   OnboardingPage(
     image: AppAssets.onboarding2,
@@ -30,9 +30,9 @@ const List<OnboardingPage> onboardingPages = [
   ),
   OnboardingPage(
     image: AppAssets.onboarding3,
-    title: 'Book Your Favourite Home Services in Minutes.',
+    title: 'On Your Visa or Ours.',
     description:
-        "Choose a service, pick a time that suits you and we'll take care of "
-        'the rest.',
+        'Sponsor your maid on a two-year contract, or hire her on our visa '
+        'for a monthly fee. Follow every step in the app.',
   ),
 ];

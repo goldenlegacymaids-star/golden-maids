@@ -15,9 +15,9 @@ abstract final class AppRoutes {
 
   // Main tabs (bottom navigation)
   static const String home = '/home';
-  static const String bookings = '/bookings';
-  static String booking(String id) => '$bookings/$id';
-  static String rescheduleBooking(String id) => '$bookings/$id/reschedule';
+  /// Requests tab: the customer's hiring requests.
+  static const String hiringRequests = '/requests';
+  static String hiringRequest(String id) => '$hiringRequests/$id';
   static const String wallet = '/wallet';
   static const String profile = '/profile';
 
@@ -34,8 +34,6 @@ abstract final class AppRoutes {
         ? maids
         : Uri(path: maids, queryParameters: query).toString();
   }
-  static String category(String slug) => '/home/category/$slug';
-  static String service(String slug) => '/home/service/$slug';
 
   // Candidate profile: full screen, above the bottom navigation.
   static const String candidatePrefix = '/maid/';
@@ -43,10 +41,6 @@ abstract final class AppRoutes {
 
   /// Hiring form: full screen. With [candidateId], that maid is
   /// pre-selected.
-  /// Booking a home service (signed-in only).
-  static const String bookPrefix = '/book/';
-  static String book(String slug) => '$bookPrefix$slug';
-
   static const String hirePath = '/hire';
   static String hire({String? candidateId}) => candidateId == null
       ? hirePath
@@ -57,14 +51,15 @@ abstract final class AppRoutes {
   static const String savedMaids = '/profile/saved-maids';
   static const String myDocuments = '/profile/documents';
   static const String paymentMethods = '/profile/payment-methods';
-  static const String savedAddresses = '/profile/addresses';
   static const String helpCentre = '/profile/help';
   static const String privacyPolicy = '/profile/privacy';
   static const String terms = '/profile/terms';
-  static const String hiringRequests = '/profile/hiring-requests';
-  static String hiringRequest(String id) => '$hiringRequests/$id';
   static const String visas = '/profile/visas';
-  static String visa(String id) => '$visas/$id';
+
+  /// A visa application: full screen, so both Profile → My Visas and the
+  /// Requests tab can open it.
+  static const String visaPrefix = '/visa/';
+  static String visa(String id) => '$visaPrefix$id';
 
   /// Development screen showing every design-system component
   /// (not available in production builds).

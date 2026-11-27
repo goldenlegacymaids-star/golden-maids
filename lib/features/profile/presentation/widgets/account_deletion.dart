@@ -166,7 +166,7 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
           children: [
             const Text(
               'Our team will delete your sign-in and personal details. Past '
-              'bookings and hiring requests are kept for our records, without '
+              'hiring requests are kept for our records, without '
               'your name and contact details.\n\n'
               'You will be signed out now. If you change your mind, sign in '
               'again and withdraw the request before our team processes it.',

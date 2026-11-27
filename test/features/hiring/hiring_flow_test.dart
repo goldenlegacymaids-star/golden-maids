@@ -17,6 +17,7 @@ import '../../helpers/fake_auth_repository.dart';
 import '../../helpers/fake_candidate_repository.dart';
 import '../../helpers/fake_hiring_repository.dart';
 import '../../helpers/fake_profile_repository.dart';
+import '../../helpers/fake_visa_repository.dart';
 import '../../helpers/test_app.dart';
 
 const _profileTab = Icons.person_outline_rounded;
@@ -126,7 +127,7 @@ void main() {
       expect(draft.emirate, 'Dubai');
 
       await tapAndSettle(tester, find.text('View my requests'));
-      expect(find.text('My Hiring Requests'), findsOneWidget);
+      expect(find.text('Requests'), findsWidgets);
       expect(find.text('HR-2026-000001'), findsOneWidget);
       expect(find.text('Submitted'), findsOneWidget);
     });
@@ -383,6 +384,31 @@ void main() {
       hiring = FakeHiringRepository();
       await openRequests(tester);
       expect(find.text('No hiring requests yet'), findsOneWidget);
+    });
+
+    testWidgets('the Requests tab links a request to its visa progress', (
+      tester,
+    ) async {
+      hiring = FakeHiringRepository(
+        requests: [
+          FakeHiringRepository.sample(id: 'r-v1', reference: 'HR-2026-000004'),
+        ],
+      );
+      await pumpTestApp(
+        tester,
+        auth: auth,
+        candidates: candidates,
+        hiring: hiring,
+        profiles: _sarahProfile(),
+        visas: FakeVisaRepository(
+          applications: [FakeVisaRepository.abroad()],
+        ),
+      );
+      await openTab(tester, Icons.assignment_outlined);
+      expect(find.text('HR-2026-000004'), findsOneWidget);
+
+      await tapAndSettle(tester, find.text('Visa progress'));
+      expect(find.text('Ref. HR-2026-000004'), findsOneWidget);
     });
   });
 

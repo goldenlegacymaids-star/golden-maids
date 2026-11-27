@@ -81,8 +81,8 @@ class ProfileScreen extends ConsumerWidget {
                 child: SignInPrompt(
                   icon: Icons.person_rounded,
                   title: 'Sign in to your account',
-                  message: 'Manage your bookings, hiring requests, visa '
-                      'applications and documents.',
+                  message: 'Manage your hiring requests, visa applications '
+                      'and documents.',
                 ),
               )
             else ...[
@@ -93,11 +93,6 @@ class ProfileScreen extends ConsumerWidget {
                 title: 'My activity',
                 tiles: [
                   ProfileMenuTile(
-                    icon: Icons.calendar_today_rounded,
-                    title: 'My Bookings',
-                    onTap: () => context.go(AppRoutes.bookings),
-                  ),
-                  ProfileMenuTile(
                     icon: Icons.favorite_rounded,
                     title: 'Saved Maids',
                     onTap: () => unawaited(context.push(AppRoutes.savedMaids)),
@@ -105,8 +100,7 @@ class ProfileScreen extends ConsumerWidget {
                   ProfileMenuTile(
                     icon: Icons.assignment_ind_rounded,
                     title: 'My Hiring Requests',
-                    onTap: () =>
-                        unawaited(context.push(AppRoutes.hiringRequests)),
+                    onTap: () => context.go(AppRoutes.hiringRequests),
                   ),
                   ProfileMenuTile(
                     icon: Icons.flight_rounded,
@@ -129,12 +123,6 @@ class ProfileScreen extends ConsumerWidget {
               _MenuSection(
                 title: 'Account',
                 tiles: [
-                  ProfileMenuTile(
-                    icon: Icons.location_on_rounded,
-                    title: 'Saved Addresses',
-                    onTap: () =>
-                        unawaited(context.push(AppRoutes.savedAddresses)),
-                  ),
                   ProfileMenuTile(
                     icon: Icons.credit_card_rounded,
                     title: 'Payment Methods',

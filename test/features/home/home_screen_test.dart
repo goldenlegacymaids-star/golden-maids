@@ -23,7 +23,7 @@ void main() {
   });
   tearDown(() => auth.dispose());
 
-  testWidgets('shows greeting, logo, banners, categories and popular services', (
+  testWidgets('shows greeting, logo, banners, hiring a maid and featured maids', (
     tester,
   ) async {
     await pumpTestApp(tester, auth: auth, catalog: catalog);
@@ -32,35 +32,26 @@ void main() {
     expect(find.text('Hello, Sarah'), findsOneWidget);
     expect(find.byType(AppLogo), findsOneWidget);
     expect(find.text('Dubai, UAE'), findsOneWidget);
-    expect(find.text('What services do you want to use?'), findsOneWidget);
     expect(find.text('Find Your Perfect Maid'), findsOneWidget);
 
-    // Offers first, then search, hiring a maid and home services.
+    // Offers first, then search and hiring a maid.
     final offers = tester.getTopLeft(find.text('Find Your Perfect Maid')).dy;
     final search = tester.getTopLeft(find.byType(AppSearchBar)).dy;
     final hire = tester.getTopLeft(find.text('Hire a Maid')).dy;
-    final services = tester
-        .getTopLeft(find.text('What services do you want to use?'))
-        .dy;
     expect(offers, lessThan(search));
     expect(search, lessThan(hire));
-    expect(hire, lessThan(services));
-
-    await scrollHomeTo(tester, find.text('General Cleaning'));
-    expect(find.text('General Cleaning'), findsOneWidget);
-    expect(find.text('2-Year Maid Visa'), findsOneWidget);
 
     await scrollHomeTo(tester, find.text('Wanjiru Kamau'));
     expect(find.text('Featured Maids'), findsOneWidget);
     expect(find.text('Wanjiru Kamau'), findsOneWidget);
 
-    await scrollHomeTo(tester, find.text('AED 45 / hour'));
-    expect(find.text('Home Cleaning'), findsOneWidget);
-    expect(find.text('Price on request'), findsOneWidget);
-    expect(find.text('AED 45 / hour'), findsOneWidget);
+    // Home services are no longer offered.
+    expect(find.text('What services do you want to use?'), findsNothing);
+    expect(find.text('Popular Services'), findsNothing);
+    expect(find.text('General Cleaning'), findsNothing);
   });
 
-  testWidgets('an offer banner shows its percentage and opens its target', (
+  testWidgets('an offer banner shows its percentage and opens the hire page', (
     tester,
   ) async {
     await pumpTestApp(tester, auth: auth, catalog: catalog);
@@ -70,48 +61,17 @@ void main() {
     await settle(tester);
     expect(find.text('20% OFF'), findsOneWidget);
 
-    await tapAndSettle(tester, find.text('Book Now'));
-    expect(find.text('Move-In Cleaning'), findsOneWidget); // category page
+    await tapAndSettle(tester, find.text('Hire now'));
+    expect(find.text('Find a Maid'), findsOneWidget);
   });
 
-  testWidgets('a category opens its list of services', (tester) async {
-    await pumpTestApp(tester, auth: auth, catalog: catalog);
-
-    await tapAndSettle(tester, find.text('General Cleaning'));
-    expect(find.text('Regular home cleaning.'), findsOneWidget);
-    expect(find.text('Home Cleaning'), findsOneWidget);
-    expect(find.text('Move-In Cleaning'), findsOneWidget);
-    expect(find.text('Hourly Maid'), findsNothing);
-  });
-
-  testWidgets('service details show price, duration and how to book', (
-    tester,
-  ) async {
-    await pumpTestApp(tester, auth: auth, catalog: catalog);
-
-    await scrollHomeTo(tester, find.text('AED 45 / hour'));
-    await tapAndSettle(tester, find.text('AED 45 / hour'));
-    expect(find.text('Hourly Maid'), findsWidgets);
-    expect(find.text('AED 45 / hour'), findsOneWidget);
-    expect(find.text('2 h'), findsOneWidget);
-    expect(find.textContaining('You pay on completion'), findsOneWidget);
-    expect(find.textContaining('up to 24 hours before'), findsOneWidget);
-    expect(find.text('Book now'), findsOneWidget);
-  });
-
-  testWidgets('search finds services and can filter by category', (
+  testWidgets('search starts with a hint and a link to all maids', (
     tester,
   ) async {
     await pumpTestApp(tester, auth: auth, catalog: catalog);
 
     await tapAndSettle(tester, find.byType(TextField).first);
-    expect(find.text('Browse categories'), findsOneWidget);
-
-    await tester.enterText(find.byType(TextField), 'clean');
-    await settle(tester);
-    expect(find.text('2 results'), findsOneWidget);
-    expect(find.text('Home Cleaning'), findsOneWidget);
-    expect(find.text('Move-In Cleaning'), findsOneWidget);
+    expect(find.text('See all maids'), findsOneWidget);
 
     await tester.enterText(find.byType(TextField), 'xyz');
     await settle(tester);
@@ -176,13 +136,11 @@ void main() {
     await pumpTestApp(tester, auth: auth, catalog: catalog);
 
     expect(find.text('Try again'), findsWidgets);
-    expect(find.text('General Cleaning'), findsNothing);
+    expect(find.text('Find Your Perfect Maid'), findsNothing);
 
     catalog.failure = null;
     await tapAndSettle(tester, find.text('Try again').first);
-    await tapAndSettle(tester, find.text('Try again').first);
-    await tapAndSettle(tester, find.text('Try again').first);
-    expect(find.text('General Cleaning'), findsOneWidget);
+    expect(find.text('Find Your Perfect Maid'), findsOneWidget);
   });
 
   testWidgets('banners saved on the phone show at once, even offline', (

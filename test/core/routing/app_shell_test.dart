@@ -8,7 +8,7 @@ import '../../helpers/fake_auth_repository.dart';
 import '../../helpers/fake_profile_repository.dart';
 import '../../helpers/test_app.dart';
 
-const _bookingsIcon = Icons.calendar_today_outlined;
+const _requestsIcon = Icons.assignment_outlined;
 const _walletIcon = Icons.account_balance_wallet_outlined;
 const _profileIcon = Icons.person_outline_rounded;
 const _homeIcon = Icons.home_outlined;
@@ -40,10 +40,10 @@ void main() {
   testWidgets('the four tabs open their screens', (tester) async {
     await pumpTestApp(tester, auth: auth, profiles: profiles);
     expect(find.byType(HomeScreen), findsOneWidget);
-    expect(find.text('What services do you want to use?'), findsOneWidget);
+    expect(find.text('Hire a Maid'), findsWidgets);
 
-    await openTab(tester, _bookingsIcon);
-    expect(find.text('No upcoming bookings'), findsOneWidget);
+    await openTab(tester, _requestsIcon);
+    expect(find.text('No hiring requests yet'), findsOneWidget);
 
     await openTab(tester, _walletIcon);
     expect(find.text('Wallet balance'), findsOneWidget);
@@ -57,24 +57,24 @@ void main() {
     tester,
   ) async {
     await pumpTestApp(tester, auth: auth, profiles: profiles);
-    await openTab(tester, _bookingsIcon);
+    await openTab(tester, _profileIcon);
 
-    await tapAndSettle(tester, find.text('Completed'));
-    expect(find.text('No completed bookings'), findsOneWidget);
+    await tapAndSettle(tester, find.text('Help Centre'));
+    expect(find.text('Hiring a maid'), findsOneWidget);
 
     await openTab(tester, _homeIcon);
-    await openTab(tester, _bookingsIcon);
-    expect(find.text('No completed bookings'), findsOneWidget);
+    await openTab(tester, _profileIcon);
+    expect(find.text('Hiring a maid'), findsOneWidget);
   });
 
   testWidgets('guests see sign-in prompts on private tabs', (tester) async {
     auth = FakeAuthRepository();
     await pumpTestApp(tester, auth: auth);
     await tapAndSettle(tester, find.text('Continue as guest'));
-    expect(find.text('What services do you want to use?'), findsOneWidget);
+    expect(find.byType(HomeScreen), findsOneWidget);
 
-    await openTab(tester, _bookingsIcon);
-    expect(find.text('Sign in to see your bookings'), findsOneWidget);
+    await openTab(tester, _requestsIcon);
+    expect(find.text('Sign in to see your requests'), findsOneWidget);
 
     await openTab(tester, _walletIcon);
     expect(find.text('Sign in to use your wallet'), findsOneWidget);
@@ -97,8 +97,8 @@ void main() {
     await tapAndSettle(tester, find.text('My Contracts'));
     expect(find.text('Sarah Khan'), findsOneWidget); // still on Profile
 
-    await tapAndSettle(tester, find.text('My Bookings'));
-    expect(find.text('No upcoming bookings'), findsOneWidget);
+    await tapAndSettle(tester, find.text('My Hiring Requests'));
+    expect(find.text('No hiring requests yet'), findsOneWidget);
   });
 
   testWidgets('edit the profile name', (tester) async {
@@ -125,7 +125,7 @@ void main() {
     await tester.binding.handlePopRoute();
     await settle(tester);
 
-    expect(find.text('What services do you want to use?'), findsOneWidget);
+    expect(find.byType(HomeScreen), findsOneWidget);
   });
 
   testWidgets('log out from Profile after confirming', (tester) async {

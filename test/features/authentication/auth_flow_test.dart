@@ -34,7 +34,7 @@ void main() {
     expect(find.text('Welcome to Golden Maids'), findsOneWidget);
 
     await _tap(tester, find.text('Continue as guest'));
-    expect(find.text('What services do you want to use?'), findsOneWidget);
+    expect(find.byType(HomeScreen), findsOneWidget);
   });
 
   testWidgets('sign up with WhatsApp code', (tester) async {
@@ -54,7 +54,7 @@ void main() {
     await tester.enterText(find.byType(TextFormField), FakeAuthRepository.validCode);
     await _settle(tester);
 
-    expect(find.text('What services do you want to use?'), findsOneWidget);
+    expect(find.byType(HomeScreen), findsOneWidget);
   });
 
   testWidgets('wrong code shows an error and stays on the code screen', (
@@ -118,7 +118,7 @@ void main() {
 
     await tester.enterText(find.byType(TextFormField), FakeAuthRepository.validCode);
     await _settle(tester);
-    expect(find.text('What services do you want to use?'), findsOneWidget);
+    expect(find.byType(HomeScreen), findsOneWidget);
   });
 
   testWidgets('weak password and mismatched confirmation are rejected', (
@@ -152,7 +152,7 @@ void main() {
 
     await _enter(tester, 'Password', 'Secret123');
     await _tap(tester, find.widgetWithText(FilledButton, 'Sign In'));
-    expect(find.text('What services do you want to use?'), findsOneWidget);
+    expect(find.byType(HomeScreen), findsOneWidget);
   });
 
   testWidgets('reset a forgotten password with an emailed code', (
@@ -176,7 +176,7 @@ void main() {
     await _tap(tester, find.text('Save password'));
 
     expect(auth.lastPasswordSet, 'NewSecret1');
-    expect(find.text('What services do you want to use?'), findsOneWidget);
+    expect(find.byType(HomeScreen), findsOneWidget);
   });
 
   testWidgets('signed-in user stays signed in, can log out from Profile', (tester) async {
@@ -184,7 +184,7 @@ void main() {
       signedInUser: const AppUser(id: 'u1', fullName: 'Sarah Khan'),
     );
     await _startApp(tester, auth);
-    expect(find.text('What services do you want to use?'), findsOneWidget);
+    expect(find.byType(HomeScreen), findsOneWidget);
 
     await _tap(tester, find.byIcon(Icons.person_outline_rounded));
     await _tap(tester, find.text('Log Out'));
@@ -207,7 +207,7 @@ void main() {
     // (Home also greets signed-in users with "Welcome back", so the
     // sign-in screen is identified by its subtitle.)
     expect(
-      find.text('Sign in to manage your bookings and hiring requests.'),
+      find.text('Sign in to manage your hiring requests.'),
       findsNothing,
     );
   });

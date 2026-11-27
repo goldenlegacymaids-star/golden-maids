@@ -8,8 +8,6 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/page_scaffold.dart';
-import '../../bookings/data/booking_repository.dart';
-import '../../bookings/domain/booking.dart';
 import '../../candidates/presentation/candidate_profile_screen.dart';
 import '../domain/help_topics.dart';
 
@@ -19,9 +17,6 @@ class HelpCentreScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // The default rules are used until (or if) the live settings load.
-    final settings =
-        ref.watch(bookingSettingsProvider).value ?? const BookingSettings();
     final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     return PageScaffold(
@@ -35,7 +30,7 @@ class HelpCentreScreen extends ConsumerWidget {
         ),
         children: [
           const _ContactCard(),
-          for (final section in helpSections(settings)) ...[
+          for (final section in helpSections()) ...[
             const SizedBox(height: AppSpacing.lg),
             Semantics(
               header: true,
@@ -100,8 +95,7 @@ class _ContactCard extends ConsumerWidget {
           const Text('Need help?', style: AppTypography.titleMedium),
           const SizedBox(height: AppSpacing.xxs),
           const Text(
-            'Our team is happy to help with bookings, hiring and your '
-            'account.',
+            'Our team is happy to help with hiring, visas and your account.',
             style: AppTypography.bodyMedium,
           ),
           const SizedBox(height: AppSpacing.md),
