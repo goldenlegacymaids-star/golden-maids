@@ -178,7 +178,7 @@ void main() {
       expect(find.text('Find a Maid'), findsOneWidget);
       expect(candidates.searches.last.visa, VisaRoute.company);
       expect(find.text('4 candidates'), findsOneWidget);
-      expect(find.text('In the UAE · Available now'), findsWidgets);
+      expect(find.text('In the UAE'), findsWidgets);
 
       await _choose(
         tester,
@@ -187,10 +187,7 @@ void main() {
       );
       expect(find.text('1 candidate'), findsOneWidget);
       expect(find.text('Thandar Aung'), findsOneWidget);
-      expect(
-        find.text('Outside the UAE · Arrival on request'),
-        findsOneWidget,
-      );
+      expect(find.text('From abroad'), findsOneWidget);
       expect(candidates.searches.last.location, MaidLocation.outsideUae);
 
       await _choose(
@@ -357,7 +354,7 @@ void main() {
       await _openDirectory(tester);
 
       await tapAndSettle(tester, find.text('Maria Santos'));
-      expect(find.text('Ref. GM-00003'), findsOneWidget);
+      expect(find.text('Maid code GM-00003'), findsOneWidget);
       expect(find.text('Request Info'), findsOneWidget);
     });
   });

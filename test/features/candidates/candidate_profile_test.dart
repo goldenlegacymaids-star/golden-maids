@@ -83,10 +83,8 @@ void main() {
 
       // Scrolling puts the found row at the top, so each section is
       // reached by its first row and the rows below are then checked.
-      await _scrollTo(tester, find.text('Secondary school'));
-      expect(find.text('Christian'), findsOneWidget);
-      expect(find.text('Single'), findsOneWidget);
-
+      // Sections in the website's order: languages, history, details,
+      // packages, documents.
       await _scrollTo(tester, find.text('English'));
       expect(find.text('Swahili'), findsOneWidget);
       expect(find.text('Fluent'), findsNWidgets(2));
@@ -95,6 +93,10 @@ void main() {
       expect(find.text('2021 – 2024'), findsOneWidget);
       expect(find.text('Housemaid · Saudi Arabia'), findsOneWidget);
       expect(find.text('2018 – 2021'), findsOneWidget);
+
+      await _scrollTo(tester, find.text('Secondary school'));
+      expect(find.text('Christian'), findsOneWidget);
+      expect(find.text('Single'), findsOneWidget);
 
       await _scrollTo(tester, find.text('2-Year Contract – GCC Sponsor Visa'));
       // Monthly has no price yet; the 2-Year price is Wanjiru's (Kenya).
@@ -132,6 +134,7 @@ void main() {
       await _openWanjiru(tester, auth: auth, candidates: withVideo);
 
       expect(find.text('Video interview'), findsWidgets);
+      await _scrollTo(tester, find.text('Open in YouTube'));
       expect(find.bySemanticsLabel('Play video interview'), findsOneWidget);
       expect(find.text('Open in YouTube'), findsOneWidget);
     });
