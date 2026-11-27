@@ -18,6 +18,14 @@ abstract final class AppRoutes {
   /// Requests tab: the customer's hiring requests.
   static const String hiringRequests = '/requests';
   static String hiringRequest(String id) => '$hiringRequests/$id';
+
+  /// A service request (visa, replacement, NOC, …) in the Requests tab.
+  static String serviceRequest(String id) => '$hiringRequests/service/$id';
+
+  /// A new service request of a type (`travel_noc`, …): full screen.
+  static const String newServiceRequestPrefix = '/request/new/';
+  static String newServiceRequest(String type) =>
+      '$newServiceRequestPrefix$type';
   static const String wallet = '/wallet';
   static const String profile = '/profile';
 

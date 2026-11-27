@@ -383,7 +383,7 @@ void main() {
     testWidgets('an empty list explains how to start', (tester) async {
       hiring = FakeHiringRepository();
       await openRequests(tester);
-      expect(find.text('No hiring requests yet'), findsOneWidget);
+      expect(find.text('No requests yet'), findsOneWidget);
     });
 
     testWidgets('the Requests tab links a request to its visa progress', (

@@ -8,6 +8,12 @@ enum NotificationTopic {
   document,
   wallet,
   visa,
+
+  /// Service requests (visa, replacement, NOC, …).
+  request,
+
+  /// Receipts and invoices.
+  billing,
   other,
 }
 
@@ -24,6 +30,7 @@ class CustomerNotification {
     this.bookingId,
     this.hiringRequestId,
     this.candidateId,
+    this.serviceRequestId,
     this.readAt,
   });
 
@@ -37,6 +44,7 @@ class CustomerNotification {
         bookingId: json['booking_id'] as String?,
         hiringRequestId: json['hiring_request_id'] as String?,
         candidateId: json['candidate_id'] as String?,
+        serviceRequestId: json['service_request_id'] as String?,
         readAt: json['read_at'] == null
             ? null
             : DateTime.parse(json['read_at'] as String),
@@ -52,6 +60,7 @@ class CustomerNotification {
   final String? bookingId;
   final String? hiringRequestId;
   final String? candidateId;
+  final String? serviceRequestId;
   final DateTime? readAt;
 
   bool get isUnread => readAt == null;
@@ -63,6 +72,8 @@ class CustomerNotification {
     'document' => NotificationTopic.document,
     'wallet' => NotificationTopic.wallet,
     'visa' => NotificationTopic.visa,
+    'request' => NotificationTopic.request,
+    'billing' => NotificationTopic.billing,
     _ => NotificationTopic.other,
   };
 
@@ -75,6 +86,7 @@ class CustomerNotification {
     bookingId: bookingId,
     hiringRequestId: hiringRequestId,
     candidateId: candidateId,
+    serviceRequestId: serviceRequestId,
     readAt: readAt ?? at,
   );
 }

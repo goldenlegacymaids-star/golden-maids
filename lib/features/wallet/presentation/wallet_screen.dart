@@ -13,10 +13,16 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_refresh_indicator.dart';
+import '../../../core/widgets/app_snackbar.dart';
 import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/tab_screen.dart';
 import '../../authentication/data/auth_providers.dart';
 import '../../authentication/presentation/widgets/sign_in_prompt.dart';
+import '../../billing/data/billing_repository.dart';
+import '../../billing/domain/billing_document.dart';
+import '../../candidates/presentation/candidate_profile_screen.dart'
+    show openExternal;
+import '../../hiring/presentation/widgets/hiring_widgets.dart' show formatDay;
 import '../data/wallet_repository.dart';
 import '../domain/wallet.dart';
 import 'coming_soon_sheet.dart';
@@ -36,7 +42,8 @@ class WalletScreen extends ConsumerWidget {
     ref
       ..invalidate(walletOverviewProvider)
       ..invalidate(walletSwitchesProvider)
-      ..invalidate(savedCardsProvider);
+      ..invalidate(savedCardsProvider)
+      ..invalidate(myBillingDocumentsProvider);
     try {
       await ref.read(walletOverviewProvider.future);
     } on Object {
@@ -93,6 +100,7 @@ class WalletScreen extends ConsumerWidget {
                 switches: switches,
               ),
               const SizedBox(height: AppSpacing.lg),
+              const _BillingSection(),
               const Text('Activity', style: AppTypography.titleMedium),
               const SizedBox(height: AppSpacing.sm),
               ..._history(data?.history ?? const []),
@@ -381,6 +389,161 @@ class WalletEntryTile extends StatelessWidget {
                         ? AppColors.infoText
                         : AppColors.errorText,
                   ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Receipts and invoices the agency added; each opens its file.
+class _BillingSection extends ConsumerWidget {
+  const _BillingSection();
+
+  Future<void> _open(
+    BuildContext context,
+    WidgetRef ref,
+    BillingDocument document,
+  ) async {
+    try {
+      final url = await ref.read(billingRepositoryProvider).fileUrl(document);
+      if (!context.mounted) return;
+      await openExternal(
+        context,
+        ref,
+        Uri.parse(url),
+        failureMessage: "This document couldn't be opened.",
+      );
+    } on Object catch (error) {
+      if (context.mounted) showErrorSnackBar(context, error);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final documents = ref.watch(myBillingDocumentsProvider);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Receipts and invoices',
+            style: AppTypography.titleMedium,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          documents.when(
+            loading: () => const Center(
+              child: Padding(
+                padding: EdgeInsets.all(AppSpacing.sm),
+                child: CircularProgressIndicator(),
+              ),
+            ),
+            error: (error, _) => Text(
+              AppFailure.from(error).message,
+              style: AppTypography.bodySmall,
+            ),
+            data: (list) {
+              if (list.isEmpty) {
+                return const Text(
+                  'Receipts and invoices from the agency will appear here.',
+                  style: AppTypography.bodySmall,
+                );
+              }
+              return Column(
+                children: [
+                  for (final document in list)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+                      child: BillingDocumentTile(
+                        document: document,
+                        onOpen: () =>
+                            unawaited(_open(context, ref, document)),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A receipt or invoice: number, amount, date and (invoices) status.
+class BillingDocumentTile extends StatelessWidget {
+  const BillingDocumentTile({
+    super.key,
+    required this.document,
+    required this.onOpen,
+  });
+
+  final BillingDocument document;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final status = document.status;
+    final due = document.dueOn;
+    final statusColor = switch (status) {
+      InvoiceStatus.paid => AppColors.successText,
+      InvoiceStatus.unpaid => AppColors.warningText,
+      _ => AppColors.textSecondary,
+    };
+    return AppCard(
+      onTap: onOpen,
+      child: Row(
+        children: [
+          const CircleAvatar(
+            radius: 20,
+            backgroundColor: AppColors.lightBlue,
+            child: Icon(
+              Icons.receipt_long_rounded,
+              color: AppColors.primary,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${document.kind.label} ${document.number}',
+                  style: AppTypography.titleSmall,
+                ),
+                Text(
+                  [
+                    if (document.description.isNotEmpty) document.description,
+                    'Issued ${formatDay(document.issuedOn)}',
+                    if (due != null) 'Due ${formatDay(due)}',
+                  ].join(' · '),
+                  style: AppTypography.bodySmall,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.xs),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                walletAmount(document.amount),
+                style: AppTypography.titleSmall,
+              ),
+              if (status != null)
+                Text(
+                  status.label,
+                  style: AppTypography.labelSmall.copyWith(color: statusColor),
+                )
+              else
+                const Icon(
+                  Icons.download_rounded,
+                  size: 18,
+                  color: AppColors.primary,
                 ),
             ],
           ),

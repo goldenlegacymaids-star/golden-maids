@@ -16,15 +16,34 @@ import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/tab_screen.dart';
 import '../../authentication/data/auth_providers.dart';
 import '../../authentication/presentation/widgets/sign_in_prompt.dart';
+import '../../service_requests/data/service_request_repository.dart';
+import '../../service_requests/presentation/service_request_widgets.dart';
 import '../../visas/data/visa_repository.dart';
 import '../../visas/domain/visa_application.dart';
 import '../data/hiring_repository.dart';
 import '../domain/hiring_request.dart';
 import 'widgets/hiring_widgets.dart';
 
-/// Requests tab: the customer's hiring requests, newest first.
+/// Requests tab: everything the customer asked for. Hiring requests, then
+/// other requests (visa, replacement, NOC, …), newest first; "New" opens
+/// the list of request types.
 class MyHiringRequestsScreen extends ConsumerWidget {
   const MyHiringRequestsScreen({super.key});
+
+  Future<void> _refresh(WidgetRef ref) async {
+    ref
+      ..invalidate(myHiringRequestsProvider)
+      ..invalidate(myServiceRequestsProvider)
+      ..invalidate(myVisaApplicationsProvider);
+    try {
+      await Future.wait([
+        ref.read(myHiringRequestsProvider.future),
+        ref.read(myServiceRequestsProvider.future),
+      ]);
+    } on Object {
+      // Shown in place of the list.
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -38,69 +57,100 @@ class MyHiringRequestsScreen extends ConsumerWidget {
         child: SignInPrompt(
           icon: Icons.assignment_rounded,
           title: 'Sign in to see your requests',
-          message: 'Follow your hiring requests and their visa progress in '
-              'one place.',
+          message: 'Hire a maid, ask for a visa, NOC or certificate, and '
+              'follow every request in one place.',
         ),
       );
     }
 
-    final requests = ref.watch(myHiringRequestsProvider);
+    final hiring = ref.watch(myHiringRequestsProvider);
+    final services = ref.watch(myServiceRequestsProvider);
+    final error = hiring.hasValue
+        ? (services.hasValue ? null : services.error)
+        : hiring.error;
 
     return TabScreen(
       title: 'Requests',
       scrollable: false,
       trailing: TextButton.icon(
-        onPressed: () => unawaited(context.push(AppRoutes.hire())),
+        onPressed: () => unawaited(showNewRequestSheet(context)),
         icon: const Icon(Icons.add_rounded),
         label: const Text('New'),
       ),
-      child: requests.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => SingleChildScrollView(
-          child: ErrorState(
-            failure: AppFailure.from(error),
-            onRetry: () => ref.invalidate(myHiringRequestsProvider),
-          ),
-        ),
-        data: (list) {
-          if (list.isEmpty) {
+      child: Builder(
+        builder: (context) {
+          if (error != null) {
+            return SingleChildScrollView(
+              child: ErrorState(
+                failure: AppFailure.from(error),
+                onRetry: () => unawaited(_refresh(ref)),
+              ),
+            );
+          }
+          final hires = hiring.value;
+          final others = services.value;
+          if (hires == null || others == null) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (hires.isEmpty && others.isEmpty) {
             return SingleChildScrollView(
               child: EmptyState(
                 icon: Icons.assignment_ind_rounded,
-                title: 'No hiring requests yet',
+                title: 'No requests yet',
                 message:
-                    'Choose a maid and a package, and send us a request. '
-                    'You can follow its progress here.',
-                actionLabel: 'Find a Maid',
-                onAction: () => context.go(AppRoutes.maids),
+                    'Hire a maid, or ask us for a visa, a travel NOC, a '
+                    'certificate and more. You can follow each request here.',
+                actionLabel: 'New request',
+                onAction: () => unawaited(showNewRequestSheet(context)),
               ),
             );
           }
           return AppRefreshIndicator(
-            onRefresh: () async {
-              ref
-                ..invalidate(myHiringRequestsProvider)
-                ..invalidate(myVisaApplicationsProvider);
-              try {
-                await ref.read(myHiringRequestsProvider.future);
-              } on Object {
-                // Shown in place of the list.
-              }
-            },
-            child: ListView.separated(
+            onRefresh: () => _refresh(ref),
+            child: ListView(
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.screenPadding,
                 AppSpacing.xs,
                 AppSpacing.screenPadding,
                 AppSpacing.xl,
               ),
-              itemCount: list.length,
-              separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-              itemBuilder: (context, index) =>
-                  _RequestCard(request: list[index]),
+              children: [
+                if (hires.isNotEmpty) ...[
+                  const _SectionTitle('Hiring'),
+                  for (final request in hires) ...[
+                    _RequestCard(request: request),
+                    const SizedBox(height: AppSpacing.sm),
+                  ],
+                ],
+                if (others.isNotEmpty) ...[
+                  if (hires.isNotEmpty) const SizedBox(height: AppSpacing.xs),
+                  const _SectionTitle('Other requests'),
+                  for (final request in others) ...[
+                    ServiceRequestCard(request: request),
+                    const SizedBox(height: AppSpacing.sm),
+                  ],
+                ],
+              ],
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+      child: Semantics(
+        header: true,
+        child: Text(text, style: AppTypography.titleMedium),
       ),
     );
   }

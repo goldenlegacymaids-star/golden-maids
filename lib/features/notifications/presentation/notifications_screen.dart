@@ -15,6 +15,8 @@ import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/page_scaffold.dart';
 import '../../authentication/data/auth_providers.dart';
 import '../../authentication/presentation/widgets/sign_in_prompt.dart';
+import '../../billing/data/billing_repository.dart';
+import '../../service_requests/data/service_request_repository.dart';
 import '../../visas/data/visa_repository.dart';
 import '../../wallet/data/wallet_repository.dart';
 import '../data/notification_repository.dart';
@@ -126,7 +128,14 @@ class _NotificationCard extends ConsumerWidget {
     }
     final requestId = n.hiringRequestId;
     final candidateId = n.candidateId;
-    if (n.topic == NotificationTopic.document) {
+    final serviceRequestId = n.serviceRequestId;
+    if (serviceRequestId != null) {
+      ref.invalidate(serviceRequestDetailsProvider(serviceRequestId));
+      context.go(AppRoutes.serviceRequest(serviceRequestId));
+    } else if (n.topic == NotificationTopic.billing) {
+      ref.invalidate(myBillingDocumentsProvider);
+      context.go(AppRoutes.wallet);
+    } else if (n.topic == NotificationTopic.document) {
       await context.push(AppRoutes.myDocuments);
     } else if (n.topic == NotificationTopic.visa && requestId != null) {
       // The visa page finds its application by the hiring request.
@@ -155,6 +164,8 @@ class _NotificationCard extends ConsumerWidget {
       NotificationTopic.document => Icons.folder_rounded,
       NotificationTopic.wallet => Icons.account_balance_wallet_rounded,
       NotificationTopic.visa => Icons.flight_rounded,
+      NotificationTopic.request => Icons.assignment_rounded,
+      NotificationTopic.billing => Icons.receipt_long_rounded,
       NotificationTopic.other => Icons.notifications_none_rounded,
     };
     return Semantics(

@@ -8,6 +8,7 @@ import 'package:golden_maids/core/haptics/haptics.dart';
 import 'package:golden_maids/core/services/external_launcher.dart';
 import 'package:golden_maids/core/services/shared_preferences_provider.dart';
 import 'package:golden_maids/features/authentication/data/auth_providers.dart';
+import 'package:golden_maids/features/billing/data/billing_repository.dart';
 import 'package:golden_maids/features/candidates/data/candidate_repository.dart';
 import 'package:golden_maids/features/documents/data/document_repository.dart';
 import 'package:golden_maids/features/documents/domain/customer_document.dart';
@@ -17,6 +18,7 @@ import 'package:golden_maids/features/onboarding/data/onboarding_repository.dart
 import 'package:golden_maids/features/onboarding/presentation/splash_screen.dart';
 import 'package:golden_maids/features/profile/data/account_deletion_repository.dart';
 import 'package:golden_maids/features/profile/data/profile_repository.dart';
+import 'package:golden_maids/features/service_requests/data/service_request_repository.dart';
 import 'package:golden_maids/features/services/data/catalog_repository.dart';
 import 'package:golden_maids/features/visas/data/visa_repository.dart';
 import 'package:golden_maids/features/wallet/data/wallet_repository.dart';
@@ -24,12 +26,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'fake_account_deletion_repository.dart';
 import 'fake_auth_repository.dart';
+import 'fake_billing_repository.dart';
 import 'fake_candidate_repository.dart';
 import 'fake_catalog_repository.dart';
 import 'fake_document_repository.dart';
 import 'fake_hiring_repository.dart';
 import 'fake_notification_repository.dart';
 import 'fake_profile_repository.dart';
+import 'fake_service_request_repository.dart';
 import 'fake_visa_repository.dart';
 import 'fake_wallet_repository.dart';
 
@@ -48,6 +52,8 @@ Future<void> pumpTestApp(
   FakeDocumentRepository? documents,
   FakeWalletRepository? wallet,
   FakeVisaRepository? visas,
+  FakeServiceRequestRepository? serviceRequests,
+  FakeBillingRepository? billing,
   Future<PickedDocument?> Function()? pickDocument,
   Map<String, Object> preferences = const {},
   /// Records the app's vibrations instead of playing them.
@@ -98,6 +104,12 @@ Future<void> pumpTestApp(
         ),
         visaRepositoryProvider.overrideWithValue(
           visas ?? FakeVisaRepository(),
+        ),
+        serviceRequestRepositoryProvider.overrideWithValue(
+          serviceRequests ?? FakeServiceRequestRepository(),
+        ),
+        billingRepositoryProvider.overrideWithValue(
+          billing ?? FakeBillingRepository(),
         ),
         documentPickerProvider.overrideWithValue(
           pickDocument ?? () async => null,

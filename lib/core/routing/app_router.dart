@@ -28,6 +28,9 @@ import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../../features/onboarding/presentation/splash_screen.dart';
 import '../../features/profile/presentation/edit_profile_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
+import '../../features/service_requests/domain/service_request.dart';
+import '../../features/service_requests/presentation/new_service_request_screen.dart';
+import '../../features/service_requests/presentation/service_request_screen.dart';
 import '../../features/support/domain/legal_texts.dart';
 import '../../features/support/presentation/help_centre_screen.dart';
 import '../../features/support/presentation/legal_screen.dart';
@@ -60,6 +63,7 @@ bool _needsSignIn(String location) =>
     // Full candidate profiles and request details are for signed-in users.
     location.startsWith(AppRoutes.candidatePrefix) ||
     location.startsWith('${AppRoutes.hiringRequests}/') ||
+    location.startsWith(AppRoutes.newServiceRequestPrefix) ||
     location.startsWith('${AppRoutes.visas}/');
 
 /// Session-aware redirects:
@@ -149,6 +153,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             HireScreen(candidateId: state.uri.queryParameters['maid']),
       ),
       GoRoute(
+        path: '${AppRoutes.newServiceRequestPrefix}:type',
+        name: 'new-service-request',
+        // An unknown type goes back to the Requests tab.
+        redirect: (context, state) =>
+            ServiceRequestType.fromValue(state.pathParameters['type']) == null
+            ? AppRoutes.hiringRequests
+            : null,
+        builder: (context, state) => NewServiceRequestScreen(
+          type: ServiceRequestType.fromValue(state.pathParameters['type'])!,
+        ),
+      ),
+      GoRoute(
         path: '${AppRoutes.candidatePrefix}:id',
         name: 'candidate',
         builder: (context, state) =>
@@ -206,6 +222,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 name: 'hiring-requests',
                 builder: (context, state) => const MyHiringRequestsScreen(),
                 routes: [
+                  // Before ':id', so "service" is not read as a request id.
+                  GoRoute(
+                    path: 'service/:id',
+                    name: 'service-request',
+                    builder: (context, state) => ServiceRequestScreen(
+                      requestId: state.pathParameters['id']!,
+                    ),
+                  ),
                   GoRoute(
                     path: ':id',
                     name: 'hiring-request',

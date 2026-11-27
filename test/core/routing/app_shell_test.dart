@@ -43,7 +43,7 @@ void main() {
     expect(find.text('Hire a Maid'), findsWidgets);
 
     await openTab(tester, _requestsIcon);
-    expect(find.text('No hiring requests yet'), findsOneWidget);
+    expect(find.text('No requests yet'), findsOneWidget);
 
     await openTab(tester, _walletIcon);
     expect(find.text('Wallet balance'), findsOneWidget);
@@ -98,7 +98,7 @@ void main() {
     expect(find.text('Sarah Khan'), findsOneWidget); // still on Profile
 
     await tapAndSettle(tester, find.text('My Hiring Requests'));
-    expect(find.text('No hiring requests yet'), findsOneWidget);
+    expect(find.text('No requests yet'), findsOneWidget);
   });
 
   testWidgets('edit the profile name', (tester) async {
