@@ -1,19 +1,25 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/routing/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_network_image.dart';
 import '../../data/candidate_repository.dart';
 import '../../domain/candidate.dart';
+import '../maid_whatsapp.dart';
+import '../open_candidate.dart';
 import 'favourite_button.dart';
 import 'nationality_flag.dart';
-import 'video_interview.dart';
 
 /// "Housemaid · 34 yrs"
 String candidateSubtitle(Candidate candidate) {
@@ -371,8 +377,17 @@ class CandidateCard extends StatelessWidget {
   }
 }
 
-/// Horizontal row for the candidate directory.
-class CandidateListTile extends StatelessWidget {
+/// "6 years", "1 year" or "New", as on the website's maid cards.
+String cardExperience(int years) => switch (years) {
+  0 => 'New',
+  1 => '1 year',
+  _ => '$years years',
+};
+
+/// Maid card for lists (Find a Maid, Saved Maids, search), laid out like the
+/// website's phone card: photo on the left; name, job and nationality, four
+/// facts, then Hire (in the app), View CV (the profile) and WhatsApp.
+class CandidateListTile extends ConsumerWidget {
   const CandidateListTile({
     super.key,
     required this.candidate,
@@ -382,86 +397,289 @@ class CandidateListTile extends StatelessWidget {
 
   final Candidate candidate;
   final String? photoUrl;
+
+  /// Opens the profile (the card itself and "View CV").
   final VoidCallback onTap;
 
+  void _hire(BuildContext context, WidgetRef ref) {
+    if (!isSignedIn(ref)) {
+      showSignInSheet(context, title: 'Sign in to hire ${candidate.title}');
+      return;
+    }
+    unawaited(context.push(AppRoutes.hire(candidateId: candidate.id)));
+  }
+
   @override
-  Widget build(BuildContext context) {
-    final salary = salaryLabel(candidate);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final salary = candidate.expectedSalary;
+    final age = candidate.age;
+    final inUae = candidate.location == MaidLocation.inUae;
+    const photoRadius = BorderRadius.horizontal(
+      left: Radius.circular(AppRadius.lg),
+    );
 
     return AppCard(
       onTap: onTap,
-      padding: const EdgeInsets.all(AppSpacing.sm),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          CandidatePhoto(
-            url: photoUrl,
-            label: 'Photo of ${candidate.title}',
-            width: 88,
-            height: 104,
-            iconSize: 36,
-            borderRadius: AppRadius.mdAll,
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Wrap(
-                  spacing: AppSpacing.xs,
-                  runSpacing: AppSpacing.xxs,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    AvailabilityBadge(availability: candidate.availability),
-                    if (candidate.isTest) const TestTag(),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.xxs),
-                Text(
-                  candidate.title,
-                  style: AppTypography.titleSmall,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  candidateSubtitle(candidate),
-                  style: AppTypography.bodySmall,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                _NationalityLine(nationality: candidate.nationality),
-                const SizedBox(height: AppSpacing.xxs),
-                Wrap(
-                  spacing: AppSpacing.xxs,
-                  runSpacing: AppSpacing.xxs,
-                  children: [
-                    LocationBadge(candidate: candidate),
-                    if (candidate.hasVideo) const VideoBadge(),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.xxs),
-                Text(
-                  experienceLabel(candidate.yearsExperience),
-                  style: AppTypography.bodySmall,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (salary != null)
-                  Text(
-                    salary,
-                    style: AppTypography.labelMedium.copyWith(
-                      color: AppColors.primary,
+      padding: EdgeInsets.zero,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              flex: 38,
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: CandidatePhoto(
+                      url: photoUrl,
+                      label: 'Photo of ${candidate.title}',
+                      iconSize: 40,
+                      borderRadius: photoRadius,
                     ),
                   ),
-              ],
+                  if (candidate.hasVideo)
+                    const Positioned(
+                      left: AppSpacing.xs,
+                      top: AppSpacing.xs,
+                      child: _PlayBadge(),
+                    ),
+                  Positioned(
+                    right: 2,
+                    top: 2,
+                    child: FavouriteButton(
+                      candidateId: candidate.id,
+                      candidateTitle: candidate.title,
+                      size: 36,
+                    ),
+                  ),
+                  Positioned(
+                    left: AppSpacing.xs,
+                    right: AppSpacing.xs,
+                    bottom: AppSpacing.xs,
+                    child: Wrap(
+                      spacing: AppSpacing.xxs,
+                      runSpacing: AppSpacing.xxs,
+                      children: [
+                        if (candidate.isTest) const TestTag(),
+                        if (candidate.availability !=
+                            CandidateAvailability.available)
+                          AvailabilityBadge(
+                            availability: candidate.availability,
+                          ),
+                        _Pill(
+                          label: inUae ? 'In the UAE' : 'From abroad',
+                          background: inUae
+                              ? AppColors.successSoft
+                              : AppColors.warningSoft,
+                          foreground: inUae
+                              ? AppColors.successText
+                              : AppColors.warningText,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
+            Expanded(
+              flex: 62,
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.sm),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      candidate.title,
+                      style: AppTypography.titleMedium,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            candidate.designation,
+                            style: AppTypography.bodySmall,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.xs),
+                        NationalityFlag(
+                          nationality: candidate.nationality,
+                          height: 12,
+                        ),
+                        const SizedBox(width: AppSpacing.xxs),
+                        Flexible(
+                          child: Text(
+                            candidate.nationality,
+                            style: AppTypography.bodySmall.copyWith(
+                              color: AppColors.textPrimary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Divider(height: AppSpacing.md),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _Fact(
+                            label: 'Age',
+                            value: age == null ? '—' : '$age years',
+                          ),
+                        ),
+                        Expanded(
+                          child: _Fact(
+                            label: 'Experience',
+                            value: cardExperience(candidate.yearsExperience),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.xxs),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _Fact(
+                            label: 'Religion',
+                            value: candidate.religion ?? '—',
+                          ),
+                        ),
+                        Expanded(
+                          child: _Fact(
+                            label: 'Salary',
+                            value: salary == null
+                                ? '—'
+                                : '${Formatters.aed(salary)} / mo',
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Divider(height: AppSpacing.md),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: AppButton(
+                            label: 'Hire',
+                            compact: true,
+                            onPressed: () => _hire(context, ref),
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.xs),
+                        Expanded(
+                          child: AppButton(
+                            label: 'View CV',
+                            variant: AppButtonVariant.outline,
+                            compact: true,
+                            onPressed: onTap,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    WhatsAppButton(
+                      label: 'WhatsApp',
+                      height: 38,
+                      onPressed: () =>
+                          unawaited(openHireWhatsApp(context, ref, candidate)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// One of the four facts on a maid card: a small label over the value.
+class _Fact extends StatelessWidget {
+  const _Fact({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: AppTypography.labelSmall.copyWith(
+            color: AppColors.textSecondary,
           ),
-          FavouriteButton(
-            candidateId: candidate.id,
-            candidateTitle: candidate.title,
-            size: 36,
+        ),
+        Text(
+          value,
+          style: AppTypography.labelMedium.copyWith(
+            color: AppColors.textPrimary,
           ),
-        ],
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
+  }
+}
+
+/// Small rounded label on a coloured background.
+class _Pill extends StatelessWidget {
+  const _Pill({
+    required this.label,
+    required this.background,
+    required this.foreground,
+  });
+
+  final String label;
+  final Color background;
+  final Color foreground;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs, vertical: 3),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: AppRadius.pillAll,
+      ),
+      child: Text(
+        label,
+        style: AppTypography.labelSmall.copyWith(color: foreground),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
+}
+
+/// White "play" badge on a card photo: the maid has a video interview.
+class _PlayBadge extends StatelessWidget {
+  const _PlayBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: 'Has a video interview',
+      child: Container(
+        width: 30,
+        height: 22,
+        decoration: const BoxDecoration(
+          color: AppColors.white,
+          borderRadius: AppRadius.pillAll,
+        ),
+        child: const Icon(
+          Icons.play_arrow_rounded,
+          size: 16,
+          color: AppColors.textPrimary,
+        ),
       ),
     );
   }

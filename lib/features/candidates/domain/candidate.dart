@@ -142,6 +142,7 @@ class Candidate {
     this.isTest = false,
     this.location = MaidLocation.inUae,
     this.hasVideo = false,
+    this.religion,
   });
 
   factory Candidate.fromJson(Map<String, dynamic> json) {
@@ -169,6 +170,7 @@ class Candidate {
           MaidLocation.fromValue(json['location'] as String?) ??
           MaidLocation.inUae,
       hasVideo: json['has_video'] as bool? ?? false,
+      religion: json['religion'] as String?,
     );
   }
 
@@ -176,7 +178,8 @@ class Candidate {
   static const String cardColumns =
       'id, code, display_name, photo_path, nationality, age, designation, '
       'accommodation, years_experience, expected_salary, availability_status, '
-      'available_from, is_featured, is_test, location, has_video, created_at';
+      'available_from, is_featured, is_test, location, has_video, religion, '
+      'created_at';
 
   final String id;
 
@@ -210,6 +213,9 @@ class Candidate {
 
   /// Has a video interview (the video itself is on the profile).
   final bool hasVideo;
+
+  /// Shown on cards, as on the website (the agency's decision).
+  final String? religion;
 
   /// The name when allowed, otherwise the candidate code.
   String get title => displayName ?? code;

@@ -29,6 +29,7 @@ class FakeCandidateRepository implements CandidateRepository {
       expectedSalary: 1800,
       isFeatured: true,
       isTest: true,
+      religion: 'Christian',
     ),
     Candidate(
       id: 'm1',

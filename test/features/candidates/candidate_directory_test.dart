@@ -95,12 +95,51 @@ void main() {
       await _openDirectory(tester);
 
       expect(find.text('4 candidates'), findsOneWidget);
+      // Cards as on the website: name, job and nationality, four facts.
       expect(find.text('Wanjiru Kamau'), findsOneWidget);
-      expect(find.text('Thandar Aung'), findsOneWidget);
-      expect(find.text('Maria Santos'), findsOneWidget);
-      expect(find.text('GM-00004'), findsOneWidget);
+      expect(find.text('34 years'), findsOneWidget);
+      expect(find.text('Christian'), findsOneWidget);
+      expect(find.text('AED 1,800 / mo'), findsOneWidget);
+      expect(find.text('In the UAE'), findsWidgets);
+      expect(find.text('View CV'), findsWidgets);
+      await scrollTo(tester, find.text('Thandar Aung'));
       expect(find.text('Reserved'), findsOneWidget);
-      expect(find.text('9 yrs experience'), findsOneWidget);
+      expect(find.text('From abroad'), findsWidgets);
+      await scrollTo(tester, find.text('Maria Santos'));
+      expect(find.text('9 years'), findsOneWidget);
+      await scrollTo(tester, find.text('GM-00004'));
+      expect(find.text('GM-00004'), findsOneWidget);
+    });
+
+    testWidgets('a card opens WhatsApp saying it comes from the app', (
+      tester,
+    ) async {
+      final launcher = FakeLauncher();
+      await pumpTestApp(
+        tester,
+        auth: auth,
+        candidates: candidates,
+        launcher: launcher,
+      );
+      await _openDirectory(tester);
+
+      await tapAndSettle(tester, find.text('WhatsApp').first);
+      expect(
+        launcher.opened.single.queryParameters['text'],
+        'Hello Golden Legacy, I would like to hire Wanjiru Kamau '
+        '(maid code GM-00001).\n(Sent from the mobile app)',
+      );
+    });
+
+    testWidgets('a card\'s Hire button starts a hiring request', (
+      tester,
+    ) async {
+      await pumpTestApp(tester, auth: auth, candidates: candidates);
+      await _openDirectory(tester);
+
+      await tapAndSettle(tester, find.text('Hire').first);
+      // Wanjiru is chosen already: the form starts at the visa step.
+      expect(find.text('Step 1 of 3'), findsOneWidget);
     });
 
     testWidgets('nationality chips filter the list', (tester) async {

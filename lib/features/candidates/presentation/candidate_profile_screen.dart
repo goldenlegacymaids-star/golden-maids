@@ -4,7 +4,6 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 
 import '../../../core/constants/agency_contact.dart';
 import '../../../core/errors/app_failure.dart';
@@ -18,7 +17,6 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_card.dart';
-import '../../../core/widgets/app_chip.dart';
 import '../../../core/widgets/app_icon_button.dart';
 import '../../../core/widgets/app_snackbar.dart';
 import '../../../core/widgets/error_state.dart';
@@ -27,9 +25,9 @@ import '../data/candidate_repository.dart';
 import '../domain/candidate.dart';
 import '../domain/candidate_profile.dart';
 import 'enquiry_sheet.dart';
+import 'maid_whatsapp.dart';
 import 'widgets/candidate_cards.dart';
 import 'widgets/favourite_button.dart';
-import 'widgets/nationality_flag.dart';
 import 'widgets/video_interview.dart';
 
 /// Opens [uri] in another app, or explains that it could not.
@@ -92,6 +90,8 @@ class CandidateProfileScreen extends ConsumerWidget {
   }
 }
 
+/// Laid out like the website's maid page on a phone: photo, badges, name,
+/// four key facts and the hire buttons, then a card per section.
 class _ProfileBody extends ConsumerWidget {
   const _ProfileBody({required this.profile});
 
@@ -101,6 +101,13 @@ class _ProfileBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final candidate = profile.candidate;
     final repository = ref.watch(candidateRepositoryProvider);
+    final inUae = candidate.location == MaidLocation.inUae;
+    final age = candidate.age;
+    final subtitle = [
+      candidate.designation,
+      candidate.nationality,
+      if (age != null) '$age years',
+    ].join(' · ');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -114,76 +121,144 @@ class _ProfileBody extends ConsumerWidget {
               AppSpacing.xl,
             ),
             children: [
-              _Photo(
-                candidate: candidate,
-                url: repository.photoUrl(candidate.photoPath),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              Text(candidate.title, style: AppTypography.headlineSmall),
-              Text(
-                candidateSubtitle(candidate),
-                style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              if (candidate.displayName != null)
-                Text(
-                  'Ref. ${candidate.code}',
-                  style: AppTypography.bodySmall,
-                ),
-              const SizedBox(height: AppSpacing.md),
-              _Facts(candidate: candidate),
-              const SizedBox(height: AppSpacing.sm),
-              _WhereSheIs(candidate: candidate),
-              if (profile.videoId case final videoId?) ...[
-                const SizedBox(height: AppSpacing.lg),
-                const Text('Video interview', style: AppTypography.titleMedium),
-                const SizedBox(height: AppSpacing.sm),
-                VideoInterview(videoId: videoId),
-              ],
-              if (profile.bio.isNotEmpty) ...[
-                const _Heading('About'),
-                Text(profile.bio, style: AppTypography.bodyMedium),
-              ],
-              ..._details(profile),
-              if (profile.skills.isNotEmpty) ...[
-                const _Heading('Skills'),
-                Wrap(
-                  spacing: AppSpacing.xs,
-                  runSpacing: AppSpacing.xs,
+              AppCard(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    for (final skill in profile.skills)
-                      AppChip(label: skill.label, selected: false, onTap: null),
+                    _Photo(
+                      candidate: candidate,
+                      url: repository.photoUrl(candidate.photoPath),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    Wrap(
+                      spacing: AppSpacing.xs,
+                      runSpacing: AppSpacing.xs,
+                      children: [
+                        _Badge(
+                          label: inUae ? 'In the UAE' : 'From abroad',
+                          background: inUae
+                              ? AppColors.successSoft
+                              : AppColors.warningSoft,
+                          foreground: inUae
+                              ? AppColors.successText
+                              : AppColors.warningText,
+                        ),
+                        _Badge(
+                          label:
+                              candidate.availability ==
+                                  CandidateAvailability.available
+                              ? 'Available now'
+                              : candidate.availability.label,
+                        ),
+                        if (profile.videoId != null)
+                          const _Badge(
+                            label: 'Video interview',
+                            icon: Icons.play_arrow_rounded,
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Semantics(
+                      header: true,
+                      child: Text(
+                        '${candidate.title}, '
+                        '${candidate.designation.toLowerCase()} from '
+                        '${candidate.nationality}',
+                        style: AppTypography.headlineSmall,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xxs),
+                    Text(
+                      subtitle,
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    _Facts(candidate: candidate),
+                    const SizedBox(height: AppSpacing.sm),
+                    _WhereSheIs(candidate: candidate),
+                    const SizedBox(height: AppSpacing.md),
+                    _HireActions(profile: profile),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      'Maid code ${candidate.code}',
+                      style: AppTypography.bodySmall,
+                    ),
                   ],
                 ),
-              ],
-              if (profile.languages.isNotEmpty) ...[
-                const _Heading('Languages'),
-                for (final language in profile.languages)
-                  _InfoRow(
-                    label: language.language,
-                    value: language.proficiencyLabel,
+              ),
+              if (profile.videoId case final videoId?)
+                _Section(
+                  title: 'Video interview',
+                  child: VideoInterview(videoId: videoId),
+                ),
+              if (profile.bio.isNotEmpty)
+                _Section(
+                  title: 'About',
+                  child: Text(profile.bio, style: AppTypography.bodyMedium),
+                ),
+              if (profile.skills.isNotEmpty)
+                _Section(
+                  title: 'Skills',
+                  child: Wrap(
+                    spacing: AppSpacing.xs,
+                    runSpacing: AppSpacing.xs,
+                    children: [
+                      for (final skill in profile.skills)
+                        _Badge(label: skill.label, icon: Icons.check_rounded),
+                    ],
                   ),
-              ],
-              if (profile.experience.isNotEmpty) ...[
-                const _Heading('Work history'),
-                for (final job in profile.experience) _ExperienceTile(job: job),
-              ],
-              if (profile.packages.isNotEmpty) ...[
-                const _Heading('Available for'),
-                for (final package in profile.packages)
-                  _PackageTile(
-                    package: package,
-                    nationality: profile.candidate.nationality,
+                ),
+              if (profile.languages.isNotEmpty)
+                _Section(
+                  title: 'Languages',
+                  child: Column(
+                    children: [
+                      for (final language in profile.languages)
+                        _LanguageRow(language: language),
+                    ],
                   ),
-              ],
-              if (profile.documents.isNotEmpty) ...[
-                const _Heading('Documents'),
-                for (final document in profile.documents)
-                  _DocumentTile(document: document),
-              ],
-              const SizedBox(height: AppSpacing.lg),
-              _HireCard(profile: profile),
+                ),
+              if (profile.experience.isNotEmpty)
+                _Section(
+                  title: 'Work history',
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (final job in profile.experience)
+                        _ExperienceTile(job: job),
+                    ],
+                  ),
+                ),
+              _Section(
+                title: 'Details',
+                child: Column(children: _details(profile)),
+              ),
+              if (profile.packages.isNotEmpty)
+                _Section(
+                  title: 'Available for',
+                  child: Column(
+                    children: [
+                      for (final package in profile.packages)
+                        _PackageTile(
+                          package: package,
+                          nationality: profile.candidate.nationality,
+                        ),
+                    ],
+                  ),
+                ),
+              if (profile.documents.isNotEmpty)
+                _Section(
+                  title: 'Documents',
+                  child: Column(
+                    children: [
+                      for (final document in profile.documents)
+                        _DocumentTile(document: document),
+                    ],
+                  ),
+                ),
             ],
           ),
         ),
@@ -192,8 +267,16 @@ class _ProfileBody extends ConsumerWidget {
     );
   }
 
+  /// Job, Nationality, Age and Code (as on the website), then education,
+  /// religion and marital status when known.
   List<Widget> _details(CandidateProfile profile) {
-    final rows = [
+    final candidate = profile.candidate;
+    final age = candidate.age;
+    return [
+      _InfoRow(label: 'Job', value: candidate.designation),
+      _InfoRow(label: 'Nationality', value: candidate.nationality),
+      if (age != null) _InfoRow(label: 'Age', value: '$age years'),
+      _InfoRow(label: 'Code', value: candidate.code),
       if (profile.highestQualification case final value?)
         _InfoRow(label: 'Education', value: value),
       if (profile.religion case final value?)
@@ -201,7 +284,169 @@ class _ProfileBody extends ConsumerWidget {
       if (profile.maritalStatus case final value?)
         _InfoRow(label: 'Marital status', value: value),
     ];
-    return rows.isEmpty ? const [] : [const _Heading('Details'), ...rows];
+  }
+}
+
+/// A white card with a heading, like the website's profile sections.
+class _Section extends StatelessWidget {
+  const _Section({required this.title, required this.child});
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.md),
+      child: AppCard(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Semantics(
+              header: true,
+              child: Text(title, style: AppTypography.titleLarge),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            child,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Rounded label (blue by default), optionally with an icon.
+class _Badge extends StatelessWidget {
+  const _Badge({
+    required this.label,
+    this.icon,
+    this.background = AppColors.lightBlue,
+    this.foreground = AppColors.infoText,
+  });
+
+  final String label;
+  final IconData? icon;
+  final Color background;
+  final Color foreground;
+
+  @override
+  Widget build(BuildContext context) {
+    final leading = icon;
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xxs + 2,
+      ),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: AppRadius.pillAll,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (leading != null) ...[
+            Icon(leading, size: 16, color: foreground),
+            const SizedBox(width: AppSpacing.xxs),
+          ],
+          Flexible(
+            child: Text(
+              label,
+              style: AppTypography.labelMedium.copyWith(color: foreground),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A language with its level in a coloured label (fluent green, basic
+/// amber, good blue), as on the website.
+class _LanguageRow extends StatelessWidget {
+  const _LanguageRow({required this.language});
+
+  final CandidateLanguage language;
+
+  @override
+  Widget build(BuildContext context) {
+    final (background, foreground) = switch (language.proficiency) {
+      'fluent' => (AppColors.successSoft, AppColors.successText),
+      'basic' => (AppColors.warningSoft, AppColors.warningText),
+      _ => (AppColors.lightBlue, AppColors.infoText),
+    };
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+      child: AppCard(
+        bordered: true,
+        shadow: false,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(language.language, style: AppTypography.bodyLarge),
+            ),
+            _Badge(
+              label: language.proficiencyLabel,
+              background: background,
+              foreground: foreground,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Hire in the app (a hiring request) or on WhatsApp.
+class _HireActions extends ConsumerWidget {
+  const _HireActions({required this.profile});
+
+  final CandidateProfile profile;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final candidate = profile.candidate;
+    final canHire =
+        candidate.availability == CandidateAvailability.available &&
+        profile.packages.isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (canHire)
+          AppButton(
+            label: 'Hire ${candidate.title}',
+            icon: Icons.assignment_ind_rounded,
+            onPressed: () => unawaited(
+              context.push(AppRoutes.hire(candidateId: candidate.id)),
+            ),
+          )
+        else
+          Text(
+            '${candidate.title} is '
+            '${candidate.availability.label.toLowerCase()} at the moment. '
+            'Message us and we will suggest someone similar.',
+            style: AppTypography.bodySmall,
+          ),
+        const SizedBox(height: AppSpacing.xs),
+        WhatsAppButton(
+          label: 'Hire on WhatsApp',
+          onPressed: () => unawaited(openHireWhatsApp(context, ref, candidate)),
+        ),
+        if (canHire) ...[
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            'Hire sends a request in the app: choose a package, no payment '
+            'is taken now. You can follow it in Requests.',
+            style: AppTypography.bodySmall,
+          ),
+        ],
+      ],
+    );
   }
 }
 
@@ -221,17 +466,17 @@ class _Photo extends StatelessWidget {
             url: null,
             label: 'Photo of ${candidate.title}',
             width: double.infinity,
-            height: 300,
+            height: 340,
             iconSize: 96,
-            borderRadius: AppRadius.xlAll,
+            borderRadius: AppRadius.lgAll,
           )
         else
           // The whole photo, never cropped, over a soft blurred copy of it.
           ClipRRect(
-            borderRadius: AppRadius.xlAll,
+            borderRadius: AppRadius.lgAll,
             child: SizedBox(
               width: double.infinity,
-              height: 300,
+              height: 340,
               child: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -251,11 +496,6 @@ class _Photo extends StatelessWidget {
               ),
             ),
           ),
-        Positioned(
-          left: AppSpacing.sm,
-          top: AppSpacing.sm,
-          child: AvailabilityBadge(availability: candidate.availability),
-        ),
         if (candidate.isTest)
           const Positioned(
             right: AppSpacing.sm,
@@ -267,57 +507,30 @@ class _Photo extends StatelessWidget {
   }
 }
 
+/// Four key facts in soft tiles, as on the website: experience, expected
+/// salary, accommodation and where she is.
 class _Facts extends StatelessWidget {
   const _Facts({required this.candidate});
 
   final Candidate candidate;
 
-  static final DateFormat _date = DateFormat('d MMM yyyy');
-
-  String _availableFrom() {
-    final date = candidate.availableFrom;
-    final today = DateUtils.dateOnly(DateTime.now());
-    if (date == null || !date.isAfter(today)) return 'Now';
-    return _date.format(date);
-  }
-
   @override
   Widget build(BuildContext context) {
     final salary = candidate.expectedSalary;
-    final age = candidate.age;
-    Widget icon(IconData data) =>
-        Icon(data, size: 20, color: AppColors.primary);
-    final facts = <(Widget, String, String)>[
+    final facts = <(String, String)>[
+      ('Experience', cardExperience(candidate.yearsExperience)),
       (
-        NationalityFlag(nationality: candidate.nationality, height: 16),
-        'Nationality',
-        candidate.nationality,
-      ),
-      if (age != null) (icon(Icons.cake_rounded), 'Age', '$age years'),
-      (
-        icon(Icons.work_history_rounded),
-        'Experience',
-        candidate.yearsExperience == 0
-            ? 'None'
-            : '${candidate.yearsExperience} '
-                  '${candidate.yearsExperience == 1 ? 'year' : 'years'}',
+        'Expected salary',
+        salary == null ? '—' : '${Formatters.aed(salary)} / mo',
       ),
       (
-        icon(Icons.home_rounded),
         'Accommodation',
         candidate.accommodation == 'live_out' ? 'Live-out' : 'Live-in',
       ),
       (
-        icon(Icons.event_available_rounded),
-        'Available from',
-        _availableFrom(),
+        'Where she is',
+        candidate.location == MaidLocation.inUae ? 'In the UAE' : 'From abroad',
       ),
-      if (salary != null)
-        (
-          icon(Icons.payments_rounded),
-          'Expected salary',
-          Formatters.aed(salary),
-        ),
     ];
 
     return LayoutBuilder(
@@ -327,53 +540,36 @@ class _Facts extends StatelessWidget {
           spacing: AppSpacing.sm,
           runSpacing: AppSpacing.sm,
           children: [
-            for (final (leading, label, value) in facts)
-              SizedBox(
+            for (final (label, value) in facts)
+              Container(
                 width: width,
-                child: AppCard(
-                  padding: const EdgeInsets.all(AppSpacing.sm),
-                  child: Row(
-                    children: [
-                      SizedBox(width: 24, child: Center(child: leading)),
-                      const SizedBox(width: AppSpacing.xs),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(label, style: AppTypography.labelSmall),
-                            Text(
-                              value,
-                              style: AppTypography.titleSmall,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
+                padding: const EdgeInsets.all(AppSpacing.sm),
+                decoration: const BoxDecoration(
+                  color: AppColors.veryLightBlue,
+                  borderRadius: AppRadius.mdAll,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: AppTypography.labelSmall.copyWith(
+                        color: AppColors.textSecondary,
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      value,
+                      style: AppTypography.titleSmall,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
               ),
           ],
         );
       },
-    );
-  }
-}
-
-class _Heading extends StatelessWidget {
-  const _Heading(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: AppSpacing.xl, bottom: AppSpacing.xs),
-      child: Semantics(
-        header: true,
-        child: Text(text, style: AppTypography.titleMedium),
-      ),
     );
   }
 }
@@ -549,51 +745,6 @@ class _DocumentTile extends ConsumerWidget {
   }
 }
 
-class _HireCard extends StatelessWidget {
-  const _HireCard({required this.profile});
-
-  final CandidateProfile profile;
-
-  @override
-  Widget build(BuildContext context) {
-    final candidate = profile.candidate;
-    final canHire =
-        candidate.availability == CandidateAvailability.available &&
-        profile.packages.isNotEmpty;
-
-    return AppCard(
-      color: AppColors.lightBlue,
-      shadow: false,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Text('Hire this maid', style: AppTypography.titleMedium),
-          const SizedBox(height: AppSpacing.xxs),
-          Text(
-            canHire
-                ? 'Choose a package and send a hiring request. No payment '
-                      'is taken now.'
-                : '${candidate.title} is ${candidate.availability.label.toLowerCase()} '
-                      'at the moment. Send a request below and we will '
-                      'suggest someone similar.',
-            style: AppTypography.bodySmall,
-          ),
-          if (canHire) ...[
-            const SizedBox(height: AppSpacing.sm),
-            AppButton(
-              label: 'Hire ${candidate.title}',
-              icon: Icons.assignment_ind_rounded,
-              onPressed: () => unawaited(
-                context.push(AppRoutes.hire(candidateId: candidate.id)),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
 /// Call, WhatsApp, Email and Request Info, always visible at the bottom.
 class _ContactBar extends ConsumerWidget {
   const _ContactBar({required this.candidate});
@@ -653,7 +804,7 @@ class _ContactBar extends ConsumerWidget {
                     context,
                     ref,
                     AgencyContact.whatsAppUri(
-                      "Hello, I'm interested in ${candidate.code}.",
+                      enquiryWhatsAppMessage(candidate),
                     ),
                     failureMessage: "WhatsApp couldn't be opened.",
                   ),

@@ -102,7 +102,7 @@ class CandidateProfile {
 
   /// Columns read for the profile, in addition to the card columns.
   static const String profileColumns =
-      '${Candidate.cardColumns}, bio, highest_qualification, religion, '
+      '${Candidate.cardColumns}, bio, highest_qualification, '
       'marital_status, video_id';
 
   final Candidate candidate;

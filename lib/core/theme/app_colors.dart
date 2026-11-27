@@ -31,6 +31,10 @@ abstract final class AppColors {
   static const Color warningSoft = Color(0xFFFDF1D6);
   static const Color warningText = Color(0xFF7A4B00);
 
+  /// WhatsApp buttons (as on the website), with dark text for contrast.
+  static const Color whatsApp = Color(0xFF25D366);
+  static const Color onWhatsApp = Color(0xFF0B2E1A);
+
   /// Golden accent. Only for the logo sparkle and small highlights such as
   /// rating stars. Never use it as a background.
   static const Color gold = warning;

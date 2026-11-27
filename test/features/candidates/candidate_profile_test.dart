@@ -34,7 +34,7 @@ Future<void> _openWanjiru(
     profiles: profiles,
   );
   await tapAndSettle(tester, find.text('Wanjiru Kamau'));
-  expect(find.text('Ref. GM-00001'), findsOneWidget);
+  expect(find.text('Maid code GM-00001'), findsOneWidget);
 }
 
 /// Scrolls the profile until [finder] is on screen.
@@ -68,12 +68,18 @@ void main() {
     ) async {
       await _openWanjiru(tester, auth: auth, candidates: candidates);
 
+      // Laid out like the website: badges, name, key facts, hire buttons.
       expect(find.text('Wanjiru Kamau'), findsWidgets);
-      expect(find.text('Housemaid · 34 yrs'), findsOneWidget);
-      expect(find.text('Kenya'), findsOneWidget);
+      expect(find.text('In the UAE'), findsWidgets);
+      expect(find.text('Available now'), findsOneWidget);
+      expect(find.text('Wanjiru Kamau, housemaid from Kenya'), findsOneWidget);
+      expect(find.text('Housemaid · Kenya · 34 years'), findsOneWidget);
       expect(find.text('6 years'), findsOneWidget);
-      expect(find.text('AED 1,800'), findsOneWidget);
+      expect(find.text('AED 1,800 / mo'), findsOneWidget);
+      expect(find.text('Live-in'), findsOneWidget);
       expect(find.text('TEST'), findsOneWidget);
+      expect(find.text('Hire Wanjiru Kamau'), findsOneWidget);
+      expect(find.text('Hire on WhatsApp'), findsOneWidget);
 
       // Scrolling puts the found row at the top, so each section is
       // reached by its first row and the rows below are then checked.
@@ -96,8 +102,27 @@ void main() {
       expect(find.text('AED 15,000'), findsOneWidget);
 
       await _scrollTo(tester, find.text('Housekeeping certificate'));
-      await _scrollTo(tester, find.text('Hire this maid'));
-      expect(find.text('Hire Wanjiru Kamau'), findsOneWidget);
+      expect(find.text('Housekeeping certificate'), findsOneWidget);
+    });
+
+    testWidgets('Hire on WhatsApp says the message comes from the app', (
+      tester,
+    ) async {
+      await _openWanjiru(
+        tester,
+        auth: auth,
+        candidates: candidates,
+        launcher: launcher,
+      );
+
+      await tapAndSettle(tester, find.text('Hire on WhatsApp'));
+      final whatsApp = launcher.opened.last;
+      expect(whatsApp.host, 'wa.me');
+      expect(
+        whatsApp.queryParameters['text'],
+        'Hello Golden Legacy, I would like to hire Wanjiru Kamau '
+        '(maid code GM-00001).\n(Sent from the mobile app)',
+      );
     });
 
     testWidgets('a video interview shows when the maid has one', (
@@ -158,7 +183,8 @@ void main() {
       expect(whatsApp.path, '/97143234393');
       expect(
         whatsApp.queryParameters['text'],
-        "Hello, I'm interested in GM-00001.",
+        'Hello Golden Legacy, I am interested in Wanjiru Kamau '
+        '(maid code GM-00001).\n(Sent from the mobile app)',
       );
 
       await tapAndSettle(tester, find.byTooltip('Email'));
@@ -213,7 +239,7 @@ void main() {
       GoRouter.of(context).go(AppRoutes.candidate('k1'));
       await settle(tester);
 
-      expect(find.text('Ref. GM-00001'), findsNothing);
+      expect(find.text('Maid code GM-00001'), findsNothing);
       expect(
         find.text('Sign in to manage your hiring requests.'),
         findsOneWidget,
