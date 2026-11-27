@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_maids/features/authentication/domain/auth_repository.dart';
 import 'package:golden_maids/features/documents/domain/customer_document.dart';
+import 'package:golden_maids/features/documents/presentation/document_sample.dart';
 
 import '../../helpers/fake_auth_repository.dart';
 import '../../helpers/fake_document_repository.dart';
@@ -53,6 +54,13 @@ void main() {
 
     expect(find.textContaining('Only you and the Golden Maids'), findsOneWidget);
     expect(find.text('Emirates ID'), findsOneWidget);
+    // Each card shows a sample drawing of its document.
+    expect(
+      find.byWidgetPredicate(
+        (w) => w is DocumentSample && w.type == DocumentType.emiratesId,
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Approved'), findsOneWidget);
     expect(find.text('Passport copy'), findsOneWidget);
     expect(find.text('Needs a new copy'), findsOneWidget);

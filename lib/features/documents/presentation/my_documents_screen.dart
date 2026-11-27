@@ -21,6 +21,7 @@ import '../../candidates/presentation/candidate_profile_screen.dart'
     show openExternal;
 import '../data/document_repository.dart';
 import '../domain/customer_document.dart';
+import 'document_sample.dart';
 
 final _uploadedOn = DateFormat('d MMM yyyy');
 
@@ -238,18 +239,7 @@ class _DocumentCardState extends ConsumerState<DocumentCard> {
         children: [
           Row(
             children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: const BoxDecoration(
-                  color: AppColors.lightBlue,
-                  borderRadius: AppRadius.smAll,
-                ),
-                child: const Icon(
-                  Icons.description_rounded,
-                  color: AppColors.primary,
-                ),
-              ),
+              DocumentSample(type: widget.type),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Column(
