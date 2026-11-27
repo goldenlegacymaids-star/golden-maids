@@ -55,11 +55,7 @@ abstract final class AppRoutes {
   static const String privacyPolicy = '/profile/privacy';
   static const String terms = '/profile/terms';
   static const String visas = '/profile/visas';
-
-  /// A visa application: full screen, so both Profile → My Visas and the
-  /// Requests tab can open it.
-  static const String visaPrefix = '/visa/';
-  static String visa(String id) => '$visaPrefix$id';
+  static String visa(String id) => '$visas/$id';
 
   /// Development screen showing every design-system component
   /// (not available in production builds).

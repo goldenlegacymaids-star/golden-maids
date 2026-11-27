@@ -60,7 +60,7 @@ bool _needsSignIn(String location) =>
     // Full candidate profiles and request details are for signed-in users.
     location.startsWith(AppRoutes.candidatePrefix) ||
     location.startsWith('${AppRoutes.hiringRequests}/') ||
-    location.startsWith(AppRoutes.visaPrefix);
+    location.startsWith('${AppRoutes.visas}/');
 
 /// Session-aware redirects:
 /// - signed-in users never see the welcome / sign-in / sign-up screens;
@@ -147,12 +147,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'hire',
         builder: (context, state) =>
             HireScreen(candidateId: state.uri.queryParameters['maid']),
-      ),
-      GoRoute(
-        path: '${AppRoutes.visaPrefix}:id',
-        name: 'visa',
-        builder: (context, state) =>
-            VisaApplicationScreen(id: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '${AppRoutes.candidatePrefix}:id',
@@ -254,6 +248,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     name: 'visas',
                     builder: (context, state) =>
                         const MyVisaApplicationsScreen(),
+                    routes: [
+                      GoRoute(
+                        path: ':id',
+                        name: 'visa',
+                        builder: (context, state) => VisaApplicationScreen(
+                          id: state.pathParameters['id']!,
+                        ),
+                      ),
+                    ],
                   ),
                   GoRoute(
                     path: 'payment-methods',
